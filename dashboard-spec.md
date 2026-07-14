@@ -1,0 +1,318 @@
+# Personal dashboard: product spec
+
+A single-user web app that answers one question every time you open it: what should I be doing right now?
+
+Everything else in the app exists to make that answer correct.
+
+## Design principles
+
+1. **Items and blocks are different things, and each gets its own place.** An item is a thing that exists ("Calc problem set 7.3, due Thursday"). It lives in the todo list. A block is a chunk of time where you work on it. It lives on the schedule. The todo list answers "what do I owe." The schedule answers "when am I doing it." Claude proposes blocks. You own them.
+2. **Never stomp on a human edit.** If you move something, it stays moved. The planner only touches blocks it created and you haven't touched.
+3. **The AI explains itself.** Every scheduled block carries a one-line reason. A schedule you can interrogate is a schedule you'll follow.
+4. **Read-only first.** Calendar and school feeds are mirrors. The app never writes back to Google Calendar or Canvas until you explicitly ask it to.
+5. **Big things get broken down.** A project isn't schedulable; its steps are. Claude decomposes a multi-hour project into ordered steps, and schedules the steps across days so nothing waits for the night before. You can edit the breakdown.
+6. **The model gets verbs, not a database.** Claude reaches the app through a handful of narrow MCP tools, and every write is validated before it lands. A hallucinated timestamp should be a rejected proposal, not a corrupted day.
+7. **Estimates learn from you.** Every estimate starts as a default and drifts toward how long things actually take, measured from your own completed work.
+8. **Boring beats clever.** No block editor, no plugin system, no formula language. A fixed set of pages, laid out the same way every time.
+
+## Data model
+
+```
+users        id, email, timezone, working_hours_json, planner_prefs_json
+
+sources      id, kind ('gcal' | 'ics' | 'manual'), label, url_secret,
+             last_synced_at, last_error, enabled
+
+items        id, source_id, external_id, parent_id, title, description,
+             course, due_at, priority ('low'|'normal'|'high'),
+             est_minutes, remaining_minutes, actual_minutes,
+             is_project, step_order,
+             status ('open'|'done'|'archived'), origin ('ai'|'manual'|'feed'),
+             created_at, completed_at, last_seen_at
+             UNIQUE (source_id, external_id)
+             INDEX (parent_id)
+
+blocks       id, item_id (nullable), title, start_at, end_at,
+             origin ('ai' | 'manual'), locked, done, reason,
+             actual_minutes, created_at
+             INDEX (start_at)
+
+events       id, source_id, external_id, title, location,
+             start_at, end_at, all_day
+             UNIQUE (source_id, external_id)
+
+course_defaults  course, default_minutes, sample_count
+
+habits       id, name, cadence ('daily'|'weekdays'|'custom'),
+             days_json, target_per_week, color, archived
+
+habit_logs   habit_id, date, done
+             UNIQUE (habit_id, date)
+
+notes        id, title, body_md, pinned, updated_at
+
+links        id, title, url, tag, favicon_url, position
+
+planner_runs plan_date, ran_at, blocks_written, rejections_json
+             UNIQUE (plan_date)
+```
+
+The load-bearing decisions in this schema:
+
+* `(source_id, external_id)` unique is the entire sync story. Every ingest is an upsert, so re-running a sync is free and idempotent.
+* `parent_id` is how projects work. A plain task has no parent and no children. A project is an item with `is_project = true` whose children are its steps, each an ordinary schedulable item with a `step_order`. Blocks only ever point at leaf items (plain tasks or project steps), never at the project itself. The project's own `due_at` is the real deadline; each step gets its own earlier target so the work spreads out.
+* `blocks.item_id` is nullable because "eat lunch" and "bike to school" are real blocks that aren't tasks.
+* `remaining_minutes` tracks partial progress. It starts equal to `est_minutes` and drops as you complete blocks against the item. The planner schedules against what's left, not the original total, so a half-done project doesn't get re-planned from scratch.
+* `actual_minutes` and `course_defaults` are the learning loop. Completing a block records how long it really took; that rolls into a per-course running average that seeds `est_minutes` on the next item from that course.
+* `last_seen_at` catches deletions. Every sync stamps it on items still present in the feed. Items whose `external_id` stops appearing get soft-archived (see Sync below), so a deleted assignment doesn't haunt your list forever.
+
+## Pages
+
+### 1. Today (the main page)
+
+The default route. Three columns on desktop, stacked on mobile.
+
+The two halves are the todo list and the schedule. They sit side by side and they talk to each other, but they never merge into one hybrid widget.
+
+**Center: the todo list (items).** Cards, one per open item, sorted by due date. This is a list of obligations. It has no times on it.
+
+A plain task card shows:
+
+* Checkbox on the left. Checking it sets `status = done`, plays a small animation, and moves the card to a collapsed "Done today" section at the bottom. Any block pointing at it is marked done too.
+* Title, and beneath it the course or source tag as a small colored pill.
+* Due date, rendered in relative language ("due tomorrow 11:59pm"), and colored amber inside 24 hours, red if overdue.
+* Estimated minutes, editable. Pre-filled from the course default and shown in a muted style until you or the completion loop overrides it.
+* A small clock glyph if the item is scheduled, showing the day and start time ("today, 4:00") as a read-only badge. Hovering it highlights the matching block on the rail; clicking scrolls the rail to that block. Time editing happens on the schedule, never here.
+* A collapsed "why" line showing the reason from its block, if it has one.
+
+A project card looks different. Instead of a single checkbox it shows a progress bar (steps done over steps total, or minutes done over estimated) and a disclosure arrow. Only today's steps of a project surface as their own rows in the main list, tagged with the project name, so the list stays about today. Clicking the project card opens the project view (below) with the full step breakdown and timeline. You don't check off a project directly; it completes when its last step does.
+
+Items with no block are flagged with a thin accent-colored left border and an "unscheduled" pill. That flag is the app's main nudge: Claude couldn't fit it, or you pulled it off the schedule and never put it back.
+
+Above the list: a single-line quick-add input. Typing "chem lab writeup fri 5pm 90m" parses into an item with a due date and estimate. It does not create a block. Parsing is a small deterministic parser, no AI in the loop; anything it can't read becomes a plain untimed item, which is a fine failure. Prefix a quick-add with `*` (or flip a small toggle) to mark it a project, which queues it for Claude to break down on the next run.
+
+Below the list: a "Someday" bucket for items with no due date, collapsed by default.
+
+**Left: the schedule (blocks).** A vertical timeline from your wake time to your sleep time, hour-marked. Three things render on it:
+
+* Calendar events, as solid non-draggable bars. They're facts, not decisions.
+* Blocks, as draggable and resizable cards showing the item title and the time range.
+* A red line marking the current time.
+
+All time editing lives here. Dragging or resizing a block updates `start_at` and `end_at` and flips `origin` to `manual`. Dragging an item card from the todo list onto an empty slot creates a block for it. Dragging a block off the rail deletes the block, and the item goes back to unscheduled without being deleted.
+
+Each block has a lock toggle in its corner. Locked blocks are never moved by the planner. Clicking a block opens a small popover with the item's due date, the planner's reason, and a "do this now" button that starts a plain elapsed-time counter. When you stop it, the elapsed minutes are written to the block's `actual_minutes`, subtracted from the item's `remaining_minutes`, and folded into the course's running average. That's the whole learning loop: it happens as a side effect of you just working, with nothing extra to fill in.
+
+Blocks with no item behind them ("bike to school," "dinner") are supported and render in a muted style.
+
+**Right: the sidebar.** Stacked widgets:
+
+* Up next. The single next block, large, with a countdown. This is the "what should I be doing" answer.
+* Habits. Today's habits as a row of tappable circles. Tap to fill.
+* At risk. Any project whose remaining steps no longer fit before its deadline given your free hours. This is the one nag worth having, because it's the thing you can't see by looking at today.
+* Quick note. A textarea that appends to a daily scratch note. No save button, just autosave.
+
+### 2. Calendar
+
+This is the schedule half of Today, zoomed out past one day. Month, week, and day views. Renders events and blocks together, visually distinguished (events are filled, blocks are outlined). Read-only for events. Blocks behave exactly as they do on the Today rail: drag, resize, lock, delete.
+
+A collapsible panel on the right holds the unscheduled items, so you can drag next week's assignments straight onto next Tuesday. This is the main way you plan ahead by hand.
+
+A source filter in the corner lets you toggle each feed on and off.
+
+Clicking any empty slot creates a manual block with no item behind it. Clicking an existing block opens a side panel with the full item, the reason Claude gave, and the option to reschedule or unschedule.
+
+### 3. Project view
+
+Opened by clicking a project card. Not a top-level nav item, it's a detail panel or route for one project.
+
+At the top: the project title, its real deadline, and an overall progress bar (minutes done over estimated, and steps done over total).
+
+Below that, the step list, in order. Each step is an ordinary item and shows its own estimate, its scheduled block if it has one, and a checkbox. Steps are AI-generated but fully editable: rename them, re-estimate, reorder by dragging, delete one, or add your own. Editing a step marks it `origin = manual` so the planner's future decomposition passes leave it alone.
+
+Below the steps, a timeline: a simple horizontal Gantt from today to the deadline, one row per step, each bar sitting on the day its block is scheduled. Unscheduled steps stack in a "not yet placed" tray at the end. This is the view that answers "am I actually going to finish this," which a flat todo list can never show.
+
+A "re-break-down" button asks Claude to redo the decomposition, useful if the project changed shape or the first pass was wrong. It only touches AI-origin steps you haven't edited, and it never deletes a step that already has completed work against it.
+
+If the steps as scheduled run past the deadline, the whole panel gets an at-risk banner, matching the sidebar widget.
+
+### 4. Habits
+
+A grid: habits down the left, the last 30 days across the top, filled dots for completions. Under it, per-habit stats: current streak, longest streak, completion rate against target.
+
+Adding a habit takes a name, a cadence (daily, weekdays, or specific days), a weekly target, and a color. That's it. No reminders, no "why" fields, no gamification.
+
+Habits appear in the Today sidebar and are also fed to the planner, so if you have a "ride 30 minutes" habit and an empty 5pm, Claude can propose a block for it.
+
+### 5. Links
+
+A grid of link cards grouped by tag (School, Tools, Reading, whatever you define). Each card shows the favicon, the title, and the domain. Drag to reorder within a tag.
+
+Adding a link takes a URL. The app fetches the page title and favicon so you don't have to type them.
+
+This is the least interesting page and should take the least time to build. It exists so you stop keeping 40 pinned tabs. Build it last.
+
+### 6. Notes
+
+A list of short notes on the left, a markdown editor on the right. Live preview toggle. Pinned notes float to the top. Full text search across all notes in the header.
+
+Deliberately not a wiki. No nesting, no backlinks, no databases. If a note grows past a page it belongs somewhere else.
+
+Every day gets an automatic daily note. The Today page's quick-note widget appends to it.
+
+### 7. Settings
+
+* Working hours. Wake, sleep, and blocked-out windows (school hours, practice, whatever). The planner never schedules across these.
+* Sources. Add a Google Calendar via OAuth, or paste a secret ICS URL. Each row shows last sync time, item count, and any error. A manual "sync now" button.
+* Course defaults. The per-course estimate table. Editable, but mostly it fills itself in as you complete work.
+* Planner preferences. Free-text field. Things like "front-load hard work before dinner," "leave Friday evening empty," "always put bike rides in the afternoon." This gets dropped straight into the planner prompt.
+
+## How Claude fits
+
+No API key. No metered billing. The planner runs on the Claude Pro plan as a scheduled task talking to a custom MCP server that the app hosts itself.
+
+### The MCP server
+
+A single route in the Next.js app: `app/api/[transport]/route.ts`, built with `mcp-handler` over the official `@modelcontextprotocol/sdk`, speaking Streamable HTTP. Deployed with the rest of the site, so the connector URL is just `https://<app>/api/mcp`.
+
+The server exposes a small set of narrow tools and nothing else. This narrowness is the whole security model. There is no `execute_sql`, no delete, no way to reach the schema directly. The model cannot double-book the calendar or move a locked block because no tool exists that does either.
+
+**`get_planning_context(from_date, to_date)`**
+
+One call, everything the planner needs over the horizon (default: today through 7 days out):
+
+* Open items due inside the horizon plus a lookahead, with `remaining_minutes`, `priority`, `course`, and whether each is a project, a project step (with its parent), or a plain task
+* Projects flagged `is_project` that have no steps yet, so the planner knows to decompose them
+* Calendar events across the horizon
+* Habits due in the horizon that aren't yet logged
+* Existing blocks in the horizon where `locked` is true or `origin` is `manual`
+* Working hours and blocked-out windows
+* The free-text planner preferences from Settings
+* Which dates in the horizon already have a `planner_run`
+
+**`decompose_project(project_id, steps)`**
+
+Turns a project into ordered steps. Takes an array of `{ title, est_minutes, step_order, suggested_due }`. Each becomes a child item with `parent_id = project_id`, `origin = 'ai'`, `status = 'open'`. Validation: the parent must exist and be `is_project`, estimates must be positive, and each `suggested_due` must fall on or before the project's real deadline. It never deletes a step that has completed work (`actual_minutes > 0`) or that you've edited (`origin = 'manual'`); on a re-run it replaces only its own untouched steps. Returns the written steps and any rejected ones with reasons.
+
+Steps, once written, are ordinary items. They flow through `apply_plan` exactly like standalone tasks. Decomposition and scheduling are two separate tools on purpose: you can accept a breakdown you like and still redo the scheduling, or vice versa.
+
+**`apply_plan(from_date, to_date, blocks)`**
+
+Takes an array of `{ item_id, title, start_at, end_at, reason }` spanning the horizon. Validates every block. Writes the survivors. Returns what it wrote and what it threw out.
+
+Validation, all in TypeScript with Zod:
+
+```ts
+const Block = z.object({
+  item_id:  z.string().uuid(),
+  title:    z.string().min(1),
+  start_at: z.string().datetime(),
+  end_at:   z.string().datetime(),
+  reason:   z.string().min(10),
+})
+  .refine(b => new Date(b.end_at) > new Date(b.start_at), 'end before start')
+  .refine(b => minutes(b) <= 180, 'block longer than 3 hours');
+```
+
+Then per block, against the database:
+
+* The item exists, its status is `open`, and it's a leaf (a plain task or a project step, never a project itself)
+* `start_at` falls inside the `[from_date, to_date]` horizon
+* The block sits inside working hours and outside every blocked window
+* It doesn't overlap a calendar event
+* It doesn't overlap an existing `locked` or `manual` block
+* It doesn't overlap another block in the same proposal
+* The item's blocks in total don't exceed its `remaining_minutes` by more than a small slack (so the planner can't schedule six hours against a two-hour item)
+
+A block that fails any check is rejected, not thrown. The tool returns `{ written: n, rejected: [{ block, why }] }`. Those rejection reasons go back to the model, which reports them to you. That's the debug loop for the prompt, and it's the reason a hallucinated timestamp is a non-event rather than a corrupted day.
+
+Before writing, `apply_plan` deletes blocks in the horizon where `origin = 'ai'` and `locked` is false and `done` is false. Manual blocks, locked blocks, and anything already completed survive untouched. The planner owns its own future proposals and nothing else.
+
+**`add_item(title, due_at?, est_minutes?, course?, is_project?)` and `log_habit(habit_id, date)`**
+
+So the dashboard is addressable from any chat, not just at 5am. "Add a history essay due next Friday, mark it a project." "Mark my ride done for today."
+
+### Idempotency
+
+A `planner_runs` table with a unique constraint on `plan_date`, one row per day planned. `apply_plan` records a row per date it writes into and skips a date that already has one unless the run is the scheduled morning pass. A double-fire or a hand-run in the afternoon can't silently rewrite days you've already settled.
+
+### The scheduled task
+
+One task in Claude, daily at 5:00am. Scheduled tasks run in local time, so daylight saving is somebody else's problem. The prompt:
+
+> Plan my week.
+>
+> 1. Call `get_planning_context` for today through 7 days out.
+> 2. For any project with no steps yet, break it into ordered steps sized to fit real work sessions, each with an estimate and a target date before the project's deadline, and call `decompose_project`.
+> 3. Build a schedule across the horizon honoring due dates, `remaining_minutes`, my preferences, and every existing event and locked block. Spread project steps across days so nothing waits for the night before. Give each block a one-sentence `reason`.
+> 4. Call `apply_plan` for the horizon with your blocks.
+> 5. Report back: how many blocks and steps were written, anything rejected and why, and any project whose steps don't fit before its deadline so I can decide what to cut.
+
+Steps 2 and 5 are the ones that matter. Decomposition is what makes big work start early, and the "doesn't fit" report is the honest signal that you're over-committed while there's still time to do something about it.
+
+### Auth on the MCP server
+
+The correct answer is OAuth 2.0, which the MCP spec expects and which both Claude and ChatGPT handle with a popup.
+
+The v1 answer, for an app with exactly one user, is a long random secret in the URL path (`/api/mcp/<32 random chars>`), checked on every request, scoped to a single hardcoded user id. This is security by unguessable URL over HTTPS. It is fine for a personal project and it is not fine the moment anyone else has an account. Written down here so it doesn't get forgotten.
+
+### What this costs you
+
+Things the API-key version would have given you, deliberately given up:
+
+* No in-app replan button. The site can't call Claude without a key. Re-run the scheduled task from the Claude app, or just drag the blocks yourself. Dragging is faster anyway.
+* No natural-language quick-add fallback. The deterministic parser carries it alone. Anything it can't parse becomes a plain untimed item, which is a fine failure.
+* No automatic retries. If a run fails, the day keeps yesterday's plan and the Today page shows a stale banner. Never blank the day because a job didn't fire.
+* Coupling to a product feature. If scheduled tasks or custom connectors change under you, the planner breaks. `apply_plan` is the escape hatch: swapping to a paid API key and a cron job later means writing one route that calls the same function with the same schema. Nothing else in the app changes.
+
+### What Claude does not do
+
+It doesn't write your notes. It doesn't summarize your day back to you inside the UI. The one thing it surfaces unprompted is a project that won't fit before its deadline, because that's information you can't get by looking at today and can still act on. Beyond that it doesn't nag. It has two jobs, breaking projects into steps and placing blocks on a timeline, and turning it off should mean deleting one scheduled task and losing nothing else.
+
+### Cross-client note
+
+ChatGPT supports custom remote MCP servers behind Developer Mode on paid plans. Since this server is remote by construction, it will work there too with no extra effort. Not a goal, just a free consequence.
+
+## Stack
+
+* Next.js (App Router), TypeScript strict, React
+* TailwindCSS
+* Supabase: Postgres with row-level security, Auth via Google OAuth (which also yields the calendar scope), and a `sources` table holding the tokens
+* Zod for every boundary: ICS parse output, MCP tool input, server action input
+* Server actions for UI mutations, no separate API layer
+* `mcp-handler` and `@modelcontextprotocol/sdk` for the MCP route
+* Vercel, with Vercel Cron for feed sync only (the planner is a Claude scheduled task, not a cron)
+* `node-ical` for feed parsing
+
+## Sync and deletions
+
+Sync runs on cron every 30 minutes and also on page load if `last_synced_at` is older than 15 minutes. Each run upserts on `(source_id, external_id)` and stamps `last_seen_at` on every item still present in the feed.
+
+Handling upstream deletions: after a source syncs cleanly, any item from that source whose `last_seen_at` is older than the run (meaning it vanished from the feed) gets `status = 'archived'` rather than deleted. Archived items drop out of the todo list and the planner but keep their history, and they come back if the assignment reappears. This only fires on a clean sync, never on a fetch error, so a temporarily unreachable feed doesn't wipe your list.
+
+## Explicitly out of scope
+
+Listing these so they don't creep in:
+
+* A block editor of any kind
+* Sharing, collaboration, or multiplayer anything
+* Writing back to Google Calendar
+* Mobile native app (the web app should just be responsive)
+* Pomodoro timers, focus modes, website blockers
+* Anything that gamifies productivity beyond a habit streak counter
+
+## Build order
+
+Each of these should be independently shippable and useful.
+
+1. **Skeleton.** Auth, empty Today page with sensible first-run empty states, items table, manual quick-add. You can add a task and check it off. No AI, no sync, no projects.
+2. **Time.** Blocks table, the day rail, drag to schedule, the "do this now" counter writing `actual_minutes` and `remaining_minutes`. Now it's a usable manual planner that already measures how long things take.
+3. **Calendar in.** Google Calendar OAuth, events mirror, calendar page, the sync-and-archive loop. Now it knows when you're busy and cleans up after deletions.
+4. **The MCP server.** The route, `get_planning_context`, `apply_plan` with full Zod validation, `add_item`, `log_habit`, `planner_runs`. Test it by connecting Claude and planning a few days by hand, in chat. Get the prompt right here, before automating anything.
+5. **The scheduled task.** Turn the working hand-prompt into a 5am daily pass over the horizon. Now the schedule fills itself.
+6. **Projects.** `parent_id`, project cards, the project view with its timeline, `decompose_project`, the at-risk widget, course-default estimate learning. This is the ambitious part; everything before it works without it.
+7. **Habits.** Small table, grid UI, sidebar row. An afternoon of work.
+8. **Links and notes.** The easy pages, built last.
+9. **School feeds.** ICS ingestion for Canvas or Schoology, once you've confirmed the feeds exist.
+
+Steps 1 through 3 have real value even if you never build the AI. Step 4 is worth having before step 5, because a dashboard you can talk to from any chat is already useful. And step 6 is where the "breaks big projects down for me" idea lives, so if that's the feature you're most excited about, know that it sits on top of everything else and is worth building last, not first.
