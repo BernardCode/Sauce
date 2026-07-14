@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal dashboard
 
-## Getting Started
+A single-user dashboard that answers one question: what should I be doing right now? Full product spec in [dashboard-spec.md](dashboard-spec.md).
 
-First, run the development server:
+Current state: milestone 1, the skeleton. Sign in with Google, add tasks through quick-add, check them off. No AI, no calendar sync, no projects yet.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Next.js (App Router, TypeScript strict), TailwindCSS, Supabase (Postgres, Auth, RLS), Zod, server actions for all mutations. Deployed on Vercel.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup from a clean clone
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Prerequisites: Node 20 or newer, npm, a Supabase project, a Google Cloud OAuth client.
 
-## Learn More
+2. Install:
 
-To learn more about Next.js, take a look at the following resources:
+   ```
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Environment. Copy `.env.example` to `.env.local` and fill both values from the Supabase dashboard (Project Settings, Data API for the URL; Project Settings, API Keys for the publishable key):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   | Variable | What it is |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`). Safe in the browser, RLS enforces access |
 
-## Deploy on Vercel
+4. Database. Apply the SQL files in `supabase/migrations/` in order (Supabase SQL editor, or `supabase db push` if you use the CLI). Every table has row level security scoping rows to their owner.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+5. Google OAuth (one-time, in two dashboards):
+   - Google Cloud Console: create an OAuth 2.0 Client ID (web application). Add this authorized redirect URI, with your project ref substituted: `https://<project-ref>.supabase.co/auth/v1/callback`
+   - Supabase dashboard, Authentication, Sign In / Providers: enable Google and paste the client ID and secret.
+   - Supabase dashboard, Authentication, URL Configuration: set Site URL to `http://localhost:3000` while developing, and add your production URL plus `http://localhost:3000/auth/callback` to the redirect allow list.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+6. Run:
+
+   ```
+   npm run dev
+   ```
+
+   Open http://localhost:3000, sign in with Google, add a task.
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server on localhost:3000 |
+| `npm run build` | Production build |
+| `npm test` | Quick-add parser unit tests (vitest) |
+| `npx tsc --noEmit` | Typecheck |
+
+## Deploying to Vercel
+
+Import the repo in Vercel, set the two environment variables from `.env.local`, deploy. Then add the deployed URL to the Supabase auth redirect allow list (step 5) and switch Site URL to the production URL.
+
+## Quick-add syntax
+
+One line, tokens at the end, all optional: `chem lab writeup fri 5pm 90m`
+
+- Due date: `today`, `tomorrow`, a weekday (`fri`), or `7/20`, with an optional time (`5pm`, `11:59pm`, `17:00`). A date without a time means 11:59pm.
+- Estimate: `90m`, `45min`, `2h`, `1h30`.
+- Anything the parser cannot read stays in the title and the item is created untimed. That is the intended failure mode, not an error.
