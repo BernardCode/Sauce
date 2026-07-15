@@ -88,6 +88,69 @@ export async function setItemDone(input: unknown): Promise<ActionResult> {
     return { error: "Could not mark that done. Try again." };
   }
 
+  // Per the spec, checking a card marks any block pointing at it done too.
+  const { error: blocksError } = await supabase
+    .from("blocks")
+    .update({ done: true })
+    .eq("item_id", parsed.data.id)
+    .eq("user_id", user.id);
+  if (blocksError) {
+    return { error: "Marked done, but its scheduled blocks did not update." };
+  }
+
+  revalidatePath("/today");
+  return { error: null };
+}
+
+const estimateSchema = z.object({
+  id: z.uuid("That item id is not valid."),
+  estMinutes: z
+    .number()
+    .int("The estimate must be whole minutes.")
+    .positive("The estimate must be at least a minute.")
+    .max(600, "Estimates cap out at 600 minutes.")
+    .nullable(),
+});
+
+export async function updateItemEstimate(input: unknown): Promise<ActionResult> {
+  const parsed = estimateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "That estimate is not valid." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You are signed out. Refresh and sign in again." };
+  }
+
+  const { data: item, error: itemError } = await supabase
+    .from("items")
+    .select("id, actual_minutes")
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id)
+    .single();
+  if (itemError || !item) {
+    return { error: "That task could not be found." };
+  }
+
+  const est = parsed.data.estMinutes;
+  const { error } = await supabase
+    .from("items")
+    .update({
+      est_minutes: est,
+      // Remaining restarts from the new estimate minus work already logged.
+      remaining_minutes:
+        est === null ? null : Math.max(0, est - (item.actual_minutes ?? 0)),
+    })
+    .eq("id", item.id)
+    .eq("user_id", user.id);
+  if (error) {
+    return { error: "Could not save the estimate. Try again." };
+  }
+
   revalidatePath("/today");
   return { error: null };
 }
