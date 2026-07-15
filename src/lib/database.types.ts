@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          actual_minutes: number | null
+          created_at: string
+          done: boolean
+          end_at: string
+          id: string
+          item_id: string | null
+          locked: boolean
+          origin: string
+          reason: string | null
+          start_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          actual_minutes?: number | null
+          created_at?: string
+          done?: boolean
+          end_at: string
+          id?: string
+          item_id?: string | null
+          locked?: boolean
+          origin?: string
+          reason?: string | null
+          start_at: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          actual_minutes?: number | null
+          created_at?: string
+          done?: boolean
+          end_at?: string
+          id?: string
+          item_id?: string | null
+          locked?: boolean
+          origin?: string
+          reason?: string | null
+          start_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           actual_minutes: number | null
