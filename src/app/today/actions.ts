@@ -1,0 +1,93 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+
+const addItemSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "A task needs a title.")
+    .max(500, "Keep titles under 500 characters."),
+  dueAtIso: z
+    .iso
+    .datetime({ offset: true, error: "That due date is not valid." })
+    .nullable(),
+  estMinutes: z
+    .number()
+    .int("The estimate must be whole minutes.")
+    .positive("The estimate must be at least a minute.")
+    .max(600, "Estimates cap out at 600 minutes.")
+    .nullable(),
+});
+
+const setItemDoneSchema = z.object({
+  id: z.uuid("That item id is not valid."),
+});
+
+type ActionResult = { error: string | null };
+
+export async function addItem(input: unknown): Promise<ActionResult> {
+  const parsed = addItemSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "That task could not be saved." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You are signed out. Refresh and sign in again." };
+  }
+
+  const { title, dueAtIso, estMinutes } = parsed.data;
+  const { error } = await supabase.from("items").insert({
+    user_id: user.id,
+    title,
+    due_at: dueAtIso,
+    est_minutes: estMinutes,
+    // Remaining starts equal to the estimate; it drops as blocks complete.
+    remaining_minutes: estMinutes,
+    origin: "manual",
+    status: "open",
+  });
+
+  if (error) {
+    return { error: "Could not save the task. Try again." };
+  }
+
+  revalidatePath("/today");
+  return { error: null };
+}
+
+export async function setItemDone(input: unknown): Promise<ActionResult> {
+  const parsed = setItemDoneSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "That item id is not valid." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You are signed out. Refresh and sign in again." };
+  }
+
+  // RLS already scopes rows to the owner; matching user_id here as well
+  // keeps the intent visible in the query itself.
+  const { error } = await supabase
+    .from("items")
+    .update({ status: "done", completed_at: new Date().toISOString() })
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: "Could not mark that done. Try again." };
+  }
+
+  revalidatePath("/today");
+  return { error: null };
+}
