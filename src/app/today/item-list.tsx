@@ -5,6 +5,7 @@ import { setItemDone } from "./actions";
 import { ItemCard } from "./item-card";
 import { QuickAdd } from "./quick-add";
 import { isSameLocalDay } from "./relative-time";
+import type { TodayBlock } from "./types";
 import { useNow } from "./use-now";
 
 export type TodayItem = {
@@ -13,12 +14,17 @@ export type TodayItem = {
   course: string | null;
   dueAt: string | null;
   completedAt: string | null;
+  estMinutes: number | null;
+  remainingMinutes: number | null;
 };
 
 type Props = {
   openItems: TodayItem[];
   // Done within the last 48 hours; the client narrows this to the local day.
   doneItems: TodayItem[];
+  // Blocks in the rail window; the scheduled badge and unscheduled flag on
+  // the cards read these.
+  blocks?: TodayBlock[];
 };
 
 export function ItemList({ openItems, doneItems }: Props) {
