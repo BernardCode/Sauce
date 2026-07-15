@@ -27,7 +27,31 @@ type Props = {
   blocks?: TodayBlock[];
 };
 
-export function ItemList({ openItems, doneItems }: Props) {
+// The badge points at the earliest live block still ahead of the clock. A
+// block already underway (started, not ended) still counts: it is where the
+// item lives right now. Null while the clock has not mounted, which renders
+// the unscheduled state for one frame.
+function findUpcomingBlock(
+  blocks: TodayBlock[],
+  itemId: string,
+  now: Date | null,
+): TodayBlock | null {
+  if (!now) return null;
+  let earliest: TodayBlock | null = null;
+  for (const block of blocks) {
+    if (block.itemId !== itemId || block.done) continue;
+    if (new Date(block.endAt).getTime() <= now.getTime()) continue;
+    if (
+      earliest === null ||
+      new Date(block.startAt).getTime() < new Date(earliest.startAt).getTime()
+    ) {
+      earliest = block;
+    }
+  }
+  return earliest;
+}
+
+export function ItemList({ openItems, doneItems, blocks = [] }: Props) {
   // Null through the server render and the first client frame so hydration
   // matches, then the shared clock keeps relative labels fresh.
   const now = useNow();
@@ -97,6 +121,7 @@ export function ItemList({ openItems, doneItems }: Props) {
                   now={now}
                   leaving={leaving[item.id] === true}
                   onDone={handleDone}
+                  upcomingBlock={findUpcomingBlock(blocks, item.id, now)}
                 />
               ))}
             </ul>
@@ -117,6 +142,7 @@ export function ItemList({ openItems, doneItems }: Props) {
                     now={now}
                     leaving={leaving[item.id] === true}
                     onDone={handleDone}
+                    upcomingBlock={findUpcomingBlock(blocks, item.id, now)}
                   />
                 ))}
               </ul>
