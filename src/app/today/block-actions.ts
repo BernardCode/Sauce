@@ -173,45 +173,11 @@ export async function recordBlockWork(input: unknown): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "You are signed out. Refresh and sign in again." };
 
-  const { data: block, error: blockError } = await supabase
-    .from("blocks")
-    .select("id, item_id, actual_minutes")
-    .eq("id", parsed.data.id)
-    .eq("user_id", user.id)
-    .single();
-  if (blockError || !block) return { error: "That block could not be found." };
-
-  const { error: blockUpdateError } = await supabase
-    .from("blocks")
-    .update({ actual_minutes: (block.actual_minutes ?? 0) + parsed.data.minutes })
-    .eq("id", block.id)
-    .eq("user_id", user.id);
-  if (blockUpdateError) return { error: "Could not save that work session. Try again." };
-
-  if (block.item_id) {
-    const { data: item } = await supabase
-      .from("items")
-      .select("id, est_minutes, remaining_minutes, actual_minutes")
-      .eq("id", block.item_id)
-      .eq("user_id", user.id)
-      .single();
-    if (item) {
-      // Remaining only counts down when an estimate ever existed; an
-      // unestimated item has nothing meaningful to subtract from.
-      const remainingBefore = item.remaining_minutes ?? item.est_minutes;
-      await supabase
-        .from("items")
-        .update({
-          actual_minutes: (item.actual_minutes ?? 0) + parsed.data.minutes,
-          remaining_minutes:
-            remainingBefore === null
-              ? null
-              : Math.max(0, remainingBefore - parsed.data.minutes),
-        })
-        .eq("id", item.id)
-        .eq("user_id", user.id);
-    }
-  }
+  const { error } = await supabase.rpc("record_block_work", {
+    block_id: parsed.data.id,
+    work_minutes: parsed.data.minutes,
+  });
+  if (error) return { error: "Could not save that work session. Try again." };
 
   revalidatePath("/today");
   return { error: null };

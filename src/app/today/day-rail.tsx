@@ -5,6 +5,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { z } from "zod";
 import {
   createBlockForItem,
   deleteBlock,
@@ -70,6 +71,11 @@ type PlacedBlock = {
   zIndex: number;
 };
 
+const itemDragPayloadSchema = z.object({
+  itemId: z.uuid(),
+  durationMinutes: z.number().finite().positive().max(12 * 60),
+});
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -91,21 +97,8 @@ function parseItemDragPayload(raw: string): ItemDragPayload | null {
   } catch {
     return null;
   }
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const candidate = parsed as Record<string, unknown>;
-  if (typeof candidate.itemId !== "string" || candidate.itemId.length === 0) {
-    return null;
-  }
-  if (
-    typeof candidate.durationMinutes !== "number" ||
-    !Number.isFinite(candidate.durationMinutes)
-  ) {
-    return null;
-  }
-  return {
-    itemId: candidate.itemId,
-    durationMinutes: candidate.durationMinutes,
-  };
+  const result = itemDragPayloadSchema.safeParse(parsed);
+  return result.success ? result.data : null;
 }
 
 export function DayRail({

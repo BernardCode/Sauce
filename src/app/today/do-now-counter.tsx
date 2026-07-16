@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useSyncExternalStore, useTransition } from "react";
+import { z } from "zod";
 import { recordBlockWork } from "./block-actions";
+
+const storedStartSchema = z.coerce.number().int().nonnegative().finite();
 
 // The start time lives in localStorage so an accidental refresh does not
 // lose a running session.
@@ -13,8 +16,8 @@ function readStoredStart(blockId: string): number | null {
   if (typeof window === "undefined") return null;
   const stored = window.localStorage.getItem(storageKey(blockId));
   if (stored === null) return null;
-  const parsedMs = Number(stored);
-  return Number.isFinite(parsedMs) ? parsedMs : null;
+  const parsed = storedStartSchema.safeParse(stored);
+  return parsed.success ? parsed.data : null;
 }
 
 // A shared once-a-second clock, same shape as use-now.ts but at second

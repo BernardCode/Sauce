@@ -187,7 +187,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      record_block_work: {
+        Args: {
+          block_id: string
+          work_minutes: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
