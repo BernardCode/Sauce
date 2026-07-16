@@ -8,9 +8,11 @@ import {
   applyPlanInputSchema,
   blockProposalSchema,
   dateRangeSchema,
+  decomposeProjectInputSchema,
   habitDaysSchema,
   logHabitInputSchema,
   plannerPreferencesSchema,
+  projectStepSchema,
   workingHoursSchema,
   type BlockProposal,
 } from "./schemas";
@@ -397,6 +399,16 @@ export async function addPlannerItem(userId: string, input: unknown) {
     return { error: "The item is not valid." };
   }
   const admin = createAdminClient();
+  let learnedEstimate = parsed.data.est_minutes ?? null;
+  if (learnedEstimate === null && parsed.data.course) {
+    const { data: courseDefault } = await admin
+      .from("course_defaults")
+      .select("default_minutes")
+      .eq("user_id", parsedUserId.data)
+      .eq("course", parsed.data.course)
+      .maybeSingle();
+    learnedEstimate = courseDefault?.default_minutes ?? null;
+  }
   const { data, error } = await admin
     .from("items")
     .insert({
@@ -404,8 +416,8 @@ export async function addPlannerItem(userId: string, input: unknown) {
       title: parsed.data.title,
       due_at: parsed.data.due_at ?? null,
       course: parsed.data.course ?? null,
-      est_minutes: parsed.data.est_minutes ?? null,
-      remaining_minutes: parsed.data.est_minutes ?? null,
+      est_minutes: learnedEstimate,
+      remaining_minutes: learnedEstimate,
       is_project: parsed.data.is_project,
       origin: "manual",
       status: "open",
@@ -413,6 +425,85 @@ export async function addPlannerItem(userId: string, input: unknown) {
     .select("id, title, due_at, est_minutes, course, is_project")
     .single();
   return error || !data ? { error: "The item could not be added." } : { item: data };
+}
+
+export async function decomposeProject(userId: string, input: unknown) {
+  const parsedUserId = z.uuid().safeParse(userId);
+  const parsed = decomposeProjectInputSchema.safeParse(input);
+  if (!parsedUserId.success || !parsed.success) {
+    return { written: 0, rejected: [{ step: input, why: "invalid project input" }] };
+  }
+  const admin = createAdminClient();
+  const [projectResult, stepsResult] = await Promise.all([
+    admin
+      .from("items")
+      .select("id, due_at, is_project, status")
+      .eq("id", parsed.data.project_id)
+      .eq("user_id", parsedUserId.data)
+      .maybeSingle(),
+    admin
+      .from("items")
+      .select("id, origin, actual_minutes")
+      .eq("parent_id", parsed.data.project_id)
+      .eq("user_id", parsedUserId.data),
+  ]);
+  const project = projectResult.data;
+  if (
+    projectResult.error ||
+    stepsResult.error ||
+    !project ||
+    !project.is_project ||
+    project.status !== "open"
+  ) {
+    return { written: 0, rejected: [{ step: input, why: "project not found" }] };
+  }
+
+  const accepted = [];
+  const rejected: { step: unknown; why: string }[] = [];
+  const seenOrders = new Set<number>();
+  for (const rawStep of parsed.data.steps) {
+    const step = projectStepSchema.safeParse(rawStep);
+    let why: string | null = null;
+    if (!step.success) {
+      why = step.error.issues[0]?.message ?? "invalid step";
+    } else if (seenOrders.has(step.data.step_order)) {
+      why = "step_order must be unique";
+    } else if (
+      project.due_at &&
+      new Date(step.data.suggested_due) > new Date(project.due_at)
+    ) {
+      why = "suggested_due is after the project deadline";
+    }
+    if (why || !step.success) {
+      rejected.push({ step: rawStep, why: why ?? "invalid step" });
+    } else {
+      seenOrders.add(step.data.step_order);
+      accepted.push(step.data);
+    }
+  }
+  if (accepted.length === 0) return { written: 0, rejected };
+
+  const replaceableIds = (stepsResult.data ?? [])
+    .filter(
+      (step) => step.origin === "ai" && (step.actual_minutes ?? 0) === 0,
+    )
+    .map((step) => step.id);
+  const { data: written, error } = await admin.rpc("replace_ai_project_steps", {
+    target_user_id: parsedUserId.data,
+    target_project_id: project.id,
+    replaceable_step_ids: replaceableIds,
+    new_steps: accepted as unknown as Json,
+  });
+  if (error) {
+    return {
+      written: 0,
+      rejected: [
+        ...rejected,
+        ...accepted.map((step) => ({ step, why: "the atomic step write failed" })),
+      ],
+    };
+  }
+  return { written: written ?? 0, rejected };
 }
 
 export async function logPlannerHabit(userId: string, input: unknown) {

@@ -74,6 +74,35 @@ export type Database = {
           },
         ]
       }
+      course_defaults: {
+        Row: {
+          course: string
+          default_minutes: number
+          sample_count: number
+          user_id: string
+        }
+        Insert: {
+          course: string
+          default_minutes: number
+          sample_count?: number
+          user_id: string
+        }
+        Update: {
+          course?: string
+          default_minutes?: number
+          sample_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_defaults_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           all_day: boolean
@@ -402,11 +431,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      reorder_project_steps: {
+        Args: {
+          ordered_step_ids: string[]
+          project_id_arg: string
+        }
+        Returns: undefined
+      }
       replace_ai_plan: {
         Args: {
           new_blocks: Json
           replaceable_block_ids: string[]
           run_rows: Json
+          target_user_id: string
+        }
+        Returns: number
+      }
+      replace_ai_project_steps: {
+        Args: {
+          new_steps: Json
+          replaceable_step_ids: string[]
+          target_project_id: string
           target_user_id: string
         }
         Returns: number

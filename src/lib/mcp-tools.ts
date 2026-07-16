@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   addPlannerItem,
   applyPlan,
+  decomposeProject,
   getPlanningContext,
   logPlannerHabit,
 } from "@/lib/planner/service";
@@ -12,6 +13,7 @@ import {
   addItemInputSchema,
   applyPlanInputSchema,
   dateRangeSchema,
+  decomposeProjectInputSchema,
   logHabitInputSchema,
 } from "@/lib/planner/schemas";
 import { defaultPlanningRange } from "@/lib/mcp-tools-core";
@@ -47,6 +49,17 @@ export function registerPlannerTools(server: McpServer, userId: string) {
       }
       return asTextResult(await getPlanningContext(userId, range.data));
     },
+  );
+
+  server.registerTool(
+    "decompose_project",
+    {
+      title: "Decompose project",
+      description:
+        "Replace untouched AI steps for one project while preserving manual or worked steps.",
+      inputSchema: decomposeProjectInputSchema.shape,
+    },
+    async (input) => asTextResult(await decomposeProject(userId, input)),
   );
 
   server.registerTool(

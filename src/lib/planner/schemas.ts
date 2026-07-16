@@ -52,6 +52,18 @@ export const logHabitInputSchema = z.object({
   date: z.iso.date(),
 });
 
+export const projectStepSchema = z.object({
+  title: z.string().trim().min(1).max(500),
+  est_minutes: z.number().int().positive().max(10_000),
+  step_order: z.number().int().nonnegative().max(1_000),
+  suggested_due: z.iso.datetime({ offset: true }),
+});
+
+export const decomposeProjectInputSchema = z.object({
+  project_id: z.uuid(),
+  steps: z.array(z.unknown()).min(1).max(100),
+});
+
 export const workingHoursSchema = z
   .object({
     wake: z.number().int().min(0).max(23).default(7),

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyPlanInputSchema,
   blockProposalSchema,
+  projectStepSchema,
   workingHoursSchema,
 } from "./schemas";
 
@@ -55,6 +56,25 @@ describe("planner schemas", () => {
         wake: 7,
         sleep: 23,
         blockedWindows: [{ start: "15:00", end: "08:00" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates project steps", () => {
+    expect(
+      projectStepSchema.safeParse({
+        title: "Draft the introduction",
+        est_minutes: 45,
+        step_order: 0,
+        suggested_due: "2026-07-20T23:59:00.000Z",
+      }).success,
+    ).toBe(true);
+    expect(
+      projectStepSchema.safeParse({
+        title: "",
+        est_minutes: 0,
+        step_order: -1,
+        suggested_due: "later",
       }).success,
     ).toBe(false);
   });
