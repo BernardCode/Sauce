@@ -34,7 +34,12 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isPublic = pathname === "/" || pathname.startsWith("/auth");
+  // API routes authenticate themselves with route-specific credentials.
+  // Redirecting them to the sign-in page would break cron and MCP clients.
+  const isPublic =
+    pathname === "/" ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

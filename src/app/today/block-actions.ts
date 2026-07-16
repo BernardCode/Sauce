@@ -40,6 +40,11 @@ const workSchema = z.object({
 
 type ActionResult = { error: string | null };
 
+function revalidateSchedule() {
+  revalidatePath("/today");
+  revalidatePath("/calendar");
+}
+
 function timesError(startAtIso: string, endAtIso: string): string | null {
   const minutes =
     (new Date(endAtIso).getTime() - new Date(startAtIso).getTime()) / 60_000;
@@ -81,7 +86,7 @@ export async function createBlockForItem(input: unknown): Promise<ActionResult> 
   });
   if (error) return { error: "Could not schedule that. Try again." };
 
-  revalidatePath("/today");
+  revalidateSchedule();
   return { error: null };
 }
 
@@ -111,7 +116,7 @@ export async function updateBlockTimes(input: unknown): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return { error: "Could not move that block. Try again." };
 
-  revalidatePath("/today");
+  revalidateSchedule();
   return { error: null };
 }
 
@@ -134,7 +139,7 @@ export async function deleteBlock(input: unknown): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return { error: "Could not remove that block. Try again." };
 
-  revalidatePath("/today");
+  revalidateSchedule();
   return { error: null };
 }
 
@@ -157,7 +162,7 @@ export async function setBlockLocked(input: unknown): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return { error: "Could not update the lock. Try again." };
 
-  revalidatePath("/today");
+  revalidateSchedule();
   return { error: null };
 }
 
@@ -179,6 +184,6 @@ export async function recordBlockWork(input: unknown): Promise<ActionResult> {
   });
   if (error) return { error: "Could not save that work session. Try again." };
 
-  revalidatePath("/today");
+  revalidateSchedule();
   return { error: null };
 }
