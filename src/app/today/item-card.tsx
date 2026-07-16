@@ -38,15 +38,15 @@ const pillPalettes = [
   "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300",
 ];
 
-function CoursePill({ course }: { course: string }) {
+function ItemTag({ label }: { label: string }) {
   let hash = 0;
-  for (let i = 0; i < course.length; i++) {
-    hash = (hash * 31 + course.charCodeAt(i)) | 0;
+  for (let i = 0; i < label.length; i++) {
+    hash = (hash * 31 + label.charCodeAt(i)) | 0;
   }
   const palette = pillPalettes[Math.abs(hash) % pillPalettes.length];
   return (
     <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${palette}`}>
-      {course}
+      {label}
     </span>
   );
 }
@@ -258,7 +258,7 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{item.title}</span>
-          {item.course ? <CoursePill course={item.course} /> : null}
+          <ItemTag label={item.course ?? "Manual"} />
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           {item.dueAt ? (

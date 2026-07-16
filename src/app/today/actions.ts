@@ -78,13 +78,16 @@ export async function setItemDone(input: unknown): Promise<ActionResult> {
 
   // RLS already scopes rows to the owner; matching user_id here as well
   // keeps the intent visible in the query itself.
-  const { error } = await supabase
+  const { data: updatedItem, error } = await supabase
     .from("items")
     .update({ status: "done", completed_at: new Date().toISOString() })
     .eq("id", parsed.data.id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("status", "open")
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
+  if (error || !updatedItem) {
     return { error: "Could not mark that done. Try again." };
   }
 
@@ -92,9 +95,10 @@ export async function setItemDone(input: unknown): Promise<ActionResult> {
   const { error: blocksError } = await supabase
     .from("blocks")
     .update({ done: true })
-    .eq("item_id", parsed.data.id)
+    .eq("item_id", updatedItem.id)
     .eq("user_id", user.id);
   if (blocksError) {
+    revalidatePath("/today");
     return { error: "Marked done, but its scheduled blocks did not update." };
   }
 
