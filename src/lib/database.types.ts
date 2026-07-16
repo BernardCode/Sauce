@@ -125,6 +125,83 @@ export type Database = {
           },
         ]
       }
+      habit_logs: {
+        Row: {
+          date: string
+          done: boolean
+          habit_id: string
+          user_id: string
+        }
+        Insert: {
+          date: string
+          done?: boolean
+          habit_id: string
+          user_id: string
+        }
+        Update: {
+          date?: string
+          done?: boolean
+          habit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "habit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          archived: boolean
+          cadence: string
+          color: string
+          days_json: Json | null
+          id: string
+          name: string
+          target_per_week: number
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          cadence: string
+          color: string
+          days_json?: Json | null
+          id?: string
+          name: string
+          target_per_week: number
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          cadence?: string
+          color?: string
+          days_json?: Json | null
+          id?: string
+          name?: string
+          target_per_week?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           actual_minutes: number | null
@@ -209,6 +286,38 @@ export type Database = {
           },
           {
             foreignKeyName: "items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planner_runs: {
+        Row: {
+          blocks_written: number
+          plan_date: string
+          ran_at: string
+          rejections_json: Json
+          user_id: string
+        }
+        Insert: {
+          blocks_written?: number
+          plan_date: string
+          ran_at?: string
+          rejections_json?: Json
+          user_id: string
+        }
+        Update: {
+          blocks_written?: number
+          plan_date?: string
+          ran_at?: string
+          rejections_json?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planner_runs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
