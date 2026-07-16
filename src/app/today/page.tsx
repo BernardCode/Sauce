@@ -134,6 +134,12 @@ export default async function TodayPage() {
   const wakeHour = parsedHours.success ? (parsedHours.data.wake ?? 7) : 7;
   const sleepHour = parsedHours.success ? (parsedHours.data.sleep ?? 23) : 23;
 
+  // The block popover shows the linked item's due date.
+  const itemDueDates: Record<string, string | null> = {};
+  for (const item of openItems) {
+    itemDueDates[item.id] = item.dueAt;
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col p-6">
       <header className="flex items-center justify-between">
@@ -162,6 +168,7 @@ export default async function TodayPage() {
                 blocks={blocks}
                 wakeHour={wakeHour}
                 sleepHour={sleepHour}
+                itemDueDates={itemDueDates}
               />
             </section>
             <section
