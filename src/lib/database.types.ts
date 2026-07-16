@@ -402,6 +402,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      replace_ai_plan: {
+        Args: {
+          new_blocks: Json
+          replaceable_block_ids: string[]
+          run_rows: Json
+          target_user_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

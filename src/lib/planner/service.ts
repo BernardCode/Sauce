@@ -358,52 +358,36 @@ export async function applyPlan(userId: string, input: unknown) {
         acceptedDates.has(localParts(new Date(block.start_at), timeZone).date),
     )
     .map((block) => block.id);
-  if (replaceableIds.length > 0) {
-    const { error } = await admin.from("blocks").delete().in("id", replaceableIds);
-    if (error) {
-      return {
-        written: 0,
-        rejected: [
-          ...rejections,
-          ...accepted.map((block) => ({ block, why: "old AI blocks could not be replaced" })),
-        ],
-      };
-    }
+  const runRows = [...acceptedDates].map((date) => ({
+    plan_date: date,
+    blocks_written: accepted.filter(
+      (block) => localParts(new Date(block.start_at), timeZone).date === date,
+    ).length,
+    rejections_json: rejections,
+  }));
+  const { data: written, error: writeError } = await admin.rpc(
+    "replace_ai_plan",
+    {
+      target_user_id: parsedUserId.data,
+      replaceable_block_ids: replaceableIds,
+      new_blocks: accepted as unknown as Json,
+      run_rows: runRows as unknown as Json,
+    },
+  );
+  if (writeError) {
+    return {
+      written: 0,
+      rejected: [
+        ...rejections,
+        ...accepted.map((block) => ({
+          block,
+          why: "the atomic plan write failed",
+        })),
+      ],
+    };
   }
 
-  let written = 0;
-  for (const block of accepted) {
-    const { error } = await admin.from("blocks").insert({
-      user_id: parsedUserId.data,
-      item_id: block.item_id,
-      title: block.title,
-      start_at: block.start_at,
-      end_at: block.end_at,
-      origin: "ai",
-      locked: false,
-      done: false,
-      reason: block.reason,
-    });
-    if (error) rejections.push({ block, why: "block could not be written" });
-    else written += 1;
-  }
-
-  for (const date of acceptedDates) {
-    await admin.from("planner_runs").upsert(
-      {
-        user_id: parsedUserId.data,
-        plan_date: date,
-        ran_at: new Date().toISOString(),
-        blocks_written: accepted.filter(
-          (block) => localParts(new Date(block.start_at), timeZone).date === date,
-        ).length,
-        rejections_json: rejections as unknown as Json,
-      },
-      { onConflict: "user_id,plan_date" },
-    );
-  }
-
-  return { written, rejected: rejections };
+  return { written: written ?? 0, rejected: rejections };
 }
 
 export async function addPlannerItem(userId: string, input: unknown) {
