@@ -1,11 +1,16 @@
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { signInWithGoogle } from "@/app/auth/actions";
+
+const homeQuerySchema = z.object({
+  error: z.literal("signin").optional(),
+});
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const supabase = await createClient();
   const {
@@ -16,7 +21,9 @@ export default async function Home({
     redirect("/today");
   }
 
-  const { error } = await searchParams;
+  const parsedQuery = homeQuerySchema.safeParse(await searchParams);
+  const showSignInError =
+    parsedQuery.success && parsedQuery.data.error === "signin";
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
@@ -34,7 +41,7 @@ export default async function Home({
           Sign in with Google
         </button>
       </form>
-      {error === "signin" && (
+      {showSignInError && (
         <p className="text-sm text-red-600">Sign-in failed. Try again.</p>
       )}
     </main>
