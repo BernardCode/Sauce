@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
+import { syncGoogleCalendarSource } from "@/lib/calendar/google";
 import { createClient } from "@/lib/supabase/server";
 import { DayRail } from "./day-rail";
 import { ItemList, type TodayItem } from "./item-list";
-import type { TodayBlock } from "./types";
+import type { TodayBlock, TodayEvent } from "./types";
 
 type ItemRow = {
   id: string;
@@ -29,6 +30,14 @@ type BlockRow = {
   actual_minutes: number | null;
 };
 
+type EventRow = {
+  id: string;
+  title: string;
+  start_at: string;
+  end_at: string;
+  all_day: boolean;
+};
+
 // Working hours stored in users.working_hours_json as plain hour numbers,
 // for example { "wake": 7, "sleep": 23 }. Blocked-out windows arrive with
 // the planner milestones.
@@ -47,6 +56,17 @@ function blocksCutoffIso(): string {
   // 36 hours back keeps a spanning-midnight block visible in every
   // timezone; the query has no upper bound so future badges load too.
   return new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
+}
+
+function eventsWindowIso(): { start: string; end: string } {
+  return {
+    start: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
+    end: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+  };
+}
+
+function staleSourceCutoffMs(): number {
+  return Date.now() - 15 * 60 * 1000;
 }
 
 function toTodayItem(row: ItemRow): TodayItem {
@@ -76,10 +96,21 @@ function toTodayBlock(row: BlockRow): TodayBlock {
   };
 }
 
+function toTodayEvent(row: EventRow): TodayEvent {
+  return {
+    id: row.id,
+    title: row.title,
+    startAt: row.start_at,
+    endAt: row.end_at,
+    allDay: row.all_day,
+  };
+}
+
 const itemColumns =
   "id, title, course, due_at, completed_at, est_minutes, remaining_minutes";
 const blockColumns =
   "id, item_id, title, start_at, end_at, origin, locked, done, reason, actual_minutes";
+const eventColumns = "id, title, start_at, end_at, all_day";
 
 export default async function TodayPage() {
   const supabase = await createClient();
@@ -94,8 +125,27 @@ export default async function TodayPage() {
 
   const doneCutoff = doneCutoffIso();
   const blocksCutoff = blocksCutoffIso();
+  const eventsWindow = eventsWindowIso();
 
-  const [openResult, doneResult, blocksResult, userResult] = await Promise.all([
+  const { data: sources } = await supabase
+    .from("sources")
+    .select("id, kind, enabled, last_synced_at")
+    .eq("user_id", user.id);
+  const staleCutoff = staleSourceCutoffMs();
+  await Promise.allSettled(
+    (sources ?? [])
+      .filter(
+        (source) =>
+          source.enabled &&
+          source.kind === "gcal" &&
+          (!source.last_synced_at ||
+            new Date(source.last_synced_at).getTime() < staleCutoff),
+      )
+      .map((source) => syncGoogleCalendarSource(source.id)),
+  );
+
+  const [openResult, doneResult, blocksResult, eventsResult, userResult] =
+    await Promise.all([
     supabase
       .from("items")
       .select(itemColumns)
@@ -116,16 +166,28 @@ export default async function TodayPage() {
       .gte("end_at", blocksCutoff)
       .order("start_at", { ascending: true }),
     supabase
+      .from("events")
+      .select(eventColumns)
+      .eq("user_id", user.id)
+      .lt("start_at", eventsWindow.end)
+      .gt("end_at", eventsWindow.start)
+      .order("start_at", { ascending: true }),
+    supabase
       .from("users")
       .select("working_hours_json")
       .eq("id", user.id)
       .single(),
-  ]);
+    ]);
 
-  const loadError = openResult.error ?? doneResult.error ?? blocksResult.error;
+  const loadError =
+    openResult.error ??
+    doneResult.error ??
+    blocksResult.error ??
+    eventsResult.error;
   const openItems = (openResult.data ?? []).map(toTodayItem);
   const doneItems = (doneResult.data ?? []).map(toTodayItem);
   const blocks = (blocksResult.data ?? []).map(toTodayBlock);
+  const events = (eventsResult.data ?? []).map(toTodayEvent);
 
   // A missing or malformed working-hours blob just falls back to defaults.
   const parsedHours = workingHoursSchema.safeParse(
@@ -156,6 +218,7 @@ export default async function TodayPage() {
             >
               <DayRail
                 blocks={blocks}
+                events={events}
                 wakeHour={wakeHour}
                 sleepHour={sleepHour}
                 itemDueDates={itemDueDates}

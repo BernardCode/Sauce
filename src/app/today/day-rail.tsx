@@ -20,6 +20,7 @@ import {
   type BlockHighlightDetail,
   type ItemDragPayload,
   type TodayBlock,
+  type TodayEvent,
 } from "./types";
 import { useNow } from "./use-now";
 
@@ -39,6 +40,7 @@ const INDENT_STEP_PX = 12;
 
 type Props = {
   blocks: TodayBlock[];
+  events?: TodayEvent[];
   wakeHour: number;
   sleepHour: number;
   // Due dates by item id for the popover. Optional so the page can wire it
@@ -69,6 +71,12 @@ type PlacedBlock = {
   height: number;
   indent: number;
   zIndex: number;
+};
+
+type PlacedEvent = {
+  event: TodayEvent;
+  top: number;
+  height: number;
 };
 
 const itemDragPayloadSchema = z.object({
@@ -103,6 +111,7 @@ function parseItemDragPayload(raw: string): ItemDragPayload | null {
 
 export function DayRail({
   blocks,
+  events = [],
   wakeHour,
   sleepHour,
   itemDueDates = {},
@@ -199,7 +208,30 @@ export function DayRail({
     );
 
   const placed: PlacedBlock[] = [];
+  const placedEvents: PlacedEvent[] = [];
   if (windowStartMs !== null && windowEndMs !== null) {
+    for (const event of events) {
+      if (event.allDay) continue;
+      const startMs = Date.parse(event.startAt);
+      const endMs = Date.parse(event.endAt);
+      if (startMs >= windowEndMs || endMs <= windowStartMs) continue;
+      const topMinute = clamp(
+        (startMs - windowStartMs) / MINUTE_MS,
+        0,
+        windowMinutes,
+      );
+      const bottomMinute = clamp(
+        (endMs - windowStartMs) / MINUTE_MS,
+        0,
+        windowMinutes,
+      );
+      placedEvents.push({
+        event,
+        top: topMinute * PX_PER_MINUTE,
+        height: Math.max((bottomMinute - topMinute) * PX_PER_MINUTE, 12),
+      });
+    }
+
     const todays = overlaid
       .map((block) => ({
         block,
@@ -248,6 +280,20 @@ export function DayRail({
       : null;
 
   const nowMs = now ? now.getTime() : null;
+  const todayKey = now
+    ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+        now.getDate(),
+      ).padStart(2, "0")}`
+    : null;
+  const allDayEvents =
+    todayKey === null
+      ? []
+      : events.filter(
+          (event) =>
+            event.allDay &&
+            event.startAt.slice(0, 10) <= todayKey &&
+            event.endAt.slice(0, 10) > todayKey,
+        );
   const nowTop =
     nowMs !== null &&
     windowStartMs !== null &&
@@ -498,6 +544,18 @@ export function DayRail({
       {actionError ? (
         <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>
       ) : null}
+      {allDayEvents.length > 0 ? (
+        <div className="ml-10 flex flex-col gap-1">
+          {allDayEvents.map((event) => (
+            <div
+              key={event.id}
+              className="rounded bg-sky-200 px-2 py-1 text-xs font-medium text-sky-950 dark:bg-sky-900 dark:text-sky-100"
+            >
+              {event.title}, all day
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div
         ref={railRef}
         className="relative"
@@ -528,11 +586,29 @@ export function DayRail({
           );
         })}
 
-        {now !== null && placed.length === 0 && pendingCreate === null ? (
+        {now !== null &&
+        placed.length === 0 &&
+        placedEvents.length === 0 &&
+        allDayEvents.length === 0 &&
+        pendingCreate === null ? (
           <p className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-zinc-500">
             Nothing scheduled today. Drag a task here.
           </p>
         ) : null}
+
+        {placedEvents.map((entry) => (
+          <div
+            key={entry.event.id}
+            className="pointer-events-none absolute right-1 z-[5] overflow-hidden rounded-md bg-sky-200 px-2 pt-1 text-xs text-sky-950 dark:bg-sky-900 dark:text-sky-100"
+            style={{
+              top: entry.top,
+              height: entry.height,
+              left: LABEL_GUTTER_PX + 4,
+            }}
+          >
+            <p className="truncate font-medium">{entry.event.title}</p>
+          </div>
+        ))}
 
         {placed.map((entry) => (
           <BlockCard

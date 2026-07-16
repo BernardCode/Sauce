@@ -11,6 +11,14 @@ export type TodayBlock = {
   actualMinutes: number | null;
 };
 
+export type TodayEvent = {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  allDay: boolean;
+};
+
 // DataTransfer type for dragging an item card onto the rail. The payload is
 // JSON: { itemId: string, durationMinutes: number }.
 export const ITEM_DRAG_MIME = "application/x-dashboard-item";
