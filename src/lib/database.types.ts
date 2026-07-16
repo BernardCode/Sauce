@@ -74,6 +74,57 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          all_day: boolean
+          end_at: string
+          external_id: string
+          id: string
+          location: string | null
+          source_id: string
+          start_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          end_at: string
+          external_id: string
+          id?: string
+          location?: string | null
+          source_id: string
+          start_at: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean
+          end_at?: string
+          external_id?: string
+          id?: string
+          location?: string | null
+          source_id?: string
+          start_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           actual_minutes: number | null
@@ -143,6 +194,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "items_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -151,6 +209,47 @@ export type Database = {
           },
           {
             foreignKeyName: "items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sources: {
+        Row: {
+          enabled: boolean
+          id: string
+          kind: string
+          label: string
+          last_error: string | null
+          last_synced_at: string | null
+          url_secret: string | null
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: string
+          kind: string
+          label: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          url_secret?: string | null
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: string
+          kind?: string
+          label?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          url_secret?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sources_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
