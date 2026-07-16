@@ -352,7 +352,12 @@ export function DayRail({
     if (event.button !== 0 || windowStartMs === null) return;
     // Capture so the drag keeps tracking even when the pointer leaves the
     // card or the rail entirely.
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // A pointer can be gone by the time capture is requested. The drag
+      // still works, it just stops tracking outside the card.
+    }
     const startMs = Date.parse(block.startAt);
     const endMs = Date.parse(block.endAt);
     setDrag({
