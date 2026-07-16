@@ -3,6 +3,8 @@ import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
 import { syncGoogleCalendarSource } from "@/lib/calendar/google";
 import { createClient } from "@/lib/supabase/server";
+import { isProjectAtRisk } from "@/lib/projects/risk";
+import Link from "next/link";
 import { DayRail } from "./day-rail";
 import { ItemList, type TodayItem } from "./item-list";
 import type { TodayBlock, TodayEvent } from "./types";
@@ -15,6 +17,10 @@ type ItemRow = {
   completed_at: string | null;
   est_minutes: number | null;
   remaining_minutes: number | null;
+  actual_minutes: number | null;
+  is_project: boolean;
+  parent_id: string | null;
+  status: string;
 };
 
 type BlockRow = {
@@ -69,7 +75,36 @@ function staleSourceCutoffMs(): number {
   return Date.now() - 15 * 60 * 1000;
 }
 
-function toTodayItem(row: ItemRow): TodayItem {
+function requestTimeMs(): number {
+  return Date.now();
+}
+
+function overlapMinutes(
+  startAt: string,
+  endAt: string,
+  horizonStart: number,
+  horizonEnd: number,
+): number {
+  const start = Math.max(horizonStart, new Date(startAt).getTime());
+  const end = Math.min(horizonEnd, new Date(endAt).getTime());
+  return Math.max(0, (end - start) / 60_000);
+}
+
+function toTodayItem(
+  row: ItemRow,
+  projects: Map<string, ItemRow>,
+  children: Map<string, ItemRow[]>,
+): TodayItem {
+  const projectChildren = children.get(row.id) ?? [];
+  const totalEstimate = projectChildren.reduce(
+    (sum, step) => sum + (step.est_minutes ?? 0),
+    0,
+  );
+  const totalActual = projectChildren.reduce(
+    (sum, step) => sum + (step.actual_minutes ?? 0),
+    0,
+  );
+  const stepsDone = projectChildren.filter((step) => step.status === "done").length;
   return {
     id: row.id,
     title: row.title,
@@ -78,6 +113,16 @@ function toTodayItem(row: ItemRow): TodayItem {
     completedAt: row.completed_at,
     estMinutes: row.est_minutes,
     remainingMinutes: row.remaining_minutes,
+    isProject: row.is_project,
+    parentTitle: row.parent_id ? (projects.get(row.parent_id)?.title ?? "Project") : null,
+    stepsDone,
+    stepsTotal: projectChildren.length,
+    progressPercent:
+      totalEstimate > 0
+        ? Math.min(100, Math.round((totalActual / totalEstimate) * 100))
+        : projectChildren.length > 0
+          ? Math.round((stepsDone / projectChildren.length) * 100)
+          : 0,
   };
 }
 
@@ -107,7 +152,7 @@ function toTodayEvent(row: EventRow): TodayEvent {
 }
 
 const itemColumns =
-  "id, title, course, due_at, completed_at, est_minutes, remaining_minutes";
+  "id, title, course, due_at, completed_at, est_minutes, remaining_minutes, actual_minutes, is_project, parent_id, status";
 const blockColumns =
   "id, item_id, title, start_at, end_at, origin, locked, done, reason, actual_minutes";
 const eventColumns = "id, title, start_at, end_at, all_day";
@@ -144,7 +189,7 @@ export default async function TodayPage() {
       .map((source) => syncGoogleCalendarSource(source.id)),
   );
 
-  const [openResult, doneResult, blocksResult, eventsResult, userResult] =
+  const [openResult, doneResult, projectItemsResult, blocksResult, eventsResult, userResult] =
     await Promise.all([
     supabase
       .from("items")
@@ -159,6 +204,11 @@ export default async function TodayPage() {
       .eq("status", "done")
       .gte("completed_at", doneCutoff)
       .order("completed_at", { ascending: false }),
+    supabase
+      .from("items")
+      .select(itemColumns)
+      .eq("user_id", user.id)
+      .or("is_project.eq.true,parent_id.not.is.null"),
     supabase
       .from("blocks")
       .select(blockColumns)
@@ -182,10 +232,24 @@ export default async function TodayPage() {
   const loadError =
     openResult.error ??
     doneResult.error ??
+    projectItemsResult.error ??
     blocksResult.error ??
     eventsResult.error;
-  const openItems = (openResult.data ?? []).map(toTodayItem);
-  const doneItems = (doneResult.data ?? []).map(toTodayItem);
+  const projectRows = (projectItemsResult.data ?? []) as ItemRow[];
+  const projects = new Map(
+    projectRows.filter((item) => item.is_project).map((item) => [item.id, item]),
+  );
+  const children = new Map<string, ItemRow[]>();
+  for (const item of projectRows) {
+    if (!item.parent_id) continue;
+    children.set(item.parent_id, [...(children.get(item.parent_id) ?? []), item]);
+  }
+  const openItems = ((openResult.data ?? []) as ItemRow[]).map((item) =>
+    toTodayItem(item, projects, children),
+  );
+  const doneItems = ((doneResult.data ?? []) as ItemRow[]).map((item) =>
+    toTodayItem(item, projects, children),
+  );
   const blocks = (blocksResult.data ?? []).map(toTodayBlock);
   const events = (eventsResult.data ?? []).map(toTodayEvent);
 
@@ -196,6 +260,41 @@ export default async function TodayPage() {
   const wakeHour = parsedHours.success ? (parsedHours.data.wake ?? 7) : 7;
   const sleepHour = parsedHours.success ? (parsedHours.data.sleep ?? 23) : 23;
 
+  const nowMs = requestTimeMs();
+  const atRiskProjects = [...projects.values()].filter((project) => {
+    if (!project.due_at || project.status !== "open") return false;
+    const deadlineMs = new Date(project.due_at).getTime();
+    const projectChildren = children.get(project.id) ?? [];
+    const openChildren = projectChildren.filter((step) => step.status === "open");
+    const childIds = new Set(projectChildren.map((step) => step.id));
+    const remainingMinutes = openChildren.reduce(
+      (sum, step) => sum + (step.remaining_minutes ?? step.est_minutes ?? 0),
+      0,
+    );
+    const days = Math.max(0, Math.ceil((deadlineMs - nowMs) / 86_400_000));
+    const baseCapacity = days * Math.max(0, sleepHour - wakeHour) * 60;
+    const busyMinutes = events.reduce(
+      (sum, event) =>
+        sum + overlapMinutes(event.startAt, event.endAt, nowMs, deadlineMs),
+      0,
+    ) + blocks
+      .filter((block) => !block.itemId || !childIds.has(block.itemId))
+      .reduce(
+        (sum, block) =>
+          sum + overlapMinutes(block.startAt, block.endAt, nowMs, deadlineMs),
+        0,
+      );
+    return isProjectAtRisk({
+      nowMs,
+      deadlineMs,
+      remainingMinutes,
+      availableMinutes: baseCapacity - busyMinutes,
+      scheduledEndTimesMs: blocks
+        .filter((block) => block.itemId && childIds.has(block.itemId))
+        .map((block) => new Date(block.endAt).getTime()),
+    });
+  });
+
   // The block popover shows the linked item's due date.
   const itemDueDates: Record<string, string | null> = {};
   for (const item of openItems) {
@@ -203,7 +302,7 @@ export default async function TodayPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col p-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-6">
       <AppHeader />
       <main className="flex flex-1 flex-col">
         {loadError ? (
@@ -224,6 +323,27 @@ export default async function TodayPage() {
                 itemDueDates={itemDueDates}
               />
             </section>
+            <aside className="order-3 flex flex-col gap-4 lg:w-64 lg:shrink-0">
+              <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+                <h2 className="text-sm font-medium">At risk</h2>
+                {atRiskProjects.length ? (
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {atRiskProjects.map((project) => (
+                      <li key={project.id}>
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="text-sm text-red-700 hover:underline dark:text-red-300"
+                        >
+                          {project.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm text-zinc-500">No projects at risk.</p>
+                )}
+              </section>
+            </aside>
             <section
               aria-label="Todo list"
               className="order-1 flex flex-1 flex-col lg:order-2"

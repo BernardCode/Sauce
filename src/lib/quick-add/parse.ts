@@ -2,6 +2,7 @@ export type ParsedQuickAdd = {
   title: string;
   dueAt: Date | null;
   estMinutes: number | null;
+  isProject?: true;
 };
 
 type TokenSpan = {
@@ -54,13 +55,15 @@ export function parseQuickAdd(
   now: Date = new Date(),
 ): ParsedQuickAdd {
   const trimmed = input.trim();
-  const tokens = tokenize(trimmed);
+  const isProject = trimmed.startsWith("*");
+  const content = isProject ? trimmed.slice(1).trimStart() : trimmed;
+  const tokens = tokenize(content);
 
   let estMinutes: number | null = null;
   let dueAt: Date | null = null;
   // Start index in `trimmed` of the earliest consumed tail token. Slicing at
   // this point keeps the unconsumed part of the input in the title verbatim.
-  let cut = trimmed.length;
+  let cut = content.length;
 
   let i = tokens.length - 1;
   while (i >= 0) {
@@ -91,7 +94,12 @@ export function parseQuickAdd(
     break;
   }
 
-  return { title: trimmed.slice(0, cut).trimEnd(), dueAt, estMinutes };
+  return {
+    title: content.slice(0, cut).trimEnd(),
+    dueAt,
+    estMinutes,
+    ...(isProject ? { isProject: true as const } : {}),
+  };
 }
 
 function tokenize(trimmed: string): TokenSpan[] {

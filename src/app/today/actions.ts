@@ -20,6 +20,7 @@ const addItemSchema = z.object({
     .positive("The estimate must be at least a minute.")
     .max(600, "Estimates cap out at 600 minutes.")
     .nullable(),
+  isProject: z.boolean().default(false),
 });
 
 const setItemDoneSchema = z.object({
@@ -42,7 +43,7 @@ export async function addItem(input: unknown): Promise<ActionResult> {
     return { error: "You are signed out. Refresh and sign in again." };
   }
 
-  const { title, dueAtIso, estMinutes } = parsed.data;
+  const { title, dueAtIso, estMinutes, isProject } = parsed.data;
   const { error } = await supabase.from("items").insert({
     user_id: user.id,
     title,
@@ -50,6 +51,7 @@ export async function addItem(input: unknown): Promise<ActionResult> {
     est_minutes: estMinutes,
     // Remaining starts equal to the estimate; it drops as blocks complete.
     remaining_minutes: estMinutes,
+    is_project: isProject,
     origin: "manual",
     status: "open",
   });
@@ -84,13 +86,13 @@ export async function setItemDone(input: unknown): Promise<ActionResult> {
     .eq("id", parsed.data.id)
     .eq("user_id", user.id)
     .eq("status", "open")
-    .select("id")
+    .eq("is_project", false)
+    .select("id, parent_id")
     .maybeSingle();
 
   if (error || !updatedItem) {
     return { error: "Could not mark that done. Try again." };
   }
-
   // Per the spec, checking a card marks any block pointing at it done too.
   const { error: blocksError } = await supabase
     .from("blocks")
@@ -100,6 +102,24 @@ export async function setItemDone(input: unknown): Promise<ActionResult> {
   if (blocksError) {
     revalidatePath("/today");
     return { error: "Marked done, but its scheduled blocks did not update." };
+  }
+
+  if (updatedItem.parent_id) {
+    const { count } = await supabase
+      .from("items")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_id", updatedItem.parent_id)
+      .eq("user_id", user.id)
+      .eq("status", "open");
+    if (count === 0) {
+      await supabase
+        .from("items")
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("id", updatedItem.parent_id)
+        .eq("user_id", user.id)
+        .eq("is_project", true);
+    }
+    revalidatePath(`/projects/${updatedItem.parent_id}`);
   }
 
   revalidatePath("/today");

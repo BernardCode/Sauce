@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { setItemDone } from "./actions";
 import { ItemCard } from "./item-card";
 import { QuickAdd } from "./quick-add";
@@ -16,6 +17,11 @@ export type TodayItem = {
   completedAt: string | null;
   estMinutes: number | null;
   remainingMinutes: number | null;
+  isProject: boolean;
+  parentTitle: string | null;
+  stepsDone: number;
+  stepsTotal: number;
+  progressPercent: number;
 };
 
 type Props = {
@@ -59,14 +65,23 @@ export function ItemList({ openItems, doneItems, blocks = [] }: Props) {
   const [doneError, setDoneError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const dueItems = openItems
+  const visibleOpenItems = openItems.filter((item) => {
+    if (item.isProject || item.parentTitle === null) return true;
+    if (!now) return false;
+    const block = findUpcomingBlock(blocks, item.id, now);
+    return Boolean(
+      (block && isSameLocalDay(new Date(block.startAt), now)) ||
+        (item.dueAt && isSameLocalDay(new Date(item.dueAt), now)),
+    );
+  });
+  const dueItems = visibleOpenItems
     .filter((item) => item.dueAt !== null)
     .sort(
       (a, b) =>
         new Date(a.dueAt as string).getTime() -
         new Date(b.dueAt as string).getTime(),
     );
-  const somedayItems = openItems.filter((item) => item.dueAt === null);
+  const somedayItems = visibleOpenItems.filter((item) => item.dueAt === null);
 
   // Grouping by the browser's day, not the server's, is the point: "today"
   // means the day the person looking at the screen is living in.
@@ -96,7 +111,38 @@ export function ItemList({ openItems, doneItems, blocks = [] }: Props) {
     });
   }
 
-  const isEmpty = openItems.length === 0 && doneItems.length === 0;
+  const isEmpty = visibleOpenItems.length === 0 && doneItems.length === 0;
+
+  function renderOpenItem(item: TodayItem) {
+    if (item.isProject) {
+      return (
+        <li key={item.id} className="rounded-lg border border-violet-200 p-3 dark:border-violet-900">
+          <Link href={`/projects/${item.id}`} className="block">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">{item.title}</span>
+              <span aria-hidden="true">›</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800">
+              <div className="h-full bg-violet-500" style={{ width: `${item.progressPercent}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-zinc-500">
+              {item.stepsDone} of {item.stepsTotal} steps done
+            </p>
+          </Link>
+        </li>
+      );
+    }
+    return (
+      <ItemCard
+        key={item.id}
+        item={item}
+        now={now}
+        leaving={leaving[item.id] === true}
+        onDone={handleDone}
+        upcomingBlock={findUpcomingBlock(blocks, item.id, now)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-5 pt-6">
@@ -114,16 +160,7 @@ export function ItemList({ openItems, doneItems, blocks = [] }: Props) {
         <>
           {dueItems.length > 0 ? (
             <ul className="flex flex-col gap-2">
-              {dueItems.map((item) => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  now={now}
-                  leaving={leaving[item.id] === true}
-                  onDone={handleDone}
-                  upcomingBlock={findUpcomingBlock(blocks, item.id, now)}
-                />
-              ))}
+              {dueItems.map(renderOpenItem)}
             </ul>
           ) : somedayItems.length === 0 ? (
             <p className="text-sm text-zinc-500">Nothing open. Add a task above.</p>
@@ -135,16 +172,7 @@ export function ItemList({ openItems, doneItems, blocks = [] }: Props) {
                 Someday ({somedayItems.length})
               </summary>
               <ul className="mt-2 flex flex-col gap-2">
-                {somedayItems.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    now={now}
-                    leaving={leaving[item.id] === true}
-                    onDone={handleDone}
-                    upcomingBlock={findUpcomingBlock(blocks, item.id, now)}
-                  />
-                ))}
+                {somedayItems.map(renderOpenItem)}
               </ul>
             </details>
           ) : null}

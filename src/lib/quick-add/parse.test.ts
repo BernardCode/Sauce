@@ -17,6 +17,13 @@ function local(
 }
 
 describe("parseQuickAdd", () => {
+  it("marks a leading star as a project", () => {
+    const result = parseQuickAdd("* History documentary fri 2h", NOW);
+    expect(result.title).toBe("History documentary");
+    expect(result.estMinutes).toBe(120);
+    expect(result.isProject).toBe(true);
+  });
+
   it("returns a plain title when nothing at the tail parses", () => {
     expect(parseQuickAdd("read chapter 4 notes", NOW)).toEqual({
       title: "read chapter 4 notes",

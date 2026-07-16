@@ -25,6 +25,7 @@ export function QuickAdd() {
         title: parsed.title,
         dueAtIso: parsed.dueAt ? parsed.dueAt.toISOString() : null,
         estMinutes: parsed.estMinutes,
+        isProject: parsed.isProject === true,
       });
       if (result.error) {
         setError(result.error);
@@ -41,7 +42,7 @@ export function QuickAdd() {
         type="text"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Add a task. Try: chem lab writeup fri 5pm 90m"
+        placeholder="Add a task, or prefix * for a project"
         aria-label="Add a task"
         className="w-full rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-800 dark:focus:border-zinc-600"
       />

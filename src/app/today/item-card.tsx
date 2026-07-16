@@ -258,7 +258,7 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{item.title}</span>
-          <ItemTag label={item.course ?? "Manual"} />
+          <ItemTag label={item.parentTitle ?? item.course ?? "Manual"} />
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           {item.dueAt ? (
