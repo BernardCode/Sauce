@@ -13,6 +13,11 @@ const settingsSchema = z.object({
   plannerPreferences: z.string().trim().max(5000),
 });
 
+const courseDefaultSchema = z.object({
+  course: z.string().trim().min(1).max(100),
+  defaultMinutes: z.number().int().positive().max(10_000),
+});
+
 type ActionResult = { error: string | null };
 
 export async function updatePlannerSettings(input: unknown): Promise<ActionResult> {
@@ -43,5 +48,31 @@ export async function updatePlannerSettings(input: unknown): Promise<ActionResul
 
   revalidatePath("/settings");
   revalidatePath("/today");
+  return { error: null };
+}
+
+export async function updateCourseDefault(input: unknown): Promise<ActionResult> {
+  const parsed = courseDefaultSchema.safeParse(input);
+  if (!parsed.success) return { error: "That course default is not valid." };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "You are signed out. Refresh and sign in again." };
+  const { data: existing } = await supabase
+    .from("course_defaults")
+    .select("sample_count")
+    .eq("user_id", user.id)
+    .eq("course", parsed.data.course)
+    .maybeSingle();
+  const { error } = await supabase.from("course_defaults").upsert(
+    {
+      user_id: user.id,
+      course: parsed.data.course,
+      default_minutes: parsed.data.defaultMinutes,
+      sample_count: existing?.sample_count ?? 0,
+    },
+    { onConflict: "user_id,course", ignoreDuplicates: false },
+  );
+  if (error) return { error: "Could not save that course default." };
+  revalidatePath("/settings");
   return { error: null };
 }

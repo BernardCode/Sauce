@@ -5,6 +5,7 @@ import { plannerPreferencesSchema, workingHoursSchema } from "@/lib/planner/sche
 import { createClient } from "@/lib/supabase/server";
 import { PlannerSettingsForm } from "./planner-settings-form";
 import { SourceControls } from "./source-controls";
+import { CourseDefaults } from "./course-defaults";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -13,7 +14,7 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const [{ data: sources }, { data: events }, { data: profile }] = await Promise.all([
+  const [{ data: sources }, { data: events }, { data: profile }, { data: courseDefaults }] = await Promise.all([
     supabase
       .from("sources")
       .select("id, kind, label, enabled, last_synced_at, last_error")
@@ -25,6 +26,11 @@ export default async function SettingsPage() {
       .select("timezone, working_hours_json, planner_prefs_json")
       .eq("id", user.id)
       .single(),
+    supabase
+      .from("course_defaults")
+      .select("course, default_minutes, sample_count")
+      .eq("user_id", user.id)
+      .order("course"),
   ]);
   const eventCounts = new Map<string, number>();
   for (const event of events ?? []) {
@@ -52,6 +58,13 @@ export default async function SettingsPage() {
           initialSleep={plannerHours.sleep}
           initialWindows={plannerHours.blockedWindows}
           initialPreferences={preferences.success ? preferences.data.text : ""}
+        />
+        <CourseDefaults
+          defaults={(courseDefaults ?? []).map((entry) => ({
+            course: entry.course,
+            defaultMinutes: entry.default_minutes,
+            sampleCount: entry.sample_count,
+          }))}
         />
         <section>
           <div className="flex items-center justify-between gap-4">
