@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signInWithGoogle } from "@/app/auth/actions";
 
 const homeQuerySchema = z.object({
-  error: z.literal("signin").optional(),
+  error: z.enum(["signin", "calendar"]).optional(),
 });
 
 export default async function Home({
@@ -24,6 +24,8 @@ export default async function Home({
   const parsedQuery = homeQuerySchema.safeParse(await searchParams);
   const showSignInError =
     parsedQuery.success && parsedQuery.data.error === "signin";
+  const showCalendarError =
+    parsedQuery.success && parsedQuery.data.error === "calendar";
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
@@ -43,6 +45,11 @@ export default async function Home({
       </form>
       {showSignInError && (
         <p className="text-sm text-red-600">Sign-in failed. Try again.</p>
+      )}
+      {showCalendarError && (
+        <p className="text-sm text-red-600">
+          Signed in, but Calendar access could not be saved. Try again.
+        </p>
       )}
     </main>
   );
