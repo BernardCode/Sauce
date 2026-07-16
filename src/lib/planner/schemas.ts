@@ -52,19 +52,35 @@ export const logHabitInputSchema = z.object({
   date: z.iso.date(),
 });
 
-export const workingHoursSchema = z.object({
-  wake: z.number().int().min(0).max(23).default(7),
-  sleep: z.number().int().min(1).max(24).default(23),
-  blockedWindows: z
-    .array(
-      z.object({
-        days: z.array(z.number().int().min(0).max(6)).optional(),
-        start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-        end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-      }),
-    )
-    .default([]),
-});
+export const workingHoursSchema = z
+  .object({
+    wake: z.number().int().min(0).max(23).default(7),
+    sleep: z.number().int().min(1).max(24).default(23),
+    blockedWindows: z
+      .array(
+        z.object({
+          days: z.array(z.number().int().min(0).max(6)).min(1).optional(),
+          start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        }),
+      )
+      .default([]),
+  })
+  .refine((value) => value.sleep > value.wake, {
+    message: "sleep must be after wake",
+  })
+  .refine(
+    (value) =>
+      value.blockedWindows.every(
+        (window) => clockValue(window.end) > clockValue(window.start),
+      ),
+    { message: "blocked windows must end after they start" },
+  );
+
+function clockValue(value: string): number {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
 
 export const plannerPreferencesSchema = z.object({
   text: z.string().max(5000).default(""),

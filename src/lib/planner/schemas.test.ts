@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { applyPlanInputSchema, blockProposalSchema } from "./schemas";
+import {
+  applyPlanInputSchema,
+  blockProposalSchema,
+  workingHoursSchema,
+} from "./schemas";
 
 describe("planner schemas", () => {
   const validBlock = {
@@ -38,6 +42,19 @@ describe("planner schemas", () => {
         from_date: "2026-07-17",
         to_date: "2026-07-16",
         blocks: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects inverted working hours and blocked windows", () => {
+    expect(workingHoursSchema.safeParse({ wake: 22, sleep: 7 }).success).toBe(
+      false,
+    );
+    expect(
+      workingHoursSchema.safeParse({
+        wake: 7,
+        sleep: 23,
+        blockedWindows: [{ start: "15:00", end: "08:00" }],
       }).success,
     ).toBe(false);
   });

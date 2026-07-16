@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { signInWithGoogle } from "@/app/auth/actions";
 import { AppHeader } from "@/app/components/app-header";
+import { plannerPreferencesSchema, workingHoursSchema } from "@/lib/planner/schemas";
 import { createClient } from "@/lib/supabase/server";
+import { PlannerSettingsForm } from "./planner-settings-form";
 import { SourceControls } from "./source-controls";
 
 export default async function SettingsPage() {
@@ -11,18 +13,28 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const [{ data: sources }, { data: events }] = await Promise.all([
+  const [{ data: sources }, { data: events }, { data: profile }] = await Promise.all([
     supabase
       .from("sources")
       .select("id, kind, label, enabled, last_synced_at, last_error")
       .eq("user_id", user.id)
       .order("label"),
     supabase.from("events").select("source_id").eq("user_id", user.id),
+    supabase
+      .from("users")
+      .select("timezone, working_hours_json, planner_prefs_json")
+      .eq("id", user.id)
+      .single(),
   ]);
   const eventCounts = new Map<string, number>();
   for (const event of events ?? []) {
     eventCounts.set(event.source_id, (eventCounts.get(event.source_id) ?? 0) + 1);
   }
+  const hours = workingHoursSchema.safeParse(profile?.working_hours_json ?? {});
+  const preferences = plannerPreferencesSchema.safeParse(
+    profile?.planner_prefs_json ?? {},
+  );
+  const plannerHours = hours.success ? hours.data : workingHoursSchema.parse({});
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col p-6">
@@ -34,6 +46,13 @@ export default async function SettingsPage() {
             Calendar sources are read-only. The dashboard never writes back.
           </p>
         </div>
+        <PlannerSettingsForm
+          initialTimezone={profile?.timezone ?? "UTC"}
+          initialWake={plannerHours.wake}
+          initialSleep={plannerHours.sleep}
+          initialWindows={plannerHours.blockedWindows}
+          initialPreferences={preferences.success ? preferences.data.text : ""}
+        />
         <section>
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-medium">Sources</h2>
