@@ -94,7 +94,7 @@ Signing in requests read-only Google Calendar access. The dashboard mirrors even
 
 Add a Canvas, Schoology, or other ICS URL from Settings. The URL is encrypted with AES-256-GCM before storage. A successful sync upserts assignments by `(source_id, external_id)`. Only after a clean fetch and parse does the app archive assignments that disappeared upstream. A fetch or parse failure leaves existing assignments untouched.
 
-Source sync runs every 30 minutes through `vercel.json` and on Today or Calendar page load when a source is more than 15 minutes stale.
+On Vercel Hobby, source sync runs once each day through `vercel.json`. Today and Calendar also sync on page load when a source is more than 15 minutes stale, so normal dashboard use stays current. Vercel Pro can restore the spec's 30-minute background schedule by changing the cron expression to `*/30 * * * *`.
 
 ## Quick-add
 
