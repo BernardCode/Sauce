@@ -99,16 +99,16 @@ export default async function ProjectPage({
             At risk. At least one scheduled step ends after the project deadline.
           </div>
         ) : null}
-        <section className="motion-project-hero rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-6 text-white shadow-xl shadow-indigo-500/15 dark:border-indigo-800">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-indigo-100">Project overview</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{project.title}</h1>
-          <p className="mt-2 text-sm text-indigo-100">
+        <section className="motion-project-hero project-summary">
+          <p className="page-kicker">Project overview</p>
+          <h1>{project.title}</h1>
+          <p className="project-summary-deadline">
             {deadline ? `Due ${deadline.toLocaleString()}` : "No deadline"}
           </p>
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/20">
-            <div className="motion-progress-fill h-full rounded-full bg-emerald-300" style={{ width: `${progress}%` }} />
+          <div className="project-progress-track">
+            <div className="motion-progress-fill" style={{ width: `${progress}%` }} />
           </div>
-          <p className="mt-2 text-xs text-indigo-100">
+          <p className="project-summary-meta">
             {doneSteps} of {rows.length} steps done, {actual} of {estimated} estimated minutes logged
           </p>
         </section>
