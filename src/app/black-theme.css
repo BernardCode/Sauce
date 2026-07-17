@@ -178,8 +178,9 @@ body {
   display: none !important;
 }
 
-.app-page div:has(> svg:only-child),
-.app-page span:has(> svg:only-child) {
+.app-page div[class*="size-"]:has(> svg:only-child),
+.app-page span[class*="size-"]:has(> svg:only-child),
+.task-drag-cue {
   display: none !important;
 }
 
@@ -276,12 +277,13 @@ body {
 }
 
 .today-pane {
+  border-top-width: 2px;
   padding: 1rem 0;
 }
 
 .today-pane[data-pane="tasks"] {
-  border-top: 0;
-  border-left: 0.3rem solid var(--task-accent);
+  border-top-color: var(--task-accent);
+  border-left: 0;
   background: var(--task-soft);
   padding: 1rem;
 }
