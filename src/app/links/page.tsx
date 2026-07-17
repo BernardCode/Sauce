@@ -20,7 +20,10 @@ export default async function LinksPage() {
         <h1 className="text-2xl font-semibold">Links</h1>
         <p className="mt-1 text-sm text-zinc-500">Saved pages, grouped by tag.</p>
         <div className="mt-6">
-          <LinkGrid initialLinks={(links ?? []).map((link) => ({ id: link.id, title: link.title, url: link.url, tag: link.tag, faviconUrl: link.favicon_url }))} />
+          <LinkGrid
+            key={(links ?? []).map((link) => link.id).join(":")}
+            initialLinks={(links ?? []).map((link) => ({ id: link.id, title: link.title, url: link.url, tag: link.tag, faviconUrl: link.favicon_url }))}
+          />
         </div>
       </main>
     </div>

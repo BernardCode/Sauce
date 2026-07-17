@@ -101,3 +101,4 @@ export const plannerPreferencesSchema = z.object({
 export const habitDaysSchema = z.array(z.number().int().min(0).max(6));
 
 export type BlockProposal = z.infer<typeof blockProposalSchema>;
+export type WorkingHours = z.infer<typeof workingHoursSchema>;

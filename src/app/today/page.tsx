@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
 import { isProjectAtRisk } from "@/lib/projects/risk";
 import { habitIsDue } from "@/lib/habits/due";
-import { habitDaysSchema } from "@/lib/planner/schemas";
+import {
+  habitDaysSchema,
+  workingHoursSchema,
+  type WorkingHours,
+} from "@/lib/planner/schemas";
 import { localParts, safeTimeZone } from "@/lib/planner/time";
 import Link from "next/link";
 import { DayRail } from "./day-rail";
@@ -13,6 +16,7 @@ import { ItemList, type TodayItem } from "./item-list";
 import type { TodayBlock, TodayEvent } from "./types";
 import { TodayHabits } from "./today-habits";
 import { QuickNote } from "./quick-note";
+import { UpNext } from "./up-next";
 
 type ItemRow = {
   id: string;
@@ -49,14 +53,6 @@ type EventRow = {
   all_day: boolean;
 };
 
-// Working hours stored in users.working_hours_json as plain hour numbers,
-// for example { "wake": 7, "sleep": 23 }. Blocked-out windows arrive with
-// the planner milestones.
-const workingHoursSchema = z.object({
-  wake: z.number().int().min(0).max(23).optional(),
-  sleep: z.number().int().min(1).max(24).optional(),
-});
-
 // Deliberately impure, so they live outside the component body: both
 // cutoffs have to track the wall clock on every request.
 function doneCutoffIso(): string {
@@ -82,6 +78,47 @@ function staleSourceCutoffMs(): number {
 
 function requestTimeMs(): number {
   return Date.now();
+}
+
+function previousDate(date: string): string {
+  const value = new Date(`${date}T12:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
+}
+
+function workingCapacityMinutes(
+  from: { date: string; minutes: number },
+  to: { date: string; minutes: number },
+  hours: WorkingHours,
+): number {
+  const cursor = new Date(`${from.date}T12:00:00.000Z`);
+  const endDate = new Date(`${to.date}T12:00:00.000Z`);
+  let capacity = 0;
+  while (cursor <= endDate) {
+    const date = cursor.toISOString().slice(0, 10);
+    const weekday = cursor.getUTCDay();
+    const start = date === from.date
+      ? Math.max(hours.wake * 60, from.minutes)
+      : hours.wake * 60;
+    const end = date === to.date
+      ? Math.min(hours.sleep * 60, to.minutes)
+      : hours.sleep * 60;
+    let dayCapacity = Math.max(0, end - start);
+    for (const window of hours.blockedWindows) {
+      if (window.days && !window.days.includes(weekday)) continue;
+      const [startHour, startMinute] = window.start.split(":").map(Number);
+      const [endHour, endMinute] = window.end.split(":").map(Number);
+      const blockedStart = startHour * 60 + startMinute;
+      const blockedEnd = endHour * 60 + endMinute;
+      dayCapacity -= Math.max(
+        0,
+        Math.min(end, blockedEnd) - Math.max(start, blockedStart),
+      );
+    }
+    capacity += Math.max(0, dayCapacity);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return capacity;
 }
 
 function overlapMinutes(
@@ -269,14 +306,28 @@ export default async function TodayPage() {
   const parsedHours = workingHoursSchema.safeParse(
     userResult.data?.working_hours_json ?? {},
   );
-  const wakeHour = parsedHours.success ? (parsedHours.data.wake ?? 7) : 7;
-  const sleepHour = parsedHours.success ? (parsedHours.data.sleep ?? 23) : 23;
+  const plannerHours = parsedHours.success
+    ? parsedHours.data
+    : workingHoursSchema.parse({});
+  const wakeHour = plannerHours.wake;
+  const sleepHour = plannerHours.sleep;
 
   const nowMs = requestTimeMs();
+  const timeZone = safeTimeZone(userResult.data?.timezone ?? "UTC");
   const localToday = localParts(
     new Date(nowMs),
-    safeTimeZone(userResult.data?.timezone ?? "UTC"),
+    timeZone,
   );
+  const expectedPlanDate =
+    localToday.minutes >= 6 * 60
+      ? localToday.date
+      : previousDate(localToday.date);
+  const { data: expectedPlanRun } = await supabase
+    .from("planner_runs")
+    .select("plan_date")
+    .eq("user_id", user.id)
+    .eq("plan_date", expectedPlanDate)
+    .maybeSingle();
   const dueHabits = (habitsResult.data ?? []).filter((habit) => {
     const parsedDays = habitDaysSchema.safeParse(habit.days_json ?? []);
     return habitIsDue(
@@ -302,6 +353,19 @@ export default async function TodayPage() {
     .eq("user_id", user.id)
     .eq("daily_date", localToday.date)
     .maybeSingle();
+  const latestProjectDeadline = Math.max(
+    nowMs,
+    ...[...projects.values()].flatMap((project) =>
+      project.due_at ? [new Date(project.due_at).getTime()] : [],
+    ),
+  );
+  const { data: riskEventRows } = await supabase
+    .from("events")
+    .select(eventColumns)
+    .eq("user_id", user.id)
+    .lt("start_at", new Date(latestProjectDeadline).toISOString())
+    .gt("end_at", new Date(nowMs).toISOString());
+  const riskEvents = (riskEventRows ?? []).map(toTodayEvent);
   const atRiskProjects = [...projects.values()].filter((project) => {
     if (!project.due_at || project.status !== "open") return false;
     const deadlineMs = new Date(project.due_at).getTime();
@@ -312,9 +376,13 @@ export default async function TodayPage() {
       (sum, step) => sum + (step.remaining_minutes ?? step.est_minutes ?? 0),
       0,
     );
-    const days = Math.max(0, Math.ceil((deadlineMs - nowMs) / 86_400_000));
-    const baseCapacity = days * Math.max(0, sleepHour - wakeHour) * 60;
-    const busyMinutes = events.reduce(
+    const deadlineLocal = localParts(new Date(deadlineMs), timeZone);
+    const baseCapacity = workingCapacityMinutes(
+      { date: localToday.date, minutes: localToday.minutes },
+      { date: deadlineLocal.date, minutes: deadlineLocal.minutes },
+      plannerHours,
+    );
+    const busyMinutes = riskEvents.reduce(
       (sum, event) =>
         sum + overlapMinutes(event.startAt, event.endAt, nowMs, deadlineMs),
       0,
@@ -351,6 +419,12 @@ export default async function TodayPage() {
             Could not load your items. Refresh to try again.
           </p>
         ) : (
+          <>
+          {!expectedPlanRun ? (
+            <p className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+              The planner has not recorded its expected run. Your existing schedule is unchanged.
+            </p>
+          ) : null}
           <div className="flex flex-1 flex-col gap-8 pt-6 lg:flex-row">
             <section
               aria-label="Schedule"
@@ -365,6 +439,7 @@ export default async function TodayPage() {
               />
             </section>
             <aside className="order-3 flex flex-col gap-4 lg:w-64 lg:shrink-0">
+              <UpNext blocks={blocks} />
               <TodayHabits
                 date={localToday.date}
                 habits={dueHabits.map((habit) => ({
@@ -409,6 +484,7 @@ export default async function TodayPage() {
               />
             </section>
           </div>
+          </>
         )}
       </main>
     </div>
