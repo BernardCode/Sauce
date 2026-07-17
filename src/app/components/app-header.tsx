@@ -16,6 +16,7 @@ import {
 import { signOut } from "@/app/auth/actions";
 import { ThemeToggle } from "@/app/components/theme-toggle";
 import { CommandMenu } from "@/app/components/command-menu";
+import { AppQuickActions } from "@/app/components/app-quick-actions";
 
 const links = [
   { href: "/today", label: "Today", short: "Today", icon: LayoutDashboard, accent: "today" },
@@ -82,7 +83,7 @@ export function AppHeader() {
           <span className="app-topbar-eyebrow">Daylight</span>
           <p>Your school day, organized</p>
         </div>
-        <div className="flex items-center gap-2"><CommandMenu /><div className="app-live-pill"><span /> Instant updates</div><ThemeToggle /></div>
+        <div className="flex items-center gap-2"><CommandMenu /><AppQuickActions /><div className="app-live-pill"><span /> Instant updates</div><ThemeToggle /></div>
       </header>
 
       <nav className="app-mobile-nav" aria-label="Mobile navigation">

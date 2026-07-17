@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } f
 import { BookOpenCheck, CalendarDays, CheckCircle2, FileText, LayoutDashboard, Link2, ListTodo, Plus, Search, Settings, Sparkles, Target, X } from "lucide-react";
 import { addItem } from "@/app/today/actions";
 import { parseQuickAdd } from "@/lib/quick-add/parse";
+import { OPEN_COMMAND_MENU_EVENT } from "@/app/components/ui-events";
 
 const destinations = [
   { href: "/today", label: "Today", description: "Daily briefing and schedule", icon: LayoutDashboard },
@@ -41,6 +42,16 @@ export function CommandMenu() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    function onOpenCommandMenu() {
+      setError(null);
+      setQuery("");
+      setOpen(true);
+    }
+    window.addEventListener(OPEN_COMMAND_MENU_EVENT, onOpenCommandMenu);
+    return () => window.removeEventListener(OPEN_COMMAND_MENU_EVENT, onOpenCommandMenu);
+  }, []);
+
   useEffect(() => { if (open) window.setTimeout(() => inputRef.current?.focus(), 0); }, [open]);
 
   function addQuickTask(event: FormEvent<HTMLFormElement>) {
@@ -56,7 +67,7 @@ export function CommandMenu() {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="hidden items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted)] shadow-sm sm:inline-flex" aria-label="Open command menu"><Search size={14} />Find or add <kbd className="rounded bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd></button>
+      <button type="button" onClick={() => setOpen(true)} className="app-command-button" aria-label="Find anything"><Search className="hidden sm:block" size={14} /><Plus className="sm:hidden" size={16} /><span className="hidden sm:inline">Find</span><kbd className="hidden rounded bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono text-[10px] sm:inline">⌘K</kbd></button>
       {open ? <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-950/35 p-4 pt-[10vh] backdrop-blur-sm" onMouseDown={() => setOpen(false)}><div role="dialog" aria-modal="true" aria-label="Command menu" className="motion-detail-panel w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
         <form onSubmit={addQuickTask} className="flex items-center gap-3 border-b border-[var(--line)] p-3"><Search size={18} className="text-[var(--muted)]" /><input ref={inputRef} value={query} onChange={(event) => { setQuery(event.target.value); setError(null); }} placeholder="Go somewhere or add an assignment" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" /><button type="button" onClick={() => setOpen(false)} aria-label="Close command menu" className="rounded-lg p-1.5 text-[var(--muted)]"><X size={16} /></button></form>
         <div className="max-h-[60vh] overflow-y-auto p-2">{query.trim() ? <button type="submit" form="quick-command-form" disabled={isPending} className="hidden" /> : null}<form id="quick-command-form" onSubmit={addQuickTask}>{query.trim() ? <button disabled={isPending} className="mb-2 flex w-full items-center gap-3 rounded-xl bg-[var(--primary-soft)] p-3 text-left text-sm text-[var(--primary-deep)]"><span className="grid size-9 place-items-center rounded-lg bg-[var(--primary)] text-white"><Plus size={16} /></span><span className="min-w-0"><strong className="block truncate">Add “{query}”</strong><small className="text-[var(--muted)]">Natural dates and estimates work here</small></span></button> : null}</form><p className="px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Jump to</p>{matches.map(({ href, label, description, icon: Icon }) => <Link key={href} href={href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl p-3 hover:bg-[var(--surface-subtle)]"><span className="grid size-9 place-items-center rounded-lg bg-[var(--primary-soft)] text-[var(--primary)]"><Icon size={16} /></span><span><strong className="block text-sm">{label}</strong><small className="text-xs text-[var(--muted)]">{description}</small></span></Link>)}{error ? <p className="m-2 rounded-lg bg-[var(--danger-soft)] p-2 text-xs text-rose-600">{error}</p> : null}</div>

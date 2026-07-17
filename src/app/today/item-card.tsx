@@ -8,10 +8,13 @@ import {
   useTransition,
   type DragEvent,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
+import { GripVertical } from "lucide-react";
 import { updateItemEstimate } from "./actions";
 import type { TodayItem } from "./item-list";
 import { formatDue, isSameLocalDay, type DueTone } from "./relative-time";
+import { TaskContextMenu, type TaskContextMenuHandle } from "@/app/components/task-context-menu";
 import {
   BLOCK_HIGHLIGHT_EVENT,
   ITEM_DRAG_MIME,
@@ -74,6 +77,12 @@ function sendHighlight(blockId: string, on: boolean) {
   );
 }
 
+function showScheduleBlock(blockId: string) {
+  sendHighlight(blockId, true);
+  document.getElementById(blockDomId(blockId))?.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => sendHighlight(blockId, false), 1000);
+}
+
 // Read-only pointer at the rail. Hover lights the matching block up over
 // there, click scrolls to it. Time editing lives on the schedule, never here.
 function ScheduleBadge({ block, now }: { block: TodayBlock; now: Date }) {
@@ -100,9 +109,7 @@ function ScheduleBadge({ block, now }: { block: TodayBlock; now: Date }) {
         sendHighlight(block.id, false);
       }}
       onClick={() => {
-        document
-          .getElementById(blockDomId(block.id))
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        showScheduleBlock(block.id);
       }}
       className="inline-flex shrink-0 items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
     >
@@ -219,6 +226,7 @@ type Props = {
 };
 
 export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
+  const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
 
   // Someday items skip the unscheduled flag on purpose: an undated wish
@@ -239,16 +247,24 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
     event.dataTransfer.effectAllowed = "copy";
   }
 
+  function handleContextMenu(event: ReactMouseEvent<HTMLLIElement>) {
+    if ((event.target as HTMLElement).matches("input, textarea, select, [contenteditable='true']")) return;
+    event.preventDefault();
+    contextMenuRef.current?.openAt(event.clientX, event.clientY);
+  }
+
   return (
     <li
       draggable={!leaving}
       onDragStart={handleDragStart}
+      onContextMenu={handleContextMenu}
       data-leaving={leaving}
       data-unscheduled={flagUnscheduled}
       className={`motion-item-card group flex cursor-grab items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md active:cursor-grabbing dark:hover:border-indigo-800 ${
         flagUnscheduled ? "border-l-[3px] border-l-amber-400" : ""
       } ${leaving ? "translate-x-2 opacity-0" : "opacity-100"}`}
     >
+      <span className="task-drag-cue" title="Drag onto the schedule"><GripVertical size={15} aria-hidden="true" /></span>
       <input
         type="checkbox"
         checked={leaving}
@@ -261,6 +277,15 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold tracking-[-0.01em]">{item.title}</span>
           <ItemTag label={item.parentTitle ?? item.course ?? "Manual"} />
+          <TaskContextMenu
+            ref={contextMenuRef}
+            title={item.title}
+            details={[item.course, due?.label, item.estMinutes ? `${item.estMinutes} minutes` : null].filter(Boolean).join(", ")}
+            dueAt={item.dueAt}
+            scheduled={upcomingBlock !== null}
+            onComplete={() => onDone(item.id)}
+            onShowSchedule={upcomingBlock ? () => showScheduleBlock(upcomingBlock.id) : undefined}
+          />
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           {item.dueAt ? (
