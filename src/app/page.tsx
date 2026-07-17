@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { signInWithGoogle } from "@/app/auth/actions";
+import { ThemeToggle } from "@/app/components/theme-toggle";
 import { ArrowRight, CalendarDays, CheckCircle2, ListTodo, Sparkles } from "lucide-react";
 
 const homeQuerySchema = z.object({
@@ -30,6 +31,9 @@ export default async function Home({
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden p-5 sm:p-8">
+      <div className="absolute right-5 top-5 z-20 sm:right-8 sm:top-8">
+        <ThemeToggle />
+      </div>
       <div className="absolute left-[-12rem] top-[-12rem] size-[30rem] rounded-full bg-indigo-300/20 blur-3xl" />
       <div className="absolute bottom-[-14rem] right-[-10rem] size-[34rem] rounded-full bg-violet-300/20 blur-3xl" />
       <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-[var(--line)] bg-[var(--surface)] shadow-2xl shadow-indigo-950/10 md:grid-cols-[1.2fr_0.8fr]">
