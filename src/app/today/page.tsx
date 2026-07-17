@@ -439,14 +439,14 @@ export default async function TodayPage() {
           </p>
         ) : (
           <>
-          <div className="mb-2 flex flex-wrap items-end justify-between gap-4">
+          <div className="page-intro mb-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">Your day, at a glance</p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">What deserves your attention?</h1>
-              <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">A clear plan for the work that matters, with room to adjust as the day changes.</p>
+              <p className="page-kicker">Daily plan</p>
+              <h1 className="page-title">Today</h1>
+              <p className="page-description">Choose the next useful block, then keep moving.</p>
             </div>
-            <div className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] shadow-sm">
-              Drag tasks onto the schedule to plan them
+            <div className="app-context-hint">
+              Drag a task to schedule it
             </div>
           </div>
           <StudentBriefing overdue={overdue} dueSoon={dueSoon} plannedMinutes={plannedMinutes} satReviews={satReviews ?? 0} />

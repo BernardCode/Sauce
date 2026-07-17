@@ -52,7 +52,7 @@ export function AppHeader() {
             const active = isActive(pathname, href);
             return (
               <Link key={href} href={href} className={`app-nav-link app-nav-${accent}`} data-active={active}>
-                <Icon size={18} strokeWidth={active ? 2.3 : 1.9} />
+                <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
                 <span>{label}</span>
                 {active ? <ChevronRight className="motion-nav-chevron ml-auto" size={15} /> : null}
               </Link>
@@ -61,11 +61,11 @@ export function AppHeader() {
         </nav>
 
         <div className="app-sidebar-footer">
-          <div className="app-status-card">
+          <div className="app-status-card" aria-label="Save status">
             <span className="app-status-dot" />
             <div>
-              <strong>Ready when you are</strong>
-              <small>Changes save automatically</small>
+              <strong>Saved automatically</strong>
+              <small>Fast on this device</small>
             </div>
           </div>
           <form action={signOut}>
@@ -79,8 +79,8 @@ export function AppHeader() {
 
       <header className="app-topbar">
         <div>
-          <span className="app-topbar-eyebrow">Personal workspace</span>
-          <p>Tasks, time, and momentum in one place</p>
+          <span className="app-topbar-eyebrow">Daylight</span>
+          <p>Your school day, organized</p>
         </div>
         <div className="flex items-center gap-2"><CommandMenu /><div className="app-live-pill"><span /> Instant updates</div><ThemeToggle /></div>
       </header>
