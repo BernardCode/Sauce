@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
-import { syncGoogleCalendarSource } from "@/lib/calendar/google";
+import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarBoard } from "./calendar-board";
 
@@ -81,11 +81,11 @@ export default async function CalendarPage({
       .filter(
         (source) =>
           source.enabled &&
-          source.kind === "gcal" &&
+          ["gcal", "ics"].includes(source.kind) &&
           (!source.last_synced_at ||
             new Date(source.last_synced_at).getTime() < staleCutoff),
       )
-      .map((source) => syncGoogleCalendarSource(source.id)),
+      .map((source) => syncCalendarSource(source)),
   );
 
   const [blocksResult, eventsResult, itemsResult, liveBlocksResult, sourcesResult] =

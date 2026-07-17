@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
-import { syncGoogleCalendarSource } from "@/lib/calendar/google";
+import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
 import { isProjectAtRisk } from "@/lib/projects/risk";
 import { habitIsDue } from "@/lib/habits/due";
@@ -187,11 +187,11 @@ export default async function TodayPage() {
       .filter(
         (source) =>
           source.enabled &&
-          source.kind === "gcal" &&
+          ["gcal", "ics"].includes(source.kind) &&
           (!source.last_synced_at ||
             new Date(source.last_synced_at).getTime() < staleCutoff),
       )
-      .map((source) => syncGoogleCalendarSource(source.id)),
+      .map((source) => syncCalendarSource(source)),
   );
 
   const [openResult, doneResult, projectItemsResult, blocksResult, eventsResult, userResult, habitsResult] =

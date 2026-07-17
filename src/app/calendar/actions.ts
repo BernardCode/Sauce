@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { syncGoogleCalendarSource } from "@/lib/calendar/google";
+import { saveIcsSource } from "@/lib/calendar/ics";
+import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
 
 const isoTime = z.iso.datetime({ offset: true });
@@ -20,6 +21,10 @@ const manualBlockSchema = z
 
 const sourceIdSchema = z.object({ id: z.uuid() });
 const sourceEnabledSchema = sourceIdSchema.extend({ enabled: z.boolean() });
+const icsSourceSchema = z.object({
+  label: z.string().trim().min(1).max(100),
+  url: z.url().max(4_000),
+});
 
 type ActionResult = { error: string | null };
 
@@ -71,12 +76,59 @@ export async function syncSource(input: unknown): Promise<ActionResult> {
     .eq("user_id", user.id)
     .single();
   if (!source) return { error: "That source could not be found." };
-  if (source.kind !== "gcal") return { error: "That source cannot sync yet." };
-
-  const result = await syncGoogleCalendarSource(source.id);
+  const result = await syncCalendarSource(source);
   revalidatePath("/calendar");
   revalidatePath("/settings");
   return result.ok ? { error: null } : { error: result.error };
+}
+
+export async function addIcsSource(input: unknown): Promise<ActionResult> {
+  const parsed = icsSourceSchema.safeParse(input);
+  if (!parsed.success) return { error: "Enter a valid feed label and URL." };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "You are signed out. Refresh and sign in again." };
+  const saved = await saveIcsSource({ userId: user.id, ...parsed.data });
+  if (!saved.ok) return { error: saved.error };
+  const synced = await syncCalendarSource({ id: saved.id, kind: "ics" });
+  revalidatePath("/calendar");
+  revalidatePath("/settings");
+  revalidatePath("/today");
+  return synced.ok ? { error: null } : { error: synced.error };
+}
+
+export async function deleteSource(input: unknown): Promise<ActionResult> {
+  const parsed = sourceIdSchema.safeParse(input);
+  if (!parsed.success) return { error: "That source id is not valid." };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "You are signed out. Refresh and sign in again." };
+  const { data: source } = await supabase
+    .from("sources")
+    .select("id, kind")
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!source) return { error: "That source could not be found." };
+  if (source.kind === "ics") {
+    const { error: archiveError } = await supabase
+      .from("items")
+      .update({ status: "archived" })
+      .eq("source_id", source.id)
+      .eq("user_id", user.id)
+      .eq("status", "open");
+    if (archiveError) return { error: "Could not archive that feed's assignments." };
+  }
+  const { error } = await supabase
+    .from("sources")
+    .delete()
+    .eq("id", source.id)
+    .eq("user_id", user.id);
+  if (error) return { error: "Could not remove that source." };
+  revalidatePath("/calendar");
+  revalidatePath("/settings");
+  revalidatePath("/today");
+  return { error: null };
 }
 
 export async function setSourceEnabled(input: unknown): Promise<ActionResult> {

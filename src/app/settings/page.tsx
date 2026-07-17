@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PlannerSettingsForm } from "./planner-settings-form";
 import { SourceControls } from "./source-controls";
 import { CourseDefaults } from "./course-defaults";
+import { IcsSourceForm } from "./ics-source-form";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -14,13 +15,14 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const [{ data: sources }, { data: events }, { data: profile }, { data: courseDefaults }] = await Promise.all([
+  const [{ data: sources }, { data: events }, { data: sourceItems }, { data: profile }, { data: courseDefaults }] = await Promise.all([
     supabase
       .from("sources")
       .select("id, kind, label, enabled, last_synced_at, last_error")
       .eq("user_id", user.id)
       .order("label"),
     supabase.from("events").select("source_id").eq("user_id", user.id),
+    supabase.from("items").select("source_id").eq("user_id", user.id).not("source_id", "is", null),
     supabase
       .from("users")
       .select("timezone, working_hours_json, planner_prefs_json")
@@ -35,6 +37,10 @@ export default async function SettingsPage() {
   const eventCounts = new Map<string, number>();
   for (const event of events ?? []) {
     eventCounts.set(event.source_id, (eventCounts.get(event.source_id) ?? 0) + 1);
+  }
+  const itemCounts = new Map<string, number>();
+  for (const item of sourceItems ?? []) {
+    if (item.source_id) itemCounts.set(item.source_id, (itemCounts.get(item.source_id) ?? 0) + 1);
   }
   const hours = workingHoursSchema.safeParse(profile?.working_hours_json ?? {});
   const preferences = plannerPreferencesSchema.safeParse(
@@ -79,6 +85,7 @@ export default async function SettingsPage() {
             </form>
           </div>
           <div className="mt-3 flex flex-col gap-2">
+            <IcsSourceForm />
             {(sources ?? []).map((source) => (
               <article
                 key={source.id}
@@ -87,7 +94,9 @@ export default async function SettingsPage() {
                 <div>
                   <h3 className="text-sm font-medium">{source.label}</h3>
                   <p className="text-xs text-zinc-500">
-                    {eventCounts.get(source.id) ?? 0} events
+                    {source.kind === "ics"
+                      ? `${itemCounts.get(source.id) ?? 0} assignments`
+                      : `${eventCounts.get(source.id) ?? 0} events`}
                     {source.last_synced_at
                       ? `, synced ${new Date(source.last_synced_at).toLocaleString()}`
                       : ", not synced yet"}

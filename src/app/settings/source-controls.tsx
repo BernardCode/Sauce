@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setSourceEnabled, syncSource } from "@/app/calendar/actions";
+import { deleteSource, setSourceEnabled, syncSource } from "@/app/calendar/actions";
 
 type Props = {
   id: string;
@@ -38,6 +38,14 @@ export function SourceControls({ id, enabled }: Props) {
           className="text-sm text-zinc-500 disabled:opacity-40"
         >
           {enabled ? "Disable" : "Enable"}
+        </button>
+        <button
+          type="button"
+          onClick={() => run(() => deleteSource({ id }))}
+          disabled={isPending}
+          className="text-sm text-red-600 disabled:opacity-40"
+        >
+          Remove
         </button>
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
