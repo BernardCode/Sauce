@@ -12,6 +12,7 @@ import { DayRail } from "./day-rail";
 import { ItemList, type TodayItem } from "./item-list";
 import type { TodayBlock, TodayEvent } from "./types";
 import { TodayHabits } from "./today-habits";
+import { QuickNote } from "./quick-note";
 
 type ItemRow = {
   id: string;
@@ -295,6 +296,12 @@ export default async function TodayPage() {
   const doneHabitIds = new Set(
     (todayHabitLogs ?? []).filter((log) => log.done).map((log) => log.habit_id),
   );
+  const { data: dailyNote } = await supabase
+    .from("notes")
+    .select("body_md")
+    .eq("user_id", user.id)
+    .eq("daily_date", localToday.date)
+    .maybeSingle();
   const atRiskProjects = [...projects.values()].filter((project) => {
     if (!project.due_at || project.status !== "open") return false;
     const deadlineMs = new Date(project.due_at).getTime();
@@ -366,6 +373,10 @@ export default async function TodayPage() {
                   color: habit.color,
                   done: doneHabitIds.has(habit.id),
                 }))}
+              />
+              <QuickNote
+                date={localToday.date}
+                initialBody={dailyNote?.body_md ?? ""}
               />
               <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                 <h2 className="text-sm font-medium">At risk</h2>
