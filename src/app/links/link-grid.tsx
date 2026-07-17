@@ -62,7 +62,7 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="motion-link-grid flex flex-col gap-8">
       <form onSubmit={add} className="grid gap-2 rounded-xl bg-[var(--surface-subtle)] p-3 sm:grid-cols-[1fr_12rem_auto]">
         <input name="url" type="url" required placeholder="https://example.com" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--primary)]" />
         <input name="tag" required placeholder="Tag" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--primary)]" />
@@ -70,8 +70,8 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
       </form>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {tags.map((tag) => (
-        <section key={tag}>
-          <h2 className="flex items-center gap-2 font-semibold"><span className="size-2 rounded-full bg-[var(--primary)]" />{tag}<span className="text-xs font-normal text-[var(--muted)]">{links.filter((link) => link.tag === tag).length}</span></h2>
+        <section key={tag} className="motion-link-group">
+          <h2 className="motion-link-heading flex items-center gap-2 font-semibold"><span className="size-2 rounded-full bg-[var(--primary)]" />{tag}<span className="text-xs font-normal text-[var(--muted)]">{links.filter((link) => link.tag === tag).length}</span></h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {links.filter((link) => link.tag === tag).map((link) => (
               <article
@@ -80,18 +80,18 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
                 onDragStart={() => setDraggedId(link.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => drop(event, link)}
-                className="group flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md dark:hover:border-indigo-800"
+                className="motion-link-card group flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md dark:hover:border-indigo-800"
               >
-                <GripVertical size={15} className="cursor-grab text-zinc-300 opacity-0 group-hover:opacity-100" />
+                <GripVertical size={15} className="motion-link-grip cursor-grab text-zinc-300 opacity-0 group-hover:opacity-100" />
                 {link.faviconUrl ? (
                   <span
                     aria-hidden="true"
-                    className="size-5 bg-contain bg-center bg-no-repeat"
+                    className="motion-favicon size-5 bg-contain bg-center bg-no-repeat"
                     style={{ backgroundImage: `url("${link.faviconUrl}")` }}
                   />
                 ) : null}
                 <a href={link.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1">
-                  <h3 className="flex items-center gap-1.5 truncate text-sm font-semibold">{link.title}<ExternalLink size={12} className="shrink-0 text-zinc-400" /></h3>
+                  <h3 className="flex items-center gap-1.5 truncate text-sm font-semibold">{link.title}<ExternalLink size={12} className="motion-external-arrow shrink-0 text-zinc-400" /></h3>
                   <p className="truncate text-xs text-zinc-500">{new URL(link.url).hostname}</p>
                 </a>
                 <button

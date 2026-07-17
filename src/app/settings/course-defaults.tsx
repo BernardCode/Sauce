@@ -40,7 +40,7 @@ export function CourseDefaults({ defaults }: { defaults: CourseDefault[] }) {
           <form
             key={entry.course}
             onSubmit={save}
-            className="grid grid-cols-[1fr_7rem_auto] items-center gap-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+            className="motion-course-row grid grid-cols-[1fr_7rem_auto] items-center gap-2 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
           >
             <input type="hidden" name="course" value={entry.course} />
             <span className="text-sm">{entry.course}</span>

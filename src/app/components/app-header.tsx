@@ -52,7 +52,7 @@ export function AppHeader() {
               <Link key={href} href={href} className={`app-nav-link app-nav-${accent}`} data-active={active}>
                 <Icon size={18} strokeWidth={active ? 2.3 : 1.9} />
                 <span>{label}</span>
-                {active ? <ChevronRight className="ml-auto" size={15} /> : null}
+                {active ? <ChevronRight className="motion-nav-chevron ml-auto" size={15} /> : null}
               </Link>
             );
           })}

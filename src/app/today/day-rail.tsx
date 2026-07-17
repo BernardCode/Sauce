@@ -540,7 +540,7 @@ export function DayRail({
   }
 
   return (
-    <div className="flex flex-col gap-2 overflow-hidden rounded-xl bg-[var(--surface-subtle)] p-2">
+    <div className="motion-day-rail flex flex-col gap-2 overflow-hidden rounded-xl bg-[var(--surface-subtle)] p-2">
       {actionError ? (
         <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>
       ) : null}
@@ -549,7 +549,7 @@ export function DayRail({
           {allDayEvents.map((event) => (
             <div
               key={event.id}
-              className="rounded bg-sky-200 px-2 py-1 text-xs font-medium text-sky-950 dark:bg-sky-900 dark:text-sky-100"
+              className="motion-all-day-event rounded bg-sky-200 px-2 py-1 text-xs font-medium text-sky-950 dark:bg-sky-900 dark:text-sky-100"
             >
               {event.title}, all day
             </div>
@@ -591,7 +591,7 @@ export function DayRail({
         placedEvents.length === 0 &&
         allDayEvents.length === 0 &&
         pendingCreate === null ? (
-          <p className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-zinc-500">
+          <p className="motion-empty-state pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-zinc-500">
             Nothing scheduled today. Drag a task here.
           </p>
         ) : null}
@@ -599,7 +599,7 @@ export function DayRail({
         {placedEvents.map((entry) => (
           <div
             key={entry.event.id}
-            className="pointer-events-none absolute right-1 z-[5] overflow-hidden rounded-md bg-sky-200 px-2 pt-1 text-xs text-sky-950 dark:bg-sky-900 dark:text-sky-100"
+            className="motion-rail-event pointer-events-none absolute right-1 z-[5] overflow-hidden rounded-md bg-sky-200 px-2 pt-1 text-xs text-sky-950 dark:bg-sky-900 dark:text-sky-100"
             style={{
               top: entry.top,
               height: entry.height,
@@ -636,7 +636,7 @@ export function DayRail({
 
         {pendingCreate !== null && windowStartMs !== null ? (
           <div
-            className="absolute right-1 z-20 animate-pulse overflow-hidden rounded-md border border-dashed border-sky-400 bg-sky-50/60 px-2 pt-0.5 text-xs text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
+            className="motion-drop-pending absolute right-1 z-20 overflow-hidden rounded-md border border-dashed border-sky-400 bg-sky-50/60 px-2 pt-0.5 text-xs text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
             style={{
               top:
                 ((pendingCreate.startMs - windowStartMs) / MINUTE_MS) *
@@ -655,7 +655,7 @@ export function DayRail({
 
         {dropPreviewMinute !== null ? (
           <div
-            className="pointer-events-none absolute right-1 z-20 border-t-2 border-sky-400"
+            className="motion-drop-preview pointer-events-none absolute right-1 z-20 border-t-2 border-sky-400"
             style={{
               top: dropPreviewMinute * PX_PER_MINUTE,
               left: LABEL_GUTTER_PX,
@@ -665,11 +665,11 @@ export function DayRail({
 
         {nowTop !== null ? (
           <div
-            className="pointer-events-none absolute right-0 z-20"
+            className="motion-now-line pointer-events-none absolute right-0 z-20"
             style={{ top: nowTop, left: LABEL_GUTTER_PX }}
           >
             <div className="relative border-t-2 border-red-500">
-              <div className="absolute -top-[3px] -left-1 size-2 rounded-full bg-red-500" />
+              <div className="motion-now-dot absolute -top-[3px] -left-1 size-2 rounded-full bg-red-500" />
             </div>
           </div>
         ) : null}
@@ -677,7 +677,7 @@ export function DayRail({
         {popover !== null && popoverBlock !== null ? (
           <div
             ref={popoverRef}
-            className="absolute z-40"
+            className="motion-block-popover absolute z-40"
             style={{ top: popover.top, left: popover.left }}
           >
             <BlockPopover

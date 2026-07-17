@@ -21,13 +21,13 @@ export function SourceControls({ id, enabled }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="motion-source-controls flex flex-col items-end gap-1" data-pending={isPending}>
       <div className="flex gap-3">
         <button
           type="button"
           onClick={() => run(() => syncSource({ id }))}
           disabled={isPending || !enabled}
-          className="text-sm text-zinc-500 disabled:opacity-40"
+          className="motion-sync text-sm text-zinc-500 disabled:opacity-40"
         >
           Sync now
         </button>

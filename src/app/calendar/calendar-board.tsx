@@ -94,6 +94,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
   const [hiddenSources, setHiddenSources] = useState<Record<string, true>>({});
   const [localBlocks, setLocalBlocks] = useState(blocks);
   const [selectedBlock, setSelectedBlock] = useState<CalendarBlock | null>(null);
+  const [dragTargetDay, setDragTargetDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -140,6 +141,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
 
   function dropOnDay(event: DragEvent, day: string) {
     event.preventDefault();
+    setDragTargetDay(null);
     const payload = readDragPayload(event);
     if (!payload) return;
     if (payload.kind === "block") {
@@ -224,11 +226,11 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="motion-calendar flex min-h-0 flex-1 flex-col gap-4" data-view={view}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
           {sources.map((source) => (
-            <label key={source.id} className="flex items-center gap-1.5">
+            <label key={source.id} className="motion-source-filter flex items-center gap-1.5">
               <input
                 type="checkbox"
                 checked={!hiddenSources[source.id]}
@@ -270,8 +272,15 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
             <section
               key={day}
               onDragOver={(event) => event.preventDefault()}
+              onDragEnter={() => setDragTargetDay(day)}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setDragTargetDay((current) => current === day ? null : current);
+                }
+              }}
               onDrop={(event) => dropOnDay(event, day)}
-              className={`min-h-32 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-2.5 hover:border-indigo-200 dark:hover:border-indigo-800 ${
+              data-drop-target={dragTargetDay === day}
+              className={`motion-calendar-day min-h-32 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-2.5 hover:border-indigo-200 dark:hover:border-indigo-800 ${
                 view === "month" ? "min-h-40" : "min-h-96"
               }`}
             >
@@ -283,7 +292,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                   type="button"
                   onClick={() => addManualBlock(day)}
                   disabled={isPending}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-[var(--primary)] hover:text-[var(--primary-deep)]"
+                  className="motion-calendar-add inline-flex items-center gap-1 text-xs font-medium text-[var(--primary)] hover:text-[var(--primary-deep)]"
                 >
                   <Plus size={12} /> Add
                 </button>
@@ -292,7 +301,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                 {dayEvents.map((event) => (
                   <article
                     key={event.id}
-                    className="rounded-lg border border-sky-200 bg-[var(--sky-soft)] px-2.5 py-2 text-xs text-sky-900 dark:border-sky-900 dark:text-sky-200"
+                    className="motion-calendar-event rounded-lg border border-sky-200 bg-[var(--sky-soft)] px-2.5 py-2 text-xs text-sky-900 dark:border-sky-900 dark:text-sky-200"
                   >
                     <p className="truncate font-medium">{event.title}</p>
                     <p className="truncate opacity-70">
@@ -309,7 +318,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                     draggable={!block.done}
                     onDragStart={(event) => startBlockDrag(event, block)}
                     onClick={() => setSelectedBlock(block)}
-                    className="cursor-pointer rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-xs text-indigo-950 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-100"
+                    className="motion-calendar-block cursor-pointer rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-xs text-indigo-950 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-100"
                   >
                     <p className="truncate font-medium">{block.title}</p>
                     <p className="text-zinc-500">
@@ -353,7 +362,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
         })}
       </div>
 
-      <details className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] p-3">
+      <details className="motion-disclosure rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] p-3">
         <summary className="cursor-pointer text-sm text-zinc-500">
           Unscheduled ({items.length})
         </summary>
@@ -364,7 +373,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
               type="button"
               draggable
               onDragStart={(event) => startItemDrag(event, item)}
-              className="cursor-grab rounded-full border border-zinc-300 px-3 py-1 text-xs dark:border-zinc-700"
+              className="motion-draggable-item cursor-grab rounded-full border border-zinc-300 px-3 py-1 text-xs dark:border-zinc-700"
             >
               {item.title}
             </button>
@@ -376,14 +385,14 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
       </details>
 
       {selectedBlock ? (
-        <aside className="fixed right-4 bottom-20 z-40 w-80 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-2xl lg:bottom-4">
+        <aside className="motion-detail-panel fixed right-4 bottom-20 z-40 w-80 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-2xl lg:bottom-4">
           <div className="flex items-start justify-between gap-3">
             <h2 className="font-medium">{selectedBlock.title}</h2>
             <button
               type="button"
               onClick={() => setSelectedBlock(null)}
               aria-label="Close block details"
-              className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
+              className="motion-panel-close rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
             >
               <X size={16} />
             </button>

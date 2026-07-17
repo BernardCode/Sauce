@@ -108,8 +108,13 @@ export function BlockCard({
   return (
     <div
       id={blockDomId(block.id)}
+      data-dragging={isDragging}
+      data-off-rail={isOffRail}
+      data-highlighted={highlighted}
+      data-locked={block.locked}
+      data-done={block.done}
       style={{ top, height, left: 44 + indent, right: 4, zIndex }}
-      className={classes}
+      className={`motion-rail-block ${classes}`}
       onPointerDown={
         interactive ? (event) => onPressStart(event, block, "move") : undefined
       }
@@ -136,7 +141,7 @@ export function BlockCard({
             event.stopPropagation();
             onToggleLock(block);
           }}
-          className={`shrink-0 rounded p-0.5 ${
+          className={`motion-lock shrink-0 rounded p-0.5 ${
             block.locked
               ? "text-zinc-600 hover:text-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
               : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
@@ -151,7 +156,7 @@ export function BlockCard({
       {interactive ? (
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
+          className="motion-resize-handle absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
           onPointerDown={(event) => {
             // Stop the card's move handler so this press only resizes.
             event.stopPropagation();

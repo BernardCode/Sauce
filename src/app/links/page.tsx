@@ -14,7 +14,7 @@ export default async function LinksPage() {
     .order("tag")
     .order("position");
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="links">
       <AppHeader />
       <main>
         <div className="page-intro">

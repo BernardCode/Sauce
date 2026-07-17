@@ -42,9 +42,9 @@ export function QuickAdd() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-1.5 shadow-sm focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary-soft)]">
-        <Sparkles size={17} className="ml-2 shrink-0 text-[var(--primary)]" />
+    <form onSubmit={handleSubmit} className="motion-quick-add flex flex-col gap-2">
+      <div className="motion-input-shell flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-1.5 shadow-sm focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-[var(--primary-soft)]">
+        <Sparkles size={17} className="motion-add-sparkle ml-2 shrink-0 text-[var(--primary)]" />
         <input
           type="text"
           value={value}
@@ -57,13 +57,13 @@ export function QuickAdd() {
           type="submit"
           disabled={isPending || value.trim() === ""}
           aria-label="Add task"
-          className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--primary)] text-white shadow-sm hover:-translate-y-0.5 hover:bg-[var(--primary-deep)] disabled:translate-y-0 disabled:opacity-40"
+          className="motion-add-button grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--primary)] text-white shadow-sm hover:-translate-y-0.5 hover:bg-[var(--primary-deep)] disabled:translate-y-0 disabled:opacity-40"
         >
           <ArrowUp size={17} strokeWidth={2.5} />
         </button>
       </div>
       <p className="px-1 text-[11px] text-[var(--muted)]">Use natural dates and times. Prefix with * to create a project.</p>
-      {pendingTitle ? <p className="animate-pulse px-1 text-xs font-medium text-[var(--primary)]">Adding {pendingTitle}...</p> : null}
+      {pendingTitle ? <p className="motion-pending-add px-1 text-xs font-medium text-[var(--primary)]">Adding {pendingTitle}...</p> : null}
       {error ? (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : null}

@@ -23,7 +23,7 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
   const lowered = query.toLowerCase();
   const notes = (data ?? []).filter((note) => !lowered || note.title.toLowerCase().includes(lowered) || note.body_md.toLowerCase().includes(lowered));
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="notes">
       <AppHeader />
       <main>
         <div className="page-intro">

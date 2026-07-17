@@ -55,7 +55,7 @@ export function PlannerSettingsForm({
   }
 
   return (
-    <section className="flex flex-col gap-5 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <section className="motion-planner-form flex flex-col gap-5 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800" data-pending={isPending}>
       <div>
         <h2 className="font-medium">Planner</h2>
         <p className="mt-1 text-sm text-zinc-500">
@@ -63,7 +63,7 @@ export function PlannerSettingsForm({
         </p>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="motion-field flex flex-col gap-1 text-sm">
         Time zone
         <input
           value={timezone}
@@ -81,7 +81,7 @@ export function PlannerSettingsForm({
       </label>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="motion-field flex flex-col gap-1 text-sm">
           Wake hour
           <input
             type="number"
@@ -92,7 +92,7 @@ export function PlannerSettingsForm({
             className="rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="motion-field flex flex-col gap-1 text-sm">
           Sleep hour
           <input
             type="number"
@@ -116,7 +116,7 @@ export function PlannerSettingsForm({
                 { days: [1, 2, 3, 4, 5], start: "08:00", end: "15:00" },
               ])
             }
-            className="text-sm text-zinc-500"
+            className="motion-add-window text-sm text-zinc-500"
           >
             Add window
           </button>
@@ -124,7 +124,7 @@ export function PlannerSettingsForm({
         {windows.map((window, index) => (
           <div
             key={index}
-            className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
+            className="motion-blocked-window rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
           >
             <div className="flex flex-wrap items-center gap-2">
               <input
@@ -176,7 +176,7 @@ export function PlannerSettingsForm({
                           : [...days, day].sort(),
                       });
                     }}
-                    className={`size-7 rounded-full text-xs ${
+                    className={`motion-day-toggle size-7 rounded-full text-xs ${
                       selected
                         ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                         : "bg-zinc-100 text-zinc-500 dark:bg-zinc-900"
@@ -191,7 +191,7 @@ export function PlannerSettingsForm({
         ))}
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="motion-field flex flex-col gap-1 text-sm">
         Planner preferences
         <textarea
           value={preferences}
@@ -207,12 +207,12 @@ export function PlannerSettingsForm({
           type="button"
           onClick={save}
           disabled={isPending}
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
+          className="motion-submit rounded-md bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
         >
           Save planner settings
         </button>
         {message ? (
-          <p className={`text-sm ${message === "Saved." ? "text-zinc-500" : "text-red-600"}`}>
+          <p className={`motion-form-message text-sm ${message === "Saved." ? "text-zinc-500" : "text-red-600"}`}>
             {message}
           </p>
         ) : null}

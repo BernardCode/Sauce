@@ -91,29 +91,29 @@ export default async function ProjectPage({
   );
 
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="project">
       <AppHeader />
       <main className="flex flex-col gap-6">
         {atRisk ? (
-          <div className="rounded-xl border border-red-200 bg-[var(--danger-soft)] p-4 text-sm font-medium text-red-700 dark:border-red-900 dark:text-red-200">
+          <div className="motion-at-risk rounded-xl border border-red-200 bg-[var(--danger-soft)] p-4 text-sm font-medium text-red-700 dark:border-red-900 dark:text-red-200">
             At risk. At least one scheduled step ends after the project deadline.
           </div>
         ) : null}
-        <section className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-6 text-white shadow-xl shadow-indigo-500/15 dark:border-indigo-800">
+        <section className="motion-project-hero rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-6 text-white shadow-xl shadow-indigo-500/15 dark:border-indigo-800">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-indigo-100">Project overview</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{project.title}</h1>
           <p className="mt-2 text-sm text-indigo-100">
             {deadline ? `Due ${deadline.toLocaleString()}` : "No deadline"}
           </p>
           <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/20">
-            <div className="h-full rounded-full bg-emerald-300" style={{ width: `${progress}%` }} />
+            <div className="motion-progress-fill h-full rounded-full bg-emerald-300" style={{ width: `${progress}%` }} />
           </div>
           <p className="mt-2 text-xs text-indigo-100">
             {doneSteps} of {rows.length} steps done, {actual} of {estimated} estimated minutes logged
           </p>
         </section>
 
-        <section className="workspace-card">
+        <section className="workspace-card motion-project-section">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Steps</h2>
             <div className="flex flex-wrap items-center gap-3">
@@ -140,7 +140,7 @@ export default async function ProjectPage({
           />
         </section>
 
-        <section className="workspace-card">
+        <section className="workspace-card motion-project-section">
           <h2 className="text-lg font-semibold">Timeline</h2>
           <div className="mt-3 flex flex-col gap-2">
             {rows.map((step) => {
@@ -159,7 +159,7 @@ export default async function ProjectPage({
                   {block ? (
                     <div className="relative h-5 rounded-full bg-[var(--surface-subtle)]">
                       <div
-                        className="absolute h-5 rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
+                        className="motion-timeline-bar absolute h-5 rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
                         style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
                       />
                     </div>

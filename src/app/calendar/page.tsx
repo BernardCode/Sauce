@@ -131,7 +131,7 @@ export default async function CalendarPage({
   const errors = [blocksResult.error, eventsResult.error, itemsResult.error, sourcesResult.error];
   if (errors.some(Boolean)) {
     return (
-      <div className="app-page">
+      <div className="app-page" data-page="calendar">
         <AppHeader />
         <p className="flex flex-1 items-center justify-center text-zinc-500">
           Could not load the calendar. Refresh to try again.
@@ -149,7 +149,7 @@ export default async function CalendarPage({
   const next = dateKey(addDays(anchor, range.step));
 
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="calendar">
       <AppHeader />
       <main className="flex flex-1 flex-col gap-4">
         <div className="page-intro">

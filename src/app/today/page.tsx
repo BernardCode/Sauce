@@ -415,7 +415,7 @@ export default async function TodayPage() {
   }
 
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="today">
       <AppHeader />
       <main className="flex flex-1 flex-col">
         {loadError ? (

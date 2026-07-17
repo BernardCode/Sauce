@@ -14,7 +14,8 @@ export function RebreakdownRequest({ projectId }: { projectId: string }) {
     <button
       type="button"
       onClick={() => void copyRequest()}
-      className="rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700"
+      data-copied={copied}
+      className="motion-rebreakdown rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700"
     >
       {copied ? "Request copied" : "Copy re-break-down request"}
     </button>

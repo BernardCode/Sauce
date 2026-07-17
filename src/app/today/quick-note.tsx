@@ -28,8 +28,8 @@ export function QuickNote({ date, initialBody }: { date: string; initialBody: st
   }, [body, date]);
 
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
-      <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Quick note</h2><NotebookPen size={17} className="text-violet-500" /></div>
+    <section data-status={status ?? "idle"} className="motion-quick-note rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+      <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Quick note</h2><NotebookPen size={17} className="motion-note-pen text-violet-500" /></div>
       <textarea
         value={body}
         onChange={(event) => setBody(event.target.value)}
@@ -37,7 +37,7 @@ export function QuickNote({ date, initialBody }: { date: string; initialBody: st
         aria-label="Quick note"
         className="mt-3 min-h-28 w-full resize-y rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-950"
       />
-      <p className="h-4 text-xs text-zinc-500">{status}</p>
+      <p className="motion-save-status h-4 text-xs text-zinc-500">{status}</p>
     </section>
   );
 }

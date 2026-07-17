@@ -33,7 +33,7 @@ export default async function HabitsPage() {
     };
   });
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="habits">
       <AppHeader />
       <main>
         <div className="page-intro">

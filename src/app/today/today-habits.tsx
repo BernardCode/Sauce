@@ -29,6 +29,7 @@ export function TodayHabits({ habits, date }: { habits: TodayHabit[]; date: stri
               disabled={isPending}
               title={habit.name}
               aria-label={`${habit.name}, ${doneById[habit.id] ? "done" : "not done"}`}
+              data-done={doneById[habit.id]}
               onClick={() => {
                 const previous = doneById[habit.id];
                 const next = !previous;
@@ -42,7 +43,7 @@ export function TodayHabits({ habits, date }: { habits: TodayHabit[]; date: stri
               className="group flex flex-col items-center gap-1.5 text-xs text-[var(--muted)] disabled:opacity-50"
             >
               <span
-                className="size-8 rounded-full border-2 shadow-sm group-hover:scale-110"
+                className="motion-habit-dot size-8 rounded-full border-2 shadow-sm group-hover:scale-110"
                 style={{ borderColor: habit.color, backgroundColor: doneById[habit.id] ? habit.color : "transparent" }}
               />
               <span className="max-w-16 truncate">{habit.name}</span>

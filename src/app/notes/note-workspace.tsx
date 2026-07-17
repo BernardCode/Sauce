@@ -15,7 +15,7 @@ export type NoteRow = {
 
 function MarkdownPreview({ body }: { body: string }) {
   return (
-    <div className="flex flex-col gap-2 text-sm">
+    <div className="motion-note-preview flex flex-col gap-2 text-sm">
       {body.split("\n").map((line, index) => {
         if (line.startsWith("# ")) return <h2 key={index} className="text-xl font-semibold">{line.slice(2)}</h2>;
         if (line.startsWith("## ")) return <h3 key={index} className="text-lg font-semibold">{line.slice(3)}</h3>;
@@ -97,7 +97,7 @@ export function NoteWorkspace({ notes, selectedId }: { notes: NoteRow[]; selecte
   }
 
   return (
-    <div className="grid min-h-[70vh] gap-5 md:grid-cols-[17rem_1fr]">
+    <div className="motion-note-workspace grid min-h-[70vh] gap-5 md:grid-cols-[17rem_1fr]">
       <aside className="rounded-xl bg-[var(--surface-subtle)] p-3">
         <form onSubmit={add} className="flex gap-2">
           <input name="title" required placeholder="New note" className="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]" />
@@ -109,22 +109,23 @@ export function NoteWorkspace({ notes, selectedId }: { notes: NoteRow[]; selecte
               key={note.id}
               type="button"
               onClick={() => router.push(`/notes?note=${note.id}`)}
+              data-active={selected?.id === note.id}
               className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${selected?.id === note.id ? "bg-[var(--primary-soft)] font-semibold text-[var(--primary-deep)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"}`}
             >
-              {note.pinned ? <Pin size={13} className="shrink-0" fill="currentColor" /> : <span className="size-[13px]" />}{note.title}
+              {note.pinned ? <Pin size={13} className="motion-pin shrink-0" fill="currentColor" /> : <span className="size-[13px]" />}{note.title}
             </button>
           ))}
         </nav>
       </aside>
       {selected ? (
-        <section className="flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+        <section data-status={status ?? "idle"} className="motion-note-editor flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="flex flex-wrap items-center gap-3 border-b border-[var(--line)] pb-3">
             <input value={title} onChange={(event) => setTitle(event.target.value)} aria-label="Note title" className="min-w-0 flex-1 bg-transparent text-xl font-semibold tracking-[-0.025em] outline-none" />
             <label className="text-sm"><input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} className="mr-1" />Pinned</label>
             <button type="button" onClick={() => setPreview((value) => !value)} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-subtle)] px-2.5 py-1.5 text-xs font-medium text-[var(--muted)]">{preview ? <Pencil size={13} /> : <Eye size={13} />}{preview ? "Edit" : "Preview"}</button>
             <button type="button" aria-label="Delete note" onClick={() => startTransition(async () => { const result = await deleteNote({ id: selected.id }); setStatus(result.error); if (!result.error) router.push("/notes"); })} className="rounded-lg p-1.5 text-zinc-400 hover:bg-[var(--danger-soft)] hover:text-rose-600"><Trash2 size={15} /></button>
           </div>
-          <p className="h-4 text-xs text-zinc-500">{status}</p>
+          <p className="motion-save-status h-4 text-xs text-zinc-500">{status}</p>
           {preview ? (
             <MarkdownPreview body={body} />
           ) : (

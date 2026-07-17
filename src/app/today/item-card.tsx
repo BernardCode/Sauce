@@ -243,7 +243,9 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
     <li
       draggable={!leaving}
       onDragStart={handleDragStart}
-      className={`group flex cursor-grab items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md active:cursor-grabbing dark:hover:border-indigo-800 ${
+      data-leaving={leaving}
+      data-unscheduled={flagUnscheduled}
+      className={`motion-item-card group flex cursor-grab items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md active:cursor-grabbing dark:hover:border-indigo-800 ${
         flagUnscheduled ? "border-l-[3px] border-l-amber-400" : ""
       } ${leaving ? "translate-x-2 opacity-0" : "opacity-100"}`}
     >

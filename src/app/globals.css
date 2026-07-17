@@ -547,3 +547,812 @@ select:focus-visible {
   background: var(--primary-soft);
   color: var(--primary-deep);
 }
+
+/* Motion system
+   Every effect maps to motion-system.md. Motion is short, contextual, and
+   limited to transforms, opacity, color, and shadows whenever possible. */
+
+@keyframes motion-route-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motion-rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motion-slide-in-left {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes motion-slide-in-right {
+  from { opacity: 0; transform: translateX(16px) scale(0.98); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes motion-pop-in {
+  0% { opacity: 0; transform: scale(0.82); }
+  70% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes motion-check-pop {
+  0% { transform: scale(0.72); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+@keyframes motion-soft-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.72; transform: scale(0.94); }
+}
+
+@keyframes motion-ring-ping {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 30%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 7px transparent; }
+}
+
+@keyframes motion-shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
+}
+
+@keyframes motion-sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(110%); }
+}
+
+@keyframes motion-progress-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes motion-line-draw {
+  from { opacity: 0; transform: scaleX(0); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes motion-wiggle {
+  0%, 100% { transform: rotate(0); }
+  35% { transform: rotate(-7deg); }
+  70% { transform: rotate(5deg); }
+}
+
+@keyframes motion-alert {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, #f43f5e 9%, transparent); }
+}
+
+@keyframes motion-off-rail {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  35% { transform: translateX(-3px) rotate(-0.5deg); }
+  70% { transform: translateX(3px) rotate(0.5deg); }
+}
+
+@keyframes motion-orb-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-9px, 8px, 0) scale(1.08); }
+}
+
+@keyframes motion-glow-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(18px, -12px, 0); }
+}
+
+@keyframes motion-spin-once {
+  from { transform: rotate(-55deg) scale(0.84); opacity: 0; }
+  to { transform: rotate(0) scale(1); opacity: 1; }
+}
+
+@keyframes motion-quarter-turn {
+  from { transform: rotate(-18deg); }
+  to { transform: rotate(0); }
+}
+
+@keyframes motion-saving {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes motion-loading-travel {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(210%); }
+}
+
+@keyframes motion-error-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes motion-sheen {
+  from { transform: translateX(-140%) skewX(-18deg); }
+  to { transform: translateX(240%) skewX(-18deg); }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body,
+.app-sidebar,
+.app-topbar,
+.app-mobile-nav,
+.today-pane,
+.workspace-card,
+.theme-toggle,
+.motion-auth-shell {
+  transition: background-color 220ms ease, border-color 220ms ease,
+    color 180ms ease, box-shadow 220ms ease;
+}
+
+.motion-route > .app-page,
+.motion-route > .motion-auth {
+  animation: motion-route-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.page-title,
+[data-page="today"] h1 {
+  animation: motion-rise-in 360ms 45ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.page-description,
+[data-page="today"] h1 + p {
+  animation: motion-rise-in 380ms 95ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.workspace-card {
+  animation: motion-rise-in 380ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.today-pane {
+  animation: motion-rise-in 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.today-pane[data-pane="schedule"] { animation-delay: 80ms; }
+.today-pane[data-pane="tasks"] { animation-delay: 130ms; }
+.today-pane[data-pane="focus"] { animation-delay: 180ms; }
+
+.app-nav-link[data-active="true"] {
+  animation: motion-slide-in-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.app-nav-link > svg:first-child {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 180ms ease, color 180ms ease;
+}
+
+.app-nav-link:hover > svg:first-child {
+  transform: translateY(-2px) rotate(-2deg);
+}
+
+.app-mobile-nav a[data-active="true"] svg {
+  animation: motion-pop-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.theme-sun,
+.theme-moon {
+  animation: motion-spin-once 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  animation: motion-ring-ping 380ms ease-out 1;
+}
+
+.motion-forward svg {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.motion-forward:hover svg {
+  transform: translateX(3px);
+}
+
+.motion-add-button svg,
+.motion-calendar-add svg,
+.motion-note-workspace form button svg,
+.motion-link-grid form button svg,
+.motion-habit-grid form button svg {
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.motion-add-button:hover svg,
+.motion-calendar-add:hover svg,
+.motion-note-workspace form button:hover svg,
+.motion-link-grid form button:hover svg,
+.motion-habit-grid form button:hover svg {
+  transform: rotate(90deg) scale(1.06);
+}
+
+input[type="checkbox"]:checked {
+  animation: motion-check-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.motion-item-card[data-leaving="true"] {
+  animation: motion-route-in 220ms ease reverse both;
+}
+
+.motion-item-card {
+  animation: motion-rise-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-item-card:hover {
+  transform: translateY(-2px);
+}
+
+.motion-item-card[data-unscheduled="true"] {
+  animation: motion-rise-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    motion-alert 3.4s 700ms ease-in-out 2;
+}
+
+.motion-item-card button:hover,
+.motion-item-card a:hover {
+  transform: translateY(-1px);
+}
+
+.motion-disclosure[open] > :not(summary) {
+  animation: motion-rise-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-disclosure summary {
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.motion-disclosure summary:hover {
+  color: var(--primary);
+  transform: translateX(2px);
+}
+
+.motion-progress-fill,
+.motion-timeline-bar {
+  transform-origin: left center;
+  animation: motion-progress-grow 650ms 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-input-shell {
+  transition: border-color 180ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.motion-input-shell:focus-within {
+  transform: translateY(-1px);
+}
+
+.motion-add-sparkle {
+  transition: transform 200ms ease;
+}
+
+.motion-input-shell:focus-within .motion-add-sparkle {
+  transform: rotate(12deg) scale(1.08);
+}
+
+.motion-pending-add {
+  background: linear-gradient(90deg, var(--primary) 20%, #a855f7 48%, var(--primary) 76%);
+  background-clip: text;
+  background-size: 220% 100%;
+  color: transparent;
+  animation: motion-shimmer 1.1s linear infinite;
+}
+
+.app-live-pill span,
+.app-status-dot {
+  animation: motion-ring-ping 2.4s ease-out infinite;
+}
+
+.app-status-card {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.app-status-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, #22c55e 32%, var(--line));
+  box-shadow: 0 8px 20px color-mix(in srgb, #22c55e 8%, transparent);
+}
+
+.app-brand {
+  animation: motion-slide-in-left 360ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.app-brand-mark {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 220ms ease;
+}
+
+.app-brand:hover .app-brand-mark {
+  transform: rotate(-5deg) scale(1.05);
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--primary) 38%, transparent);
+}
+
+.app-brand:hover .app-brand-mark svg {
+  animation: motion-wiggle 300ms ease;
+}
+
+.app-topbar {
+  animation: motion-rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.page-kicker::before {
+  animation: motion-soft-pulse 2.8s ease-in-out infinite;
+}
+
+.workspace-card::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, white 35%, transparent) 50%, transparent 62%);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-110%);
+}
+
+.workspace-card:hover::after {
+  animation: motion-sweep 650ms ease-out 1;
+}
+
+.workspace-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.motion-loading-logo {
+  animation: motion-soft-pulse 1.35s ease-in-out infinite;
+}
+
+.motion-loading-track > div {
+  animation: motion-loading-travel 1s ease-in-out infinite;
+}
+
+.motion-route [class*="text-red-"] {
+  animation: motion-error-in 220ms ease-out both;
+}
+
+.motion-save-status:not(:empty),
+.motion-form-message {
+  animation: motion-rise-in 180ms ease-out both;
+}
+
+[data-status="Saving"] .motion-save-status {
+  animation: motion-saving 900ms ease-in-out infinite;
+}
+
+textarea:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 9%, transparent);
+}
+
+select:focus {
+  transform: translateY(-1px);
+}
+
+input[type="color"]:hover {
+  transform: scale(1.08);
+}
+
+.segmented-control a[data-active="true"],
+.motion-mobile-tabs button[data-active="true"] {
+  animation: motion-pop-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-note-workspace nav button[data-active="true"] {
+  animation: motion-slide-in-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-note-preview {
+  animation: motion-rise-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-pin {
+  animation: motion-wiggle 360ms 120ms ease both;
+}
+
+button[aria-label^="Delete"]:hover svg,
+button[aria-label^="Archive"]:hover svg,
+.motion-archive:hover svg {
+  transform: rotate(-8deg) scale(1.07);
+}
+
+.motion-link-card {
+  animation: motion-rise-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: transform 190ms ease, border-color 190ms ease, box-shadow 190ms ease,
+    background-color 190ms ease;
+}
+
+.motion-link-card:hover {
+  transform: translateY(-3px);
+}
+
+.motion-link-grip {
+  transform: translateX(-4px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.motion-link-card:hover .motion-link-grip {
+  transform: translateX(0);
+}
+
+.motion-favicon {
+  animation: motion-pop-in 260ms 90ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-external-arrow {
+  transition: transform 160ms ease;
+}
+
+.motion-link-card:hover .motion-external-arrow {
+  transform: translate(2px, -2px);
+}
+
+.motion-link-heading > span:first-child {
+  animation: motion-soft-pulse 2.8s ease-in-out infinite;
+}
+
+.motion-habit-cell {
+  transition: transform 140ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.motion-habit-cell:hover {
+  transform: scale(1.12);
+}
+
+.motion-habit-cell[data-done="true"],
+button[data-done="true"] .motion-habit-dot {
+  animation: motion-check-pop 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.motion-habit-dot {
+  transition: transform 160ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+button:hover .motion-habit-dot {
+  transform: scale(1.1);
+  box-shadow: 0 5px 12px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+button:hover .motion-habit-dot + span {
+  color: var(--foreground);
+}
+
+.motion-habit-grid button:hover + span,
+.motion-habit-grid button:hover {
+  color: var(--foreground);
+}
+
+.motion-streaks strong {
+  display: inline-block;
+  animation: motion-rise-in 280ms 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-habit-row {
+  animation: motion-slide-in-left 300ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-archive svg {
+  transition: transform 180ms ease;
+}
+
+.motion-calendar {
+  animation: motion-route-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-calendar-day {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.motion-calendar-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px color-mix(in srgb, #1e2a55 7%, transparent);
+}
+
+.motion-calendar-day[data-drop-target="true"] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 12%, transparent);
+  transform: translateY(-2px) scale(1.01);
+}
+
+.motion-calendar-block {
+  animation: motion-rise-in 240ms ease-out both;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.motion-calendar-block:hover {
+  transform: translateY(-2px);
+}
+
+.motion-calendar-event {
+  animation: motion-rise-in 240ms 35ms ease-out both;
+  transition: filter 170ms ease, transform 170ms ease;
+}
+
+.motion-calendar-event:hover {
+  filter: saturate(1.12) brightness(1.02);
+  transform: translateY(-1px);
+}
+
+.motion-draggable-item:hover {
+  transform: rotate(-1.5deg) translateY(-1px);
+}
+
+.motion-detail-panel {
+  animation: motion-slide-in-right 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-panel-close svg {
+  transition: transform 180ms ease;
+}
+
+.motion-panel-close:hover svg {
+  transform: rotate(90deg);
+}
+
+.motion-lock svg {
+  transition: transform 180ms ease;
+}
+
+.motion-rail-block[data-locked="true"] .motion-lock svg {
+  animation: motion-check-pop 220ms ease-out;
+}
+
+.motion-resize-handle {
+  opacity: 0;
+  background: linear-gradient(90deg, transparent 25%, color-mix(in srgb, var(--primary) 55%, transparent) 50%, transparent 75%);
+  transition: opacity 160ms ease;
+}
+
+.motion-rail-block:hover .motion-resize-handle {
+  opacity: 1;
+}
+
+.motion-rail-block[data-dragging="true"] {
+  transform: scale(1.02) rotate(0.35deg);
+  box-shadow: 0 14px 28px color-mix(in srgb, #1e2a55 20%, transparent);
+  transition-duration: 80ms;
+}
+
+.motion-rail-block[data-off-rail="true"] {
+  animation: motion-off-rail 240ms ease-in-out infinite;
+}
+
+.motion-now-line .relative {
+  transform-origin: left center;
+  animation: motion-line-draw 450ms ease-out both;
+}
+
+.motion-now-dot {
+  animation: motion-ring-ping 2s ease-out infinite;
+}
+
+.motion-rail-event,
+.motion-all-day-event {
+  animation: motion-rise-in 260ms 90ms ease-out both;
+}
+
+.motion-empty-state {
+  animation: motion-rise-in 360ms 180ms ease-out both;
+}
+
+.motion-source-filter input:checked {
+  animation: motion-check-pop 220ms ease-out;
+}
+
+.motion-calendar-add:hover svg {
+  transform: rotate(90deg);
+}
+
+.motion-drop-pending {
+  animation: motion-soft-pulse 950ms ease-in-out infinite;
+}
+
+.motion-drop-preview {
+  animation: motion-line-draw 180ms ease-out both, motion-soft-pulse 900ms ease-in-out infinite;
+  transform-origin: left center;
+}
+
+.motion-block-popover {
+  animation: motion-pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-project-card {
+  animation: motion-rise-in 280ms ease-out both;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.motion-project-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, #8b5cf6 48%, var(--line));
+  box-shadow: 0 9px 22px color-mix(in srgb, #8b5cf6 10%, transparent);
+}
+
+.motion-step-row {
+  animation: motion-rise-in 300ms ease-out both;
+}
+
+.motion-step-row input[type="checkbox"]:checked {
+  animation: motion-check-pop 240ms ease-out;
+}
+
+.motion-rebreakdown[data-copied="true"] {
+  animation: motion-quarter-turn 260ms ease-out;
+  border-color: color-mix(in srgb, #22c55e 45%, var(--line));
+}
+
+.motion-at-risk {
+  animation: motion-rise-in 260ms ease-out both, motion-alert 2.8s 500ms ease-in-out 2;
+}
+
+.motion-up-next {
+  animation: motion-rise-in 380ms 210ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: transform 190ms ease, box-shadow 190ms ease;
+}
+
+.motion-up-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px color-mix(in srgb, #6366f1 24%, transparent);
+}
+
+.motion-up-next-orb {
+  animation: motion-orb-drift 8s ease-in-out infinite;
+}
+
+.motion-clock {
+  animation: motion-soft-pulse 2.4s ease-in-out infinite;
+}
+
+.motion-quick-note:focus-within .motion-note-pen {
+  animation: motion-wiggle 320ms ease;
+}
+
+.motion-quick-note[data-status="Saved"] .motion-save-status {
+  animation: motion-check-pop 220ms ease-out;
+  color: #16a34a;
+}
+
+[data-pane="focus"] > div:last-child > section:not(.motion-up-next) {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+[data-pane="focus"] > div:last-child > section:not(.motion-up-next):hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--line));
+}
+
+[data-page="today"] .motion-at-risk a:hover,
+[data-page="today"] a.text-red-700:hover {
+  transform: translateX(2px);
+}
+
+[data-page="settings"] main > .motion-settings-section {
+  animation: motion-rise-in 340ms ease-out both;
+}
+
+[data-page="settings"] main > .motion-settings-section:nth-of-type(2) { animation-delay: 80ms; }
+[data-page="settings"] main > .motion-settings-section:nth-of-type(3) { animation-delay: 130ms; }
+[data-page="settings"] main > .motion-settings-section:nth-of-type(4) { animation-delay: 180ms; }
+
+.motion-field {
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.motion-field:focus-within {
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.motion-day-toggle[aria-pressed="true"] {
+  animation: motion-check-pop 220ms ease-out;
+}
+
+.motion-blocked-window {
+  animation: motion-rise-in 240ms ease-out both;
+}
+
+.motion-source-controls[data-pending="true"] .motion-sync {
+  animation: motion-saving 800ms ease-in-out infinite;
+}
+
+.motion-source-row {
+  animation: motion-rise-in 260ms ease-out both;
+}
+
+.motion-course-row {
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.motion-course-row:hover {
+  transform: translateX(2px);
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--line));
+  background: var(--surface-subtle);
+}
+
+.motion-submit {
+  position: relative;
+  overflow: hidden;
+}
+
+.motion-planner-form[data-pending="true"] .motion-submit::after {
+  position: absolute;
+  inset: -30% auto -30% -35%;
+  width: 32%;
+  background: color-mix(in srgb, white 34%, transparent);
+  content: "";
+  animation: motion-sheen 850ms ease-in-out infinite;
+}
+
+.motion-form-message {
+  animation: motion-rise-in 180ms ease-out both;
+}
+
+.motion-auth-shell {
+  animation: motion-rise-in 440ms 40ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-auth-badge,
+.motion-auth-title,
+.motion-auth-copy,
+.motion-auth form,
+.motion-auth section > p:last-child {
+  animation: motion-rise-in 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-auth-badge { animation-delay: 100ms; }
+.motion-auth-title { animation-delay: 150ms; }
+.motion-auth-copy { animation-delay: 200ms; }
+.motion-auth form { animation-delay: 250ms; }
+.motion-auth section > p:last-child { animation-delay: 300ms; }
+
+.motion-auth-badge svg {
+  animation: motion-wiggle 420ms 360ms ease both;
+}
+
+.motion-auth-feature {
+  animation: motion-slide-in-right 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.motion-auth-feature:hover {
+  transform: translateX(-3px);
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--line));
+  box-shadow: 0 9px 24px color-mix(in srgb, #1e2a55 8%, transparent);
+}
+
+.motion-auth-feature > span {
+  transition: transform 180ms ease;
+}
+
+.motion-auth-feature:hover > span {
+  transform: translateY(-2px) rotate(-2deg);
+}
+
+.motion-auth-glow {
+  animation: motion-glow-drift 13s ease-in-out infinite;
+}
+
+.motion-auth-glow-two {
+  animation-delay: -6s;
+  animation-direction: reverse;
+}
+
+.theme-toggle:not(:disabled):hover {
+  transform: translateY(-1px) rotate(4deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

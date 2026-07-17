@@ -42,8 +42,8 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)]">
+    <div className="motion-habit-grid flex flex-col gap-6">
+      <div className="motion-habit-table overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)]">
         <div className="min-w-max p-4">
           <div className="grid grid-cols-[11rem_repeat(30,1.65rem)] gap-1.5 text-center text-[10px] text-[var(--muted)]">
             <span />
@@ -52,13 +52,13 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
               const completed = new Set(completedByHabit[habit.id] ?? []);
               return (
                 <div key={habit.id} className="contents">
-                  <div className="flex items-center justify-between gap-2 pr-2 text-left text-sm text-zinc-900 dark:text-zinc-100">
+                  <div className="motion-habit-row flex items-center justify-between gap-2 pr-2 text-left text-sm text-zinc-900 dark:text-zinc-100">
                     <span className="truncate font-semibold">{habit.name}</span>
                     <button
                       type="button"
                       onClick={() => startTransition(async () => setError((await archiveHabit({ id: habit.id })).error))}
                       aria-label={`Archive ${habit.name}`}
-                      className="rounded-lg p-1.5 text-zinc-400 hover:bg-[var(--danger-soft)] hover:text-rose-500"
+                      className="motion-archive rounded-lg p-1.5 text-zinc-400 hover:bg-[var(--danger-soft)] hover:text-rose-500"
                     >
                       <Archive size={14} />
                     </button>
@@ -70,6 +70,7 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
                         key={date}
                         type="button"
                         aria-label={`${habit.name}, ${date}, ${done ? "done" : "not done"}`}
+                        data-done={done}
                         onClick={() => {
                           const nextDone = !done;
                           setCompletedByHabit((current) => {
@@ -89,12 +90,12 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
                             }
                           });
                         }}
-                        className="size-6 rounded-lg border shadow-sm hover:scale-110"
+                        className="motion-habit-cell size-6 rounded-lg border shadow-sm hover:scale-110"
                         style={{ backgroundColor: done ? habit.color : "transparent", borderColor: habit.color }}
                       />
                     );
                   })}
-                  <div className="col-span-full mb-4 ml-44 flex gap-4 text-xs text-[var(--muted)]">
+                  <div className="motion-streaks col-span-full mb-4 ml-44 flex gap-4 text-xs text-[var(--muted)]">
                     <span><strong className="text-[var(--foreground)]">{habit.currentStreak}</strong> current streak</span><span><strong className="text-[var(--foreground)]">{habit.longestStreak}</strong> longest</span><span><strong className="text-[var(--foreground)]">{habit.completionRate}%</strong> of target</span>
                   </div>
                 </div>

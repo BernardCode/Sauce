@@ -49,7 +49,7 @@ export default async function SettingsPage() {
   const plannerHours = hours.success ? hours.data : workingHoursSchema.parse({});
 
   return (
-    <div className="app-page">
+    <div className="app-page" data-page="settings">
       <AppHeader />
       <main className="flex flex-col gap-6">
         <div className="page-intro">
@@ -61,21 +61,21 @@ export default async function SettingsPage() {
           </p>
           </div>
         </div>
-        <div className="workspace-card"><PlannerSettingsForm
+        <div className="workspace-card motion-settings-section"><PlannerSettingsForm
           initialTimezone={profile?.timezone ?? "UTC"}
           initialWake={plannerHours.wake}
           initialSleep={plannerHours.sleep}
           initialWindows={plannerHours.blockedWindows}
           initialPreferences={preferences.success ? preferences.data.text : ""}
         /></div>
-        <div className="workspace-card"><CourseDefaults
+        <div className="workspace-card motion-settings-section"><CourseDefaults
           defaults={(courseDefaults ?? []).map((entry) => ({
             course: entry.course,
             defaultMinutes: entry.default_minutes,
             sampleCount: entry.sample_count,
           }))}
         /></div>
-        <section className="workspace-card">
+        <section className="workspace-card motion-settings-section">
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-medium">Sources</h2>
             <form action={signInWithGoogle}>
@@ -92,7 +92,7 @@ export default async function SettingsPage() {
             {(sources ?? []).map((source) => (
               <article
                 key={source.id}
-                className="flex items-start justify-between gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+                className="motion-source-row flex items-start justify-between gap-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
               >
                 <div>
                   <h3 className="text-sm font-medium">{source.label}</h3>

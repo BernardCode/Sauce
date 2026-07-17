@@ -72,7 +72,7 @@ export function StepList({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="motion-step-list flex flex-col gap-4">
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <ul className="flex flex-col gap-2" aria-label="Project steps">
         {steps.map((step) => (
@@ -82,7 +82,7 @@ export function StepList({
             onDragStart={() => setDraggedId(step.id)}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => drop(event, step.id)}
-            className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+            className="motion-step-row rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
           >
             <form
               className="grid gap-2 sm:grid-cols-[auto_1fr_6rem_12rem_auto_auto] sm:items-center"
