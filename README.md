@@ -1,62 +1,137 @@
 # Personal dashboard
 
-A single-user dashboard that answers one question: what should I be doing right now? Full product spec in [dashboard-spec.md](dashboard-spec.md).
+A single-user dashboard that answers one question: what should I be doing right now? The complete product contract is in [dashboard-spec.md](dashboard-spec.md).
 
-Current state: milestone 1, the skeleton. Sign in with Google, add tasks through quick-add, check them off. No AI, no calendar sync, no projects yet.
+The app includes:
+
+* Today with quick-add, project cards, a draggable day rail, work timer, next block, habits, project risk, and an autosaving daily note
+* Month, week, and day calendar views with read-only Google events and editable work blocks
+* Claude planning through a narrow authenticated MCP server
+* Project decomposition, editable ordered steps, progress, timeline, and learned course estimates
+* A 30-day habit grid with streak and completion statistics
+* Saved links with fetched titles and favicons
+* Searchable markdown notes with pinning and live preview
+* Encrypted Canvas, Schoology, or other ICS assignment feeds
 
 ## Stack
 
-Next.js (App Router, TypeScript strict), TailwindCSS, Supabase (Postgres, Auth, RLS), Zod, server actions for all mutations. Deployed on Vercel.
+Next.js App Router, React, TypeScript strict, Tailwind CSS, Supabase Postgres and Google OAuth, Zod, `mcp-handler`, the official MCP SDK, and `node-ical`. All application mutations use server actions. Every table has owner-scoped row level security.
 
-## Setup from a clean clone
+## Local setup
 
-1. Prerequisites: Node 20 or newer, npm, a Supabase project, a Google Cloud OAuth client.
+1. Install Node.js 20 or newer and npm.
 
-2. Install:
+2. Install dependencies:
 
-   ```
+   ```sh
    npm install
    ```
 
-3. Environment. Copy `.env.example` to `.env.local` and fill both values from the Supabase dashboard (Project Settings, Data API for the URL; Project Settings, API Keys for the publishable key):
+3. Copy `.env.example` to `.env.local` and fill every value:
 
-   | Variable | What it is |
+   | Variable | Purpose |
    | --- | --- |
-   | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`). Safe in the browser, RLS enforces access |
+   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe Supabase publishable key |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Server-only key for cron, sync, and validated planner writes |
+   | `GOOGLE_CLIENT_ID` | Google OAuth web client id |
+   | `GOOGLE_CLIENT_SECRET` | Google OAuth web client secret |
+   | `SOURCE_SECRET_KEY` | Base64-encoded 32-byte AES key for source credentials |
+   | `CRON_SECRET` | At least 32 random characters for `/api/sync` |
+   | `MCP_SECRET` | At least 32 random characters placed in the private connector path |
+   | `MCP_USER_ID` | Supabase auth UUID for the one dashboard user |
 
-4. Database. Apply the SQL files in `supabase/migrations/` in order (Supabase SQL editor, or `supabase db push` if you use the CLI). Every table has row level security scoping rows to their owner.
+   Generate safe secrets locally:
 
-5. Google OAuth (one-time, in two dashboards):
-   - Google Cloud Console: create an OAuth 2.0 Client ID (web application). Add this authorized redirect URI, with your project ref substituted: `https://<project-ref>.supabase.co/auth/v1/callback`
-   - Supabase dashboard, Authentication, Sign In / Providers: enable Google and paste the client ID and secret.
-   - Supabase dashboard, Authentication, URL Configuration: set Site URL to `http://localhost:3000` while developing, and add your production URL plus `http://localhost:3000/auth/callback` to the redirect allow list.
-
-6. Run:
-
+   ```sh
+   openssl rand -base64 32
+   openssl rand -hex 32
    ```
+
+   Keep `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_SECRET`, `SOURCE_SECRET_KEY`, `CRON_SECRET`, and `MCP_SECRET` server-only.
+
+4. Apply every SQL file in `supabase/migrations/` in numeric order. Use the Supabase SQL editor or `supabase db push` if you have the CLI configured.
+
+5. Configure Google OAuth:
+
+   * Create a Google OAuth web client.
+   * Add `https://<project-ref>.supabase.co/auth/v1/callback` as an authorized redirect URI.
+   * Enable Google in Supabase Authentication and paste the client credentials.
+   * In Supabase URL Configuration, set the local site URL to `http://localhost:3000` and allow `http://localhost:3000/auth/callback`.
+   * Add the production site and callback URLs before deployment.
+
+6. Run the app:
+
+   ```sh
    npm run dev
    ```
 
-   Open http://localhost:3000, sign in with Google, add a task.
+   Open [http://localhost:3000](http://localhost:3000), sign in with Google, then configure working hours in Settings.
 
-## Scripts
+## Planner and MCP
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Dev server on localhost:3000 |
-| `npm run build` | Production build |
-| `npm test` | Quick-add parser unit tests (vitest) |
-| `npx tsc --noEmit` | Typecheck |
+The deployed connector URL is:
+
+```text
+https://<your-domain>/api/mcp/<MCP_SECRET>
+```
+
+It exposes only these tools:
+
+* `get_planning_context`
+* `decompose_project`
+* `apply_plan`
+* `add_item`
+* `log_habit`
+
+There is no SQL tool and no general data API. The path secret is checked on every request and all tool calls are scoped to `MCP_USER_ID`.
+
+Use [docs/claude-scheduled-task.md](docs/claude-scheduled-task.md) to connect Claude and create the daily 5:00am planning task. The task itself lives in Claude, not Vercel Cron. Vercel Cron is used only for source sync.
+
+## Calendar and school feeds
+
+Signing in requests read-only Google Calendar access. The dashboard mirrors events and never writes back to Google.
+
+Add a Canvas, Schoology, or other ICS URL from Settings. The URL is encrypted with AES-256-GCM before storage. A successful sync upserts assignments by `(source_id, external_id)`. Only after a clean fetch and parse does the app archive assignments that disappeared upstream. A fetch or parse failure leaves existing assignments untouched.
+
+Source sync runs every 30 minutes through `vercel.json` and on Today or Calendar page load when a source is more than 15 minutes stale.
+
+## Quick-add
+
+Quick-add reads optional date, time, and estimate tokens from the end of a line:
+
+```text
+chem lab writeup fri 5pm 90m
+```
+
+Supported dates include `today`, `tomorrow`, weekdays, and `7/20`. Estimates include `45m`, `2h`, and `1h30`. Prefix the line with `*` to create a project:
+
+```text
+* history documentary fri 3h
+```
+
+Unrecognized text remains part of the title. Quick-add never guesses with AI.
+
+## Verification
+
+Run all release checks before deployment:
+
+```sh
+npx tsc --noEmit
+npm test
+npm run lint
+npm run build
+```
+
+The production build intentionally loads `node-ical` as a native Node package through `serverExternalPackages`. Its recurrence dependency uses top-level `BigInt`, which must not be rewritten by the Next.js server bundler.
 
 ## Deploying to Vercel
 
-Import the repo in Vercel, set the two environment variables from `.env.local`, deploy. Then add the deployed URL to the Supabase auth redirect allow list (step 5) and switch Site URL to the production URL.
+1. Import the GitHub repository into Vercel.
+2. Add every variable from `.env.example` to the production environment.
+3. Deploy and add the production callback URL to Supabase Authentication.
+4. Confirm Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` to `/api/sync`. Vercel uses `CRON_SECRET` automatically for cron requests when it is configured.
+5. Connect Claude to the private MCP URL and run the planner prompt by hand once.
+6. Create the 5:00am scheduled task only after the manual planner run succeeds.
 
-## Quick-add syntax
-
-One line, tokens at the end, all optional: `chem lab writeup fri 5pm 90m`
-
-- Due date: `today`, `tomorrow`, a weekday (`fri`), or `7/20`, with an optional time (`5pm`, `11:59pm`, `17:00`). A date without a time means 11:59pm.
-- Estimate: `90m`, `45min`, `2h`, `1h30`.
-- Anything the parser cannot read stays in the title and the item is created untimed. That is the intended failure mode, not an error.
+Never commit a source URL, OAuth token, service-role key, cron secret, or MCP connector URL.
