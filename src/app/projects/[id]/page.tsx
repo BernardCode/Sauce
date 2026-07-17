@@ -159,7 +159,7 @@ export default async function ProjectPage({
                   {block ? (
                     <div className="relative h-5 rounded-full bg-[var(--surface-subtle)]">
                       <div
-                        className="motion-timeline-bar absolute h-5 rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
+                        className="motion-timeline-bar absolute h-5 rounded-full bg-[var(--task-accent)]"
                         style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
                       />
                     </div>

@@ -35,7 +35,7 @@ const toneClass: Record<DueTone, string> = {
 const pillPalettes = [
   "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
   "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-  "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  "bg-[var(--task-soft)] text-[var(--task-ink)]",
   "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
   "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
   "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300",
@@ -260,7 +260,7 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
       onContextMenu={handleContextMenu}
       data-leaving={leaving}
       data-unscheduled={flagUnscheduled}
-      className={`motion-item-card group flex cursor-grab items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md active:cursor-grabbing dark:hover:border-indigo-800 ${
+      className={`motion-item-card group flex cursor-grab items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all duration-300 hover:border-[var(--task-accent)] hover:bg-[var(--surface)] active:cursor-grabbing ${
         flagUnscheduled ? "border-l-[3px] border-l-amber-400" : ""
       } ${leaving ? "translate-x-2 opacity-0" : "opacity-100"}`}
     >

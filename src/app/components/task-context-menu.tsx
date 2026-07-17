@@ -2,14 +2,6 @@
 
 import Link from "next/link";
 import {
-  CalendarClock,
-  Check,
-  Clipboard,
-  ExternalLink,
-  FolderOpen,
-  MoreHorizontal,
-} from "lucide-react";
-import {
   forwardRef,
   useEffect,
   useImperativeHandle,
@@ -127,7 +119,7 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
           openAt(rect.right - 252, rect.bottom + 6);
         }}
       >
-        <MoreHorizontal size={16} />
+        Actions
       </button>
       {position ? createPortal(
         <div
@@ -138,12 +130,12 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
           style={position}
         >
           <div className="task-context-title"><span>Task actions</span><strong>{title}</strong></div>
-          {projectHref ? <Link href={projectHref} role="menuitem" onClick={close}><FolderOpen size={15} />Open project</Link> : null}
-          {onShowSchedule ? <button type="button" role="menuitem" onClick={() => { onShowSchedule(); close(); }}><CalendarClock size={15} />Show on today&apos;s schedule</button> : null}
-          <Link href="/calendar" role="menuitem" onClick={close}><CalendarClock size={15} />{scheduled ? "View in Daylight calendar" : "Plan in Daylight calendar"}</Link>
-          {calendarUrl ? <a href={calendarUrl} target="_blank" rel="noreferrer" role="menuitem" onClick={close}><ExternalLink size={15} />Add deadline to Google Calendar</a> : null}
-          <button type="button" role="menuitem" onClick={copyTask}><Clipboard size={15} />{copied ? "Copied" : "Copy task details"}</button>
-          {onComplete ? <button type="button" role="menuitem" className="task-context-complete" onClick={() => { onComplete(); close(); }}><Check size={15} />Mark complete</button> : null}
+          {projectHref ? <Link href={projectHref} role="menuitem" onClick={close}>Open project</Link> : null}
+          {onShowSchedule ? <button type="button" role="menuitem" onClick={() => { onShowSchedule(); close(); }}>Show on today&apos;s schedule</button> : null}
+          <Link href="/calendar" role="menuitem" onClick={close}>{scheduled ? "View in Daylight calendar" : "Plan in Daylight calendar"}</Link>
+          {calendarUrl ? <a href={calendarUrl} target="_blank" rel="noreferrer" role="menuitem" onClick={close}>Add deadline to Google Calendar</a> : null}
+          <button type="button" role="menuitem" onClick={copyTask}>{copied ? "Copied" : "Copy task details"}</button>
+          {onComplete ? <button type="button" role="menuitem" className="task-context-complete" onClick={() => { onComplete(); close(); }}>Mark complete</button> : null}
         </div>,
         document.body,
       ) : null}

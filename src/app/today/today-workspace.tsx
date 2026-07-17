@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CalendarClock, ListTodo, Sparkles } from "lucide-react";
 
 type Tab = "tasks" | "schedule" | "focus";
 
-const tabs: Array<{ id: Tab; label: string; icon: typeof ListTodo }> = [
-  { id: "tasks", label: "Tasks", icon: ListTodo },
-  { id: "schedule", label: "Schedule", icon: CalendarClock },
-  { id: "focus", label: "Focus", icon: Sparkles },
+const tabs: Array<{ id: Tab; label: string }> = [
+  { id: "tasks", label: "Tasks" },
+  { id: "schedule", label: "Schedule" },
+  { id: "focus", label: "Focus" },
 ];
 
 export function TodayWorkspace({
@@ -25,7 +24,7 @@ export function TodayWorkspace({
   return (
     <>
       <div className="motion-mobile-tabs mb-4 grid grid-cols-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-1 shadow-sm lg:hidden">
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, label }) => (
           <button
             key={id}
             type="button"
@@ -37,7 +36,6 @@ export function TodayWorkspace({
                 : "text-[var(--muted)]"
             }`}
           >
-            <Icon size={16} />
             {label}
           </button>
         ))}
@@ -46,33 +44,21 @@ export function TodayWorkspace({
       <div className="today-grid">
         <section data-pane="schedule" className={tab === "schedule" ? "today-pane block" : "today-pane hidden lg:block"}>
           <div className="today-section-heading">
-            <div>
-              <span>Timeline</span>
-              <h2>Today&apos;s schedule</h2>
-            </div>
-            <CalendarClock size={18} />
+            <h2>Schedule</h2>
           </div>
           {schedule}
         </section>
 
         <section data-pane="tasks" className={tab === "tasks" ? "today-pane block" : "today-pane hidden lg:block"}>
           <div className="today-section-heading">
-            <div>
-              <span>Plan</span>
-              <h2>Tasks and projects</h2>
-            </div>
-            <ListTodo size={18} />
+            <h2>Tasks</h2>
           </div>
           {tasks}
         </section>
 
         <aside data-pane="focus" className={tab === "focus" ? "today-pane block" : "today-pane hidden lg:block"}>
           <div className="today-section-heading">
-            <div>
-              <span>Momentum</span>
-              <h2>Focus and progress</h2>
-            </div>
-            <Sparkles size={18} />
+            <h2>Focus</h2>
           </div>
           <div className="flex flex-col gap-4">{focus}</div>
         </aside>

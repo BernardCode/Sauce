@@ -92,7 +92,7 @@ export function BlockCard({
   const muted = block.done || block.itemId === null;
   const surface = muted
     ? "border-zinc-200 bg-white/70 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400"
-    : "border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-100";
+    : "border-[var(--task-accent)] bg-[var(--task-soft)] text-[var(--task-ink)]";
 
   const classes = [
     "absolute overflow-hidden rounded-lg border shadow-sm select-none",

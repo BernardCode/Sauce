@@ -1,7 +1,5 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
-
 export function ThemeToggle() {
   function toggleTheme() {
     const root = document.documentElement;
@@ -19,8 +17,8 @@ export function ThemeToggle() {
       aria-label="Toggle light and dark mode"
       title="Toggle light and dark mode"
     >
-      <Moon className="theme-moon" size={17} />
-      <Sun className="theme-sun" size={17} />
+      <span className="theme-light-label">Dark</span>
+      <span className="theme-dark-label">Light</span>
     </button>
   );
 }

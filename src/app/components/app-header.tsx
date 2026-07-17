@@ -2,29 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BookOpenCheck,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
-  LayoutDashboard,
-  ListTodo,
-  LogOut,
-  Settings,
-  Sparkles,
-} from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { ThemeToggle } from "@/app/components/theme-toggle";
 import { CommandMenu } from "@/app/components/command-menu";
 import { AppQuickActions } from "@/app/components/app-quick-actions";
 
 const links = [
-  { href: "/today", label: "Today", short: "Today", icon: LayoutDashboard, accent: "today" },
-  { href: "/assignments", label: "Assignments", short: "Work", icon: ListTodo, accent: "assignments" },
-  { href: "/calendar", label: "Calendar", short: "Calendar", icon: CalendarDays, accent: "calendar" },
-  { href: "/sat", label: "SAT Studio", short: "SAT", icon: BookOpenCheck, accent: "sat" },
-  { href: "/habits", label: "Habits", short: "Habits", icon: CheckCircle2, accent: "habits" },
-  { href: "/more", label: "More", short: "More", icon: Settings, accent: "settings" },
+  { href: "/today", label: "Today", short: "Today" },
+  { href: "/assignments", label: "Assignments", short: "Work" },
+  { href: "/calendar", label: "Calendar", short: "Calendar" },
+  { href: "/sat", label: "SAT Studio", short: "SAT" },
+  { href: "/habits", label: "Habits", short: "Habits" },
+  { href: "/more", label: "More", short: "More" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -40,38 +29,23 @@ export function AppHeader() {
     <>
       <aside className="app-sidebar" aria-label="Dashboard navigation">
         <Link href="/today" className="app-brand">
-          <span className="app-brand-mark"><Sparkles size={18} strokeWidth={2.25} /></span>
-          <span>
-            <strong>Daylight</strong>
-            <small>Personal command center</small>
-          </span>
+          <strong>Daylight</strong>
         </Link>
 
         <nav className="app-nav" aria-label="Main navigation">
-          <p className="app-nav-label">Workspace</p>
-          {links.map(({ href, label, icon: Icon, accent }) => {
+          {links.map(({ href, label }) => {
             const active = isActive(pathname, href);
             return (
-              <Link key={href} href={href} className={`app-nav-link app-nav-${accent}`} data-active={active}>
-                <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+              <Link key={href} href={href} className="app-nav-link" data-active={active}>
                 <span>{label}</span>
-                {active ? <ChevronRight className="motion-nav-chevron ml-auto" size={15} /> : null}
               </Link>
             );
           })}
         </nav>
 
         <div className="app-sidebar-footer">
-          <div className="app-status-card" aria-label="Save status">
-            <span className="app-status-dot" />
-            <div>
-              <strong>Saved automatically</strong>
-              <small>Fast on this device</small>
-            </div>
-          </div>
           <form action={signOut}>
             <button type="submit" className="app-signout">
-              <LogOut size={16} />
               Sign out
             </button>
           </form>
@@ -79,19 +53,15 @@ export function AppHeader() {
       </aside>
 
       <header className="app-topbar">
-        <div>
-          <span className="app-topbar-eyebrow">Daylight</span>
-          <p>Your school day, organized</p>
-        </div>
-        <div className="flex items-center gap-2"><CommandMenu /><AppQuickActions /><div className="app-live-pill"><span /> Instant updates</div><ThemeToggle /></div>
+        <div className="app-topbar-brand">Daylight</div>
+        <div className="flex items-center gap-2"><CommandMenu /><AppQuickActions /><ThemeToggle /></div>
       </header>
 
       <nav className="app-mobile-nav" aria-label="Mobile navigation">
-        {links.map(({ href, short, icon: Icon, accent }) => {
+        {links.map(({ href, short }) => {
           const active = isActive(pathname, href);
           return (
-            <Link key={href} href={href} className={`app-nav-${accent}`} data-active={active}>
-              <Icon size={20} strokeWidth={active ? 2.4 : 1.9} />
+            <Link key={href} href={href} data-active={active}>
               <span>{short}</span>
             </Link>
           );

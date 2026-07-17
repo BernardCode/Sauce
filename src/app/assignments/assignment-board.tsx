@@ -55,11 +55,11 @@ function AssignmentCard({ row, isPending, onComplete, onLogProgress, onSave, onC
   }
 
   return (
-    <article onContextMenu={handleContextMenu} className="group rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-lg dark:hover:border-indigo-800">
+    <article onContextMenu={handleContextMenu} className="group rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4 transition hover:border-[var(--task-accent)] hover:bg-[var(--surface)]">
       <div className="flex items-start gap-3">
         <button type="button" onClick={() => onComplete(row)} disabled={isPending || row.isProject} aria-label={`Complete ${row.title}`} className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-lg border border-[var(--line)] text-transparent hover:border-emerald-400 hover:text-emerald-500 disabled:cursor-not-allowed"><Check size={14} /></button>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">{row.isProject ? <Link href={`/projects/${row.id}`} className="font-semibold hover:text-[var(--primary)]">{row.title}</Link> : <h2 className="font-semibold">{row.title}</h2>}{row.isProject ? <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">Project</span> : null}<TaskContextMenu ref={menuRef} title={row.title} details={[row.course, due.text, row.remainingMinutes === null ? null : `${row.remainingMinutes} minutes left`].filter(Boolean).join(", ")} dueAt={row.dueAt} scheduled={row.scheduledAt !== null} projectHref={row.isProject ? `/projects/${row.id}` : undefined} onComplete={row.isProject ? undefined : () => onComplete(row)} /></div>
+          <div className="flex flex-wrap items-center gap-2">{row.isProject ? <Link href={`/projects/${row.id}`} className="font-semibold hover:text-[var(--task-ink)]">{row.title}</Link> : <h2 className="font-semibold">{row.title}</h2>}{row.isProject ? <span className="rounded-full bg-[var(--task-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--task-ink)]">Project</span> : null}<TaskContextMenu ref={menuRef} title={row.title} details={[row.course, due.text, row.remainingMinutes === null ? null : `${row.remainingMinutes} minutes left`].filter(Boolean).join(", ")} dueAt={row.dueAt} scheduled={row.scheduledAt !== null} projectHref={row.isProject ? `/projects/${row.id}` : undefined} onComplete={row.isProject ? undefined : () => onComplete(row)} /></div>
           <div className="mt-1 flex flex-wrap gap-3 text-xs"><span className={due.tone}>{due.text}</span><span className="text-[var(--muted)]">{row.remainingMinutes ?? "?"}m left</span>{row.scheduledAt ? <span className="text-sky-600">Scheduled {new Date(row.scheduledAt).toLocaleDateString([], { weekday: "short" })}</span> : <span className="text-amber-600">Needs time</span>}</div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export function AssignmentBoard({ initialRows, initialFilter = "all" }: { initia
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">Capture anything</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--foreground)]">Add tasks</p>
         <QuickAdd />
         <details className="motion-disclosure mt-3 border-t border-[var(--line)] pt-3"><summary className="cursor-pointer text-xs font-semibold text-[var(--muted)]">Bulk paste from Canvas or a syllabus</summary><form onSubmit={bulkAdd} className="mt-3 grid gap-2 sm:grid-cols-[1fr_10rem]"><textarea name="text" required placeholder={'One assignment per line\nChem quiz fri 30m\n* History essay 8/24 3h'} className="min-h-28 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-sm sm:row-span-2" /><input name="course" placeholder="Course for all" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><button disabled={isPending} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-3 py-2 text-sm font-semibold text-white"><Upload size={15} />Import</button></form></details>
       </div>

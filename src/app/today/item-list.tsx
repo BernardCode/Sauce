@@ -116,14 +116,14 @@ export function ItemList({ openItems, doneItems, blocks = [] }: Props) {
   function renderOpenItem(item: TodayItem) {
     if (item.isProject) {
       return (
-        <li key={item.id} className="motion-project-card rounded-lg border border-violet-200 p-3 dark:border-violet-900">
+        <li key={item.id} className="motion-project-card rounded-lg border border-[var(--task-accent)] p-3">
           <Link href={`/projects/${item.id}`} className="block">
             <div className="flex items-center justify-between gap-3">
               <span className="font-medium">{item.title}</span>
               <span aria-hidden="true">›</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800">
-              <div className="motion-progress-fill h-full bg-violet-500" style={{ width: `${item.progressPercent}%` }} />
+              <div className="motion-progress-fill h-full bg-[var(--task-accent)]" style={{ width: `${item.progressPercent}%` }} />
             </div>
             <p className="mt-1 text-xs text-zinc-500">
               {item.stepsDone} of {item.stepsTotal} steps done

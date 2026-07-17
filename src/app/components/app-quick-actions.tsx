@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ExternalLink, Keyboard, Plus, X } from "lucide-react";
 import { OPEN_COMMAND_MENU_EVENT, type OpenCommandMenuDetail } from "./ui-events";
 
 const routeShortcuts: Record<string, string> = {
@@ -102,8 +101,7 @@ export function AppQuickActions() {
   return (
     <div ref={rootRef} className="app-quick-actions">
       <button type="button" onClick={openTaskCapture} className="app-tool-button app-add-task" title="Add task (N)">
-        <Plus size={15} />
-        <span>Add task</span>
+        Add task
       </button>
       <a
         href="https://calendar.google.com/calendar/u/0/r"
@@ -113,27 +111,25 @@ export function AppQuickActions() {
         aria-label="Open Google Calendar"
         title="Open Google Calendar"
       >
-        <CalendarDays size={15} />
         <span className="app-tool-label">Google Calendar</span>
-        <ExternalLink className="app-tool-external" size={11} />
       </a>
       <button
         type="button"
         onClick={() => setShortcutsOpen((current) => !current)}
-        className="app-tool-button app-tool-icon"
+        className="app-tool-button"
         aria-label="Show keyboard shortcuts"
         aria-expanded={shortcutsOpen}
         title="Keyboard shortcuts (?)"
       >
-        <Keyboard size={16} />
+        Shortcuts
       </button>
 
       {waitingForDestination ? <div className="shortcut-chord">G then T, A, C, S, or H</div> : null}
       {shortcutsOpen ? (
         <div className="shortcut-popover" role="dialog" aria-label="Keyboard shortcuts">
           <div className="shortcut-popover-heading">
-            <div><strong>Keyboard shortcuts</strong><span>Move without reaching for the mouse.</span></div>
-            <button type="button" onClick={() => setShortcutsOpen(false)} aria-label="Close keyboard shortcuts"><X size={15} /></button>
+            <strong>Keyboard shortcuts</strong>
+            <button type="button" onClick={() => setShortcutsOpen(false)} aria-label="Close keyboard shortcuts">Close</button>
           </div>
           <div className="shortcut-list">
             <div><span>Add a task</span><kbd>N</kbd></div>

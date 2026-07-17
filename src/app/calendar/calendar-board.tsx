@@ -280,7 +280,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
               }}
               onDrop={(event) => dropOnDay(event, day)}
               data-drop-target={dragTargetDay === day}
-              className={`motion-calendar-day min-h-32 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-2.5 hover:border-indigo-200 dark:hover:border-indigo-800 ${
+              className={`motion-calendar-day min-h-32 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-2.5 hover:border-[var(--task-accent)] ${
                 view === "month" ? "min-h-40" : "min-h-96"
               }`}
             >
@@ -318,7 +318,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                     draggable={!block.done}
                     onDragStart={(event) => startBlockDrag(event, block)}
                     onClick={() => setSelectedBlock(block)}
-                    className="motion-calendar-block cursor-pointer rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-xs text-indigo-950 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-100"
+                    className="motion-calendar-block cursor-pointer rounded-lg border border-[var(--task-accent)] bg-[var(--task-soft)] px-2.5 py-2 text-xs text-[var(--task-ink)]"
                   >
                     <p className="truncate font-medium">{block.title}</p>
                     <p className="text-zinc-500">

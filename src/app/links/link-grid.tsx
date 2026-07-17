@@ -80,7 +80,7 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
                 onDragStart={() => setDraggedId(link.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => drop(event, link)}
-                className="motion-link-card group flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md dark:hover:border-indigo-800"
+                className="motion-link-card group flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 hover:border-[var(--task-accent)] hover:bg-[var(--surface)]"
               >
                 <GripVertical size={15} className="motion-link-grip cursor-grab text-zinc-300 opacity-0 group-hover:opacity-100" />
                 {link.faviconUrl ? (

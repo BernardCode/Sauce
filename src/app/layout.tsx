@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Manrope } from "next/font/google";
 import { MotionOrchestrator } from "@/app/components/motion-orchestrator";
 import "./globals.css";
+import "./black-theme.css";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Daylight | Personal command center",
+  title: "Daylight",
   description: "A calm personal dashboard for your tasks, schedule, habits, notes, and projects.",
 };
 
