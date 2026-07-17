@@ -89,6 +89,21 @@ export async function updateProjectStep(input: unknown): Promise<ActionResult> {
     .not("parent_id", "is", null)
     .maybeSingle();
   if (!step?.parent_id) return { error: "That step could not be found." };
+  const { data: project } = await supabase
+    .from("items")
+    .select("due_at")
+    .eq("id", step.parent_id)
+    .eq("user_id", user.id)
+    .eq("is_project", true)
+    .maybeSingle();
+  if (!project) return { error: "That project could not be found." };
+  if (
+    project.due_at &&
+    parsed.data.dueAtIso &&
+    new Date(parsed.data.dueAtIso) > new Date(project.due_at)
+  ) {
+    return { error: "A step cannot be due after the project." };
+  }
   const { error } = await supabase
     .from("items")
     .update({

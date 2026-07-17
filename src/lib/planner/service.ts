@@ -348,8 +348,10 @@ export async function applyPlan(userId: string, input: unknown) {
     else accepted.push(block);
   }
 
-  const acceptedDates = new Set(
-    accepted.map((block) => localParts(new Date(block.start_at), timeZone).date),
+  const writableDates = new Set(
+    datesBetween(parsed.data.from_date, parsed.data.to_date).filter(
+      (date) => parsed.data.scheduled_pass || !existingRuns.has(date),
+    ),
   );
   const replaceableIds = (blocksResult.data ?? [])
     .filter(
@@ -357,10 +359,10 @@ export async function applyPlan(userId: string, input: unknown) {
         block.origin === "ai" &&
         !block.locked &&
         !block.done &&
-        acceptedDates.has(localParts(new Date(block.start_at), timeZone).date),
+        writableDates.has(localParts(new Date(block.start_at), timeZone).date),
     )
     .map((block) => block.id);
-  const runRows = [...acceptedDates].map((date) => ({
+  const runRows = [...writableDates].map((date) => ({
     plan_date: date,
     blocks_written: accepted.filter(
       (block) => localParts(new Date(block.start_at), timeZone).date === date,
