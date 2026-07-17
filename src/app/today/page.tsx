@@ -19,6 +19,9 @@ import { TodayHabits } from "./today-habits";
 import { QuickNote } from "./quick-note";
 import { UpNext } from "./up-next";
 import { TodayWorkspace } from "./today-workspace";
+import { StudentBriefing } from "./student-briefing";
+import { MissedWork } from "./missed-work";
+import { SmartAlerts } from "./smart-alerts";
 
 type ItemRow = {
   id: string;
@@ -357,6 +360,12 @@ export default async function TodayPage() {
     .eq("user_id", user.id)
     .eq("daily_date", localToday.date)
     .maybeSingle();
+  const { count: satReviews } = await supabase
+    .from("sat_mistakes")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("resolved", false)
+    .lte("next_review_at", localToday.date);
   const latestProjectDeadline = Math.max(
     nowMs,
     ...[...projects.values()].flatMap((project) =>
@@ -413,10 +422,16 @@ export default async function TodayPage() {
   for (const item of openItems) {
     itemDueDates[item.id] = item.dueAt;
   }
+  const dueSoon = openItems.filter((item) => item.dueAt && new Date(item.dueAt).getTime() >= nowMs && new Date(item.dueAt).getTime() <= nowMs + 86_400_000).length;
+  const overdue = openItems.filter((item) => item.dueAt && new Date(item.dueAt).getTime() < nowMs).length;
+  const plannedMinutes = Math.round(blocks.filter((block) => !block.done && localParts(new Date(block.startAt), timeZone).date === localToday.date).reduce((sum, block) => sum + (new Date(block.endAt).getTime() - new Date(block.startAt).getTime()) / 60_000, 0));
+  const missedBlocks = blocks.filter((block) => !block.done && new Date(block.endAt).getTime() < nowMs);
+  const nextLiveBlock = blocks.filter((block) => !block.done && new Date(block.endAt).getTime() > nowMs).sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())[0] ?? null;
 
   return (
     <div className="app-page" data-page="today">
       <AppHeader />
+      <SmartAlerts overdue={overdue} nextBlockStart={nextLiveBlock?.startAt ?? null} nextBlockTitle={nextLiveBlock?.title ?? null} atRisk={atRiskProjects.length} />
       <main className="flex flex-1 flex-col">
         {loadError ? (
           <p className="flex flex-1 items-center justify-center text-zinc-500">
@@ -434,6 +449,7 @@ export default async function TodayPage() {
               Drag tasks onto the schedule to plan them
             </div>
           </div>
+          <StudentBriefing overdue={overdue} dueSoon={dueSoon} plannedMinutes={plannedMinutes} satReviews={satReviews ?? 0} />
           {!expectedPlanRun ? (
             <p className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
               The planner has not recorded its expected run. Your existing schedule is unchanged.
@@ -453,6 +469,7 @@ export default async function TodayPage() {
               focus={
               <>
               <UpNext blocks={blocks} />
+              <MissedWork initialBlocks={missedBlocks.map((block) => ({ id: block.id, title: block.title, startAt: block.startAt, endAt: block.endAt }))} />
               <TodayHabits
                 date={localToday.date}
                 habits={dueHabits.map((habit) => ({

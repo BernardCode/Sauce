@@ -79,7 +79,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
     admin
       .from("items")
       .select(
-        "id, parent_id, title, course, due_at, priority, est_minutes, remaining_minutes, actual_minutes, is_project, step_order, origin",
+        "id, parent_id, title, course, due_at, priority, energy, est_minutes, remaining_minutes, actual_minutes, is_project, step_order, origin",
       )
       .eq("user_id", parsedUserId.data)
       .eq("status", "open"),
@@ -418,6 +418,7 @@ export async function addPlannerItem(userId: string, input: unknown) {
       title: parsed.data.title,
       due_at: parsed.data.due_at ?? null,
       course: parsed.data.course ?? null,
+      energy: parsed.data.energy,
       est_minutes: learnedEstimate,
       remaining_minutes: learnedEstimate,
       is_project: parsed.data.is_project,

@@ -318,6 +318,7 @@ export type Database = {
           created_at: string
           description: string | null
           due_at: string | null
+          energy: string
           est_minutes: number | null
           external_id: string | null
           id: string
@@ -340,6 +341,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_at?: string | null
+          energy?: string
           est_minutes?: number | null
           external_id?: string | null
           id?: string
@@ -362,6 +364,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_at?: string | null
+          energy?: string
           est_minutes?: number | null
           external_id?: string | null
           id?: string
@@ -432,6 +435,129 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sat_mistakes: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          next_review_at: string
+          reason: string
+          resolved: boolean
+          section: string
+          skill: string
+          source_url: string | null
+          takeaway: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          next_review_at?: string
+          reason: string
+          resolved?: boolean
+          section: string
+          skill: string
+          source_url?: string | null
+          takeaway?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          next_review_at?: string
+          reason?: string
+          resolved?: boolean
+          section?: string
+          skill?: string
+          source_url?: string | null
+          takeaway?: string
+          user_id?: string
+        }
+        Relationships: [{
+          foreignKeyName: "sat_mistakes_user_id_fkey"
+          columns: ["user_id"]
+          isOneToOne: false
+          referencedRelation: "users"
+          referencedColumns: ["id"]
+        }]
+      }
+      sat_profiles: {
+        Row: {
+          current_score: number | null
+          target_score: number
+          test_date: string | null
+          updated_at: string
+          user_id: string
+          weekly_minutes: number
+        }
+        Insert: {
+          current_score?: number | null
+          target_score?: number
+          test_date?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_minutes?: number
+        }
+        Update: {
+          current_score?: number | null
+          target_score?: number
+          test_date?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_minutes?: number
+        }
+        Relationships: [{
+          foreignKeyName: "sat_profiles_user_id_fkey"
+          columns: ["user_id"]
+          isOneToOne: true
+          referencedRelation: "users"
+          referencedColumns: ["id"]
+        }]
+      }
+      sat_sessions: {
+        Row: {
+          completed_at: string
+          correct: number
+          id: string
+          minutes: number
+          mode: string
+          questions: number
+          section: string
+          skill: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          correct: number
+          id?: string
+          minutes: number
+          mode?: string
+          questions: number
+          section: string
+          skill: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          correct?: number
+          id?: string
+          minutes?: number
+          mode?: string
+          questions?: number
+          section?: string
+          skill?: string
+          user_id?: string
+        }
+        Relationships: [{
+          foreignKeyName: "sat_sessions_user_id_fkey"
+          columns: ["user_id"]
+          isOneToOne: false
+          referencedRelation: "users"
+          referencedColumns: ["id"]
+        }]
       }
       sources: {
         Row: {
@@ -506,6 +632,13 @@ export type Database = {
       record_block_work: {
         Args: {
           block_id: string
+          work_minutes: number
+        }
+        Returns: undefined
+      }
+      record_item_progress: {
+        Args: {
+          item_id_arg: string
           work_minutes: number
         }
         Returns: undefined

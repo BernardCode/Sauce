@@ -181,7 +181,9 @@ select:focus-visible {
 }
 
 .app-nav-today { --nav-color: #6366f1; }
+.app-nav-assignments { --nav-color: #f97316; }
 .app-nav-calendar { --nav-color: #0ea5e9; }
+.app-nav-sat { --nav-color: #a855f7; }
 .app-nav-habits { --nav-color: #10b981; }
 .app-nav-notes { --nav-color: #8b5cf6; }
 .app-nav-links { --nav-color: #f59e0b; }

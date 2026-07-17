@@ -12,6 +12,10 @@ The app includes:
 * Saved links with fetched titles and favicons
 * Searchable markdown notes with pinning and live preview
 * Encrypted Canvas, Schoology, or other ICS assignment feeds
+* A course-aware Assignments center with bulk paste, energy matching, filters, and one-click progress
+* A distraction-free Do Now screen and missed-work recovery choices
+* An SAT studio with score goals, weekly targets, practice history, and spaced mistake review
+* A weekly student review, careful device alerts, and a global command menu
 
 ## Stack
 

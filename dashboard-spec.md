@@ -298,7 +298,7 @@ Listing these so they don't creep in:
 * Sharing, collaboration, or multiplayer anything
 * Writing back to Google Calendar
 * Mobile native app (the web app should just be responsive)
-* Pomodoro timers, focus modes, website blockers
+* Website blockers or invasive activity monitoring
 * Anything that gamifies productivity beyond a habit streak counter
 
 ## Build order
@@ -314,5 +314,24 @@ Each of these should be independently shippable and useful.
 7. **Habits.** Small table, grid UI, sidebar row. An afternoon of work.
 8. **Links and notes.** The easy pages, built last.
 9. **School feeds.** ICS ingestion for Canvas or Schoology, once you've confirmed the feeds exist.
+10. **Student command center.** Add the Assignments page, Do Now focus surface, SAT goals and practice history, spaced mistake review, missed-work recovery, careful alerts, command menu, and weekly review. SAT question content stays in the official College Board question bank or another properly licensed source. The dashboard stores only the student's own practice results and links.
 
 Steps 1 through 3 have real value even if you never build the AI. Step 4 is worth having before step 5, because a dashboard you can talk to from any chat is already useful. And step 6 is where the "breaks big projects down for me" idea lives, so if that's the feature you're most excited about, know that it sits on top of everything else and is worth building last, not first.
+
+## Student command center expansion
+
+The finalized student workflow adds three owner-scoped tables:
+
+* `sat_profiles`: test date, current score, target score, and weekly study minutes
+* `sat_sessions`: section, skill, mode, duration, questions, correct answers, and completion time
+* `sat_mistakes`: section, skill, mistake reason, takeaway, confidence, optional source link, and next review date
+
+Assignments retain the original item model and add `energy` with `low`, `medium`, and `high` values. Courses continue to use the existing `course` field so feeds, projects, and manually captured work share one category system.
+
+The daily workflow is now:
+
+1. Capture work from the command menu, quick add, or bulk paste.
+2. Review the Today briefing for overdue work, near deadlines, SAT reviews, and planned minutes.
+3. Open Do Now for the next scheduled block and record progress without navigating elsewhere.
+4. Recover missed blocks by moving them later, moving them to tomorrow, or unscheduling them.
+5. Use Weekly Review to compare completed work, planned and actual focus time, habit consistency, SAT progress, and next week's load.

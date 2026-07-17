@@ -21,6 +21,8 @@ const addItemSchema = z.object({
     .max(600, "Estimates cap out at 600 minutes.")
     .nullable(),
   isProject: z.boolean().default(false),
+  course: z.string().trim().min(1).max(80).nullable().default(null),
+  energy: z.enum(["low", "medium", "high"]).default("medium"),
 });
 
 const setItemDoneSchema = z.object({
@@ -43,7 +45,7 @@ export async function addItem(input: unknown): Promise<ActionResult> {
     return { error: "You are signed out. Refresh and sign in again." };
   }
 
-  const { title, dueAtIso, estMinutes, isProject } = parsed.data;
+  const { title, dueAtIso, estMinutes, isProject, course, energy } = parsed.data;
   const { error } = await supabase.from("items").insert({
     user_id: user.id,
     title,
@@ -52,6 +54,8 @@ export async function addItem(input: unknown): Promise<ActionResult> {
     // Remaining starts equal to the estimate; it drops as blocks complete.
     remaining_minutes: estMinutes,
     is_project: isProject,
+    course,
+    energy,
     origin: "manual",
     status: "open",
   });

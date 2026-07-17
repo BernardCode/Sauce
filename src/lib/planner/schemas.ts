@@ -44,6 +44,7 @@ export const addItemInputSchema = z.object({
   due_at: z.iso.datetime({ offset: true }).optional(),
   est_minutes: z.number().int().positive().max(10_000).optional(),
   course: z.string().trim().min(1).max(100).optional(),
+  energy: z.enum(["low", "medium", "high"]).default("medium"),
   is_project: z.boolean().default(false),
 });
 

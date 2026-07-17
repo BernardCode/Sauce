@@ -118,7 +118,7 @@ export default async function ProjectPage({
             <h2 className="text-lg font-semibold">Steps</h2>
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-xs text-zinc-500">Drag to reorder.</p>
-              <RebreakdownRequest projectId={project.id} />
+              <RebreakdownRequest projectId={project.id} canCreateStarter={rows.length === 0} />
             </div>
           </div>
           <StepList

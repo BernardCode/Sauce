@@ -3,30 +3,32 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpenCheck,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  FileText,
   LayoutDashboard,
-  Link2,
+  ListTodo,
   LogOut,
   Settings,
   Sparkles,
 } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { ThemeToggle } from "@/app/components/theme-toggle";
+import { CommandMenu } from "@/app/components/command-menu";
 
 const links = [
   { href: "/today", label: "Today", short: "Today", icon: LayoutDashboard, accent: "today" },
+  { href: "/assignments", label: "Assignments", short: "Work", icon: ListTodo, accent: "assignments" },
   { href: "/calendar", label: "Calendar", short: "Calendar", icon: CalendarDays, accent: "calendar" },
+  { href: "/sat", label: "SAT Studio", short: "SAT", icon: BookOpenCheck, accent: "sat" },
   { href: "/habits", label: "Habits", short: "Habits", icon: CheckCircle2, accent: "habits" },
-  { href: "/notes", label: "Notes", short: "Notes", icon: FileText, accent: "notes" },
-  { href: "/links", label: "Links", short: "Links", icon: Link2, accent: "links" },
-  { href: "/settings", label: "Settings", short: "More", icon: Settings, accent: "settings" },
+  { href: "/more", label: "More", short: "More", icon: Settings, accent: "settings" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/today") return pathname === href || pathname.startsWith("/projects/");
+  if (href === "/today") return pathname === href || pathname.startsWith("/projects/") || pathname === "/focus";
+  if (href === "/more") return ["/more", "/notes", "/links", "/review", "/settings"].some((path) => pathname === path || pathname.startsWith(`${path}/`));
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -80,7 +82,7 @@ export function AppHeader() {
           <span className="app-topbar-eyebrow">Personal workspace</span>
           <p>Tasks, time, and momentum in one place</p>
         </div>
-        <div className="flex items-center gap-2"><div className="app-live-pill"><span /> Instant updates</div><ThemeToggle /></div>
+        <div className="flex items-center gap-2"><CommandMenu /><div className="app-live-pill"><span /> Instant updates</div><ThemeToggle /></div>
       </header>
 
       <nav className="app-mobile-nav" aria-label="Mobile navigation">

@@ -5,6 +5,7 @@ import { plannerPreferencesSchema, workingHoursSchema } from "@/lib/planner/sche
 import { createClient } from "@/lib/supabase/server";
 import { PlannerSettingsForm } from "./planner-settings-form";
 import { SourceControls } from "./source-controls";
+import { NotificationPreferences } from "./notification-preferences";
 import { CourseDefaults } from "./course-defaults";
 import { IcsSourceForm } from "./ics-source-form";
 
@@ -75,6 +76,7 @@ export default async function SettingsPage() {
             sampleCount: entry.sample_count,
           }))}
         /></div>
+        <NotificationPreferences />
         <section className="workspace-card motion-settings-section">
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-medium">Sources</h2>
