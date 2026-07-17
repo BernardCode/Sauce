@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ensureDailyNote, saveDailyNote } from "@/app/notes/actions";
+import { NotebookPen } from "lucide-react";
 
 export function QuickNote({ date, initialBody }: { date: string; initialBody: string }) {
   const [body, setBody] = useState(initialBody);
@@ -27,14 +28,14 @@ export function QuickNote({ date, initialBody }: { date: string; initialBody: st
   }, [body, date]);
 
   return (
-    <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <h2 className="text-sm font-medium">Quick note</h2>
+    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+      <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Quick note</h2><NotebookPen size={17} className="text-violet-500" /></div>
       <textarea
         value={body}
         onChange={(event) => setBody(event.target.value)}
         placeholder="Add to today's note"
         aria-label="Quick note"
-        className="mt-2 min-h-28 w-full resize-y rounded border border-zinc-200 bg-transparent p-2 text-sm outline-none dark:border-zinc-700"
+        className="mt-3 min-h-28 w-full resize-y rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-950"
       />
       <p className="h-4 text-xs text-zinc-500">{status}</p>
     </section>

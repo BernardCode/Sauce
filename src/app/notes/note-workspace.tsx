@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, FilePlus2, Pencil, Pin, Trash2 } from "lucide-react";
 import { createNote, deleteNote, updateNote } from "./actions";
 
 export type NoteRow = {
@@ -36,6 +37,37 @@ export function NoteWorkspace({ notes, selectedId }: { notes: NoteRow[]; selecte
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const initial = useRef(true);
+  const draftReady = useRef(false);
+
+  useEffect(() => {
+    if (!activeNoteId) return;
+    const timer = window.setTimeout(() => {
+      const raw = window.localStorage.getItem(`daylight-note:${activeNoteId}`);
+      if (!raw) {
+        draftReady.current = true;
+        return;
+      }
+      try {
+        const draft = JSON.parse(raw) as { title?: string; body?: string; pinned?: boolean };
+        if (typeof draft.title === "string") setTitle(draft.title);
+        if (typeof draft.body === "string") setBody(draft.body);
+        if (typeof draft.pinned === "boolean") setPinned(draft.pinned);
+        setStatus("Draft restored");
+      } catch {
+        window.localStorage.removeItem(`daylight-note:${activeNoteId}`);
+      }
+      draftReady.current = true;
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [activeNoteId]);
+
+  useEffect(() => {
+    if (!activeNoteId || !draftReady.current) return;
+    window.localStorage.setItem(
+      `daylight-note:${activeNoteId}`,
+      JSON.stringify({ title, body, pinned }),
+    );
+  }, [activeNoteId, body, pinned, title]);
 
   useEffect(() => {
     if (!activeNoteId || initial.current) {
@@ -46,7 +78,8 @@ export function NoteWorkspace({ notes, selectedId }: { notes: NoteRow[]; selecte
     const timer = window.setTimeout(() => {
       startTransition(async () => {
         const result = await updateNote({ id: activeNoteId, title, body, pinned });
-        setStatus(result.error ?? "Saved");
+        setStatus(result.error ?? "Saved just now");
+        if (!result.error) window.localStorage.removeItem(`daylight-note:${activeNoteId}`);
       });
     }, 600);
     return () => window.clearTimeout(timer);
@@ -64,11 +97,11 @@ export function NoteWorkspace({ notes, selectedId }: { notes: NoteRow[]; selecte
   }
 
   return (
-    <div className="grid min-h-[70vh] gap-6 md:grid-cols-[16rem_1fr]">
-      <aside className="border-r border-zinc-200 pr-4 dark:border-zinc-800">
+    <div className="grid min-h-[70vh] gap-5 md:grid-cols-[17rem_1fr]">
+      <aside className="rounded-xl bg-[var(--surface-subtle)] p-3">
         <form onSubmit={add} className="flex gap-2">
-          <input name="title" required placeholder="New note" className="min-w-0 flex-1 rounded border border-zinc-200 bg-transparent px-2 py-1 text-sm dark:border-zinc-700" />
-          <button disabled={isPending} className="text-sm">Add</button>
+          <input name="title" required placeholder="New note" className="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]" />
+          <button disabled={isPending} aria-label="Add note" className="grid size-9 place-items-center rounded-lg bg-[var(--primary)] text-white hover:bg-[var(--primary-deep)]"><FilePlus2 size={16} /></button>
         </form>
         <nav className="mt-4 flex flex-col gap-1" aria-label="Notes">
           {notes.map((note) => (
@@ -76,26 +109,26 @@ export function NoteWorkspace({ notes, selectedId }: { notes: NoteRow[]; selecte
               key={note.id}
               type="button"
               onClick={() => router.push(`/notes?note=${note.id}`)}
-              className={`rounded px-2 py-2 text-left text-sm ${selected?.id === note.id ? "bg-zinc-100 dark:bg-zinc-900" : ""}`}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${selected?.id === note.id ? "bg-[var(--primary-soft)] font-semibold text-[var(--primary-deep)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"}`}
             >
-              {note.pinned ? "● " : ""}{note.title}
+              {note.pinned ? <Pin size={13} className="shrink-0" fill="currentColor" /> : <span className="size-[13px]" />}{note.title}
             </button>
           ))}
         </nav>
       </aside>
       {selected ? (
-        <section className="flex min-w-0 flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <input value={title} onChange={(event) => setTitle(event.target.value)} aria-label="Note title" className="min-w-0 flex-1 bg-transparent text-xl font-semibold outline-none" />
+        <section className="flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+          <div className="flex flex-wrap items-center gap-3 border-b border-[var(--line)] pb-3">
+            <input value={title} onChange={(event) => setTitle(event.target.value)} aria-label="Note title" className="min-w-0 flex-1 bg-transparent text-xl font-semibold tracking-[-0.025em] outline-none" />
             <label className="text-sm"><input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} className="mr-1" />Pinned</label>
-            <button type="button" onClick={() => setPreview((value) => !value)} className="text-sm">{preview ? "Edit" : "Preview"}</button>
-            <button type="button" onClick={() => startTransition(async () => { const result = await deleteNote({ id: selected.id }); setStatus(result.error); if (!result.error) router.push("/notes"); })} className="text-sm text-red-600">Delete</button>
+            <button type="button" onClick={() => setPreview((value) => !value)} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-subtle)] px-2.5 py-1.5 text-xs font-medium text-[var(--muted)]">{preview ? <Pencil size={13} /> : <Eye size={13} />}{preview ? "Edit" : "Preview"}</button>
+            <button type="button" aria-label="Delete note" onClick={() => startTransition(async () => { const result = await deleteNote({ id: selected.id }); setStatus(result.error); if (!result.error) router.push("/notes"); })} className="rounded-lg p-1.5 text-zinc-400 hover:bg-[var(--danger-soft)] hover:text-rose-600"><Trash2 size={15} /></button>
           </div>
           <p className="h-4 text-xs text-zinc-500">{status}</p>
           {preview ? (
             <MarkdownPreview body={body} />
           ) : (
-            <textarea value={body} onChange={(event) => setBody(event.target.value)} aria-label="Note body" className="min-h-[55vh] resize-none rounded-lg border border-zinc-200 bg-transparent p-4 font-mono text-sm outline-none dark:border-zinc-800" />
+            <textarea value={body} onChange={(event) => setBody(event.target.value)} aria-label="Note body" placeholder="Start writing..." className="min-h-[55vh] resize-none bg-transparent p-2 text-[15px] leading-7 outline-none" />
           )}
         </section>
       ) : (

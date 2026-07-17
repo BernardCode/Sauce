@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal dashboard",
-  description: "What should I be doing right now?",
+  title: "Daylight | Personal command center",
+  description: "A calm personal dashboard for your tasks, schedule, habits, notes, and projects.",
 };
 
 export default function RootLayout({

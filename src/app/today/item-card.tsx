@@ -243,8 +243,8 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
     <li
       draggable={!leaving}
       onDragStart={handleDragStart}
-      className={`flex cursor-grab items-start gap-3 rounded-lg border border-zinc-200 p-3 transition-all duration-300 active:cursor-grabbing dark:border-zinc-800 ${
-        flagUnscheduled ? "border-l-2 border-l-sky-500" : ""
+      className={`group flex cursor-grab items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 shadow-[0_1px_0_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md active:cursor-grabbing dark:hover:border-indigo-800 ${
+        flagUnscheduled ? "border-l-[3px] border-l-amber-400" : ""
       } ${leaving ? "translate-x-2 opacity-0" : "opacity-100"}`}
     >
       <input
@@ -253,11 +253,11 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
         disabled={leaving}
         onChange={() => onDone(item.id)}
         aria-label={`Mark "${item.title}" done`}
-        className="mt-1 size-4 shrink-0 accent-zinc-900 dark:accent-zinc-100"
+        className="mt-1 size-[18px] shrink-0 cursor-pointer rounded-md accent-[var(--primary)]"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">{item.title}</span>
+          <span className="truncate text-sm font-semibold tracking-[-0.01em]">{item.title}</span>
           <ItemTag label={item.parentTitle ?? item.course ?? "Manual"} />
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -271,7 +271,7 @@ export function ItemCard({ item, now, leaving, onDone, upcomingBlock }: Props) {
           {upcomingBlock && now ? (
             <ScheduleBadge block={upcomingBlock} now={now} />
           ) : flagUnscheduled ? (
-            <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-900 dark:text-zinc-500">
+            <span className="shrink-0 rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
               unscheduled
             </span>
           ) : null}

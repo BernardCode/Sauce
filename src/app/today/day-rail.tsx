@@ -540,7 +540,7 @@ export function DayRail({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 overflow-hidden rounded-xl bg-[var(--surface-subtle)] p-2">
       {actionError ? (
         <p className="text-sm text-red-600 dark:text-red-400">{actionError}</p>
       ) : null}
@@ -558,7 +558,7 @@ export function DayRail({
       ) : null}
       <div
         ref={railRef}
-        className="relative"
+        className="relative min-w-0"
         style={{ height: railHeight }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

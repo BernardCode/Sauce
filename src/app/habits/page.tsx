@@ -33,12 +33,18 @@ export default async function HabitsPage() {
     };
   });
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-6">
+    <div className="app-page">
       <AppHeader />
-      <main className="pt-8">
-        <h1 className="text-2xl font-semibold">Habits</h1>
-        <p className="mt-1 text-sm text-zinc-500">Thirty days, no points or reminders.</p>
-        <div className="mt-6"><HabitGrid rows={rows} dates={dates} /></div>
+      <main>
+        <div className="page-intro">
+          <div>
+            <p className="page-kicker">Small actions, visible momentum</p>
+            <h1 className="page-title">Habit tracker</h1>
+            <p className="page-description">A quiet thirty-day view of the routines you want to keep. Tap any day to update it instantly.</p>
+          </div>
+          <div className="rounded-full bg-[var(--success-soft)] px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">{rows.length} active {rows.length === 1 ? "habit" : "habits"}</div>
+        </div>
+        <div className="workspace-card"><HabitGrid rows={rows} dates={dates} /></div>
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
@@ -76,17 +77,19 @@ export default async function CalendarPage({
     .eq("user_id", user.id)
     .order("label");
   const staleCutoff = staleCutoffMs();
-  await Promise.allSettled(
-    (initialSources ?? [])
-      .filter(
+  const staleSources = (initialSources ?? [])
+    .filter(
         (source) =>
           source.enabled &&
           ["gcal", "ics"].includes(source.kind) &&
           (!source.last_synced_at ||
             new Date(source.last_synced_at).getTime() < staleCutoff),
-      )
-      .map((source) => syncCalendarSource(source)),
-  );
+      );
+  if (staleSources.length) {
+    after(async () => {
+      await Promise.allSettled(staleSources.map((source) => syncCalendarSource(source)));
+    });
+  }
 
   const [blocksResult, eventsResult, itemsResult, liveBlocksResult, sourcesResult] =
     await Promise.all([
@@ -128,7 +131,7 @@ export default async function CalendarPage({
   const errors = [blocksResult.error, eventsResult.error, itemsResult.error, sourcesResult.error];
   if (errors.some(Boolean)) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col p-6">
+      <div className="app-page">
         <AppHeader />
         <p className="flex flex-1 items-center justify-center text-zinc-500">
           Could not load the calendar. Refresh to try again.
@@ -146,27 +149,32 @@ export default async function CalendarPage({
   const next = dateKey(addDays(anchor, range.step));
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col p-6">
+    <div className="app-page">
       <AppHeader />
-      <main className="flex flex-1 flex-col gap-4 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">Calendar</h1>
-          <div className="flex items-center gap-4 text-sm">
-            <Link href={`/calendar?view=${query.view}&date=${previous}`}>Previous</Link>
+      <main className="flex flex-1 flex-col gap-4">
+        <div className="page-intro">
+          <div><p className="page-kicker">See where your time is going</p><h1 className="page-title">Calendar</h1><p className="page-description">Events are fixed commitments. Work blocks are yours to move, resize, lock, or remove.</p></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="segmented-control">
+            <Link href={`/calendar?view=${query.view}&date=${previous}`} aria-label="Previous period">Previous</Link>
             <Link href={`/calendar?view=${query.view}`}>Today</Link>
-            <Link href={`/calendar?view=${query.view}&date=${next}`}>Next</Link>
+            <Link href={`/calendar?view=${query.view}&date=${next}`} aria-label="Next period">Next</Link>
+            </div>
+            <div className="segmented-control">
             {(["month", "week", "day"] as const).map((view) => (
               <Link
                 key={view}
                 href={`/calendar?view=${view}&date=${dateKey(anchor)}`}
-                className={view === query.view ? "font-semibold" : "text-zinc-500"}
+                data-active={view === query.view}
               >
                 {view[0].toUpperCase() + view.slice(1)}
               </Link>
             ))}
+            </div>
           </div>
         </div>
-        <CalendarBoard
+        <div className="workspace-card flex flex-1 flex-col"><CalendarBoard
+          key={`${query.view}:${range.days[0]}:${(blocksResult.data ?? []).map((block) => `${block.id}:${block.start_at}:${block.end_at}:${block.locked}`).join("|")}`}
           view={query.view}
           days={range.days}
           blocks={(blocksResult.data ?? []).map((block) => ({
@@ -198,7 +206,7 @@ export default async function CalendarPage({
               remainingMinutes: item.remaining_minutes,
             }))}
           sources={sourcesResult.data ?? []}
-        />
+        /></div>
       </main>
     </div>
   );

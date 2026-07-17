@@ -49,30 +49,33 @@ export default async function SettingsPage() {
   const plannerHours = hours.success ? hours.data : workingHoursSchema.parse({});
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col p-6">
+    <div className="app-page">
       <AppHeader />
-      <main className="flex flex-col gap-8 pt-6">
-        <div>
-          <h1 className="text-xl font-semibold">Settings</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+      <main className="flex flex-col gap-6">
+        <div className="page-intro">
+          <div>
+          <p className="page-kicker">Make the planner work your way</p>
+          <h1 className="page-title">Settings</h1>
+          <p className="page-description">
             Calendar sources are read-only. The dashboard never writes back.
           </p>
+          </div>
         </div>
-        <PlannerSettingsForm
+        <div className="workspace-card"><PlannerSettingsForm
           initialTimezone={profile?.timezone ?? "UTC"}
           initialWake={plannerHours.wake}
           initialSleep={plannerHours.sleep}
           initialWindows={plannerHours.blockedWindows}
           initialPreferences={preferences.success ? preferences.data.text : ""}
-        />
-        <CourseDefaults
+        /></div>
+        <div className="workspace-card"><CourseDefaults
           defaults={(courseDefaults ?? []).map((entry) => ({
             course: entry.course,
             defaultMinutes: entry.default_minutes,
             sampleCount: entry.sample_count,
           }))}
-        />
-        <section>
+        /></div>
+        <section className="workspace-card">
           <div className="flex items-center justify-between gap-4">
             <h2 className="font-medium">Sources</h2>
             <form action={signInWithGoogle}>

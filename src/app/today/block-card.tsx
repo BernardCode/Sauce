@@ -91,11 +91,11 @@ export function BlockCard({
   // background noise next to real scheduled work.
   const muted = block.done || block.itemId === null;
   const surface = muted
-    ? "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400"
-    : "border-zinc-400 bg-white dark:border-zinc-500 dark:bg-zinc-900";
+    ? "border-zinc-200 bg-white/70 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400"
+    : "border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-100";
 
   const classes = [
-    "absolute overflow-hidden rounded-md border shadow-sm select-none",
+    "absolute overflow-hidden rounded-lg border shadow-sm select-none",
     surface,
     interactive ? "touch-none cursor-grab active:cursor-grabbing" : "cursor-pointer",
     highlighted ? "ring-2 ring-sky-500" : "",

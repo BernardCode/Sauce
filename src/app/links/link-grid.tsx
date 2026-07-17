@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type DragEvent, type FormEvent } from "react";
+import { ExternalLink, GripVertical, Plus, Trash2 } from "lucide-react";
 import { addLink, deleteLink, reorderLinks } from "./actions";
 
 export type SavedLink = {
@@ -50,17 +51,27 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
     });
   }
 
+  function remove(link: SavedLink) {
+    const previous = links;
+    setLinks((current) => current.filter((entry) => entry.id !== link.id));
+    startTransition(async () => {
+      const result = await deleteLink({ id: link.id });
+      setError(result.error);
+      if (result.error) setLinks(previous);
+    });
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      <form onSubmit={add} className="grid gap-2 sm:grid-cols-[1fr_12rem_auto]">
-        <input name="url" type="url" required placeholder="https://example.com" className="rounded border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-700" />
-        <input name="tag" required placeholder="Tag" className="rounded border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-700" />
-        <button disabled={isPending} className="rounded bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">Add link</button>
+      <form onSubmit={add} className="grid gap-2 rounded-xl bg-[var(--surface-subtle)] p-3 sm:grid-cols-[1fr_12rem_auto]">
+        <input name="url" type="url" required placeholder="https://example.com" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--primary)]" />
+        <input name="tag" required placeholder="Tag" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--primary)]" />
+        <button disabled={isPending} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[var(--primary-deep)]"><Plus size={16} /> Add link</button>
       </form>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {tags.map((tag) => (
         <section key={tag}>
-          <h2 className="font-medium">{tag}</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><span className="size-2 rounded-full bg-[var(--primary)]" />{tag}<span className="text-xs font-normal text-[var(--muted)]">{links.filter((link) => link.tag === tag).length}</span></h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {links.filter((link) => link.tag === tag).map((link) => (
               <article
@@ -69,8 +80,9 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
                 onDragStart={() => setDraggedId(link.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => drop(event, link)}
-                className="flex items-center gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+                className="group flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3.5 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-[var(--surface)] hover:shadow-md dark:hover:border-indigo-800"
               >
+                <GripVertical size={15} className="cursor-grab text-zinc-300 opacity-0 group-hover:opacity-100" />
                 {link.faviconUrl ? (
                   <span
                     aria-hidden="true"
@@ -79,15 +91,16 @@ export function LinkGrid({ initialLinks }: { initialLinks: SavedLink[] }) {
                   />
                 ) : null}
                 <a href={link.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-medium">{link.title}</h3>
+                  <h3 className="flex items-center gap-1.5 truncate text-sm font-semibold">{link.title}<ExternalLink size={12} className="shrink-0 text-zinc-400" /></h3>
                   <p className="truncate text-xs text-zinc-500">{new URL(link.url).hostname}</p>
                 </a>
                 <button
                   type="button"
-                  onClick={() => startTransition(async () => setError((await deleteLink({ id: link.id })).error))}
-                  className="text-xs text-red-600"
+                  onClick={() => remove(link)}
+                  aria-label={`Delete ${link.title}`}
+                  className="rounded-lg p-1.5 text-zinc-400 opacity-0 hover:bg-[var(--danger-soft)] hover:text-rose-600 group-hover:opacity-100"
                 >
-                  Delete
+                  <Trash2 size={14} />
                 </button>
               </article>
             ))}

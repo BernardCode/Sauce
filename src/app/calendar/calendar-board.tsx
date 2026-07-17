@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type DragEvent } from "react";
+import { Lock, LockOpen, Plus, X } from "lucide-react";
 import { z } from "zod";
 import {
   createBlockForItem,
@@ -91,6 +92,7 @@ function moveToDay(iso: string, day: string): Date {
 
 export function CalendarBoard({ view, days, blocks, events, items, sources }: Props) {
   const [hiddenSources, setHiddenSources] = useState<Record<string, true>>({});
+  const [localBlocks, setLocalBlocks] = useState(blocks);
   const [selectedBlock, setSelectedBlock] = useState<CalendarBlock | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -143,13 +145,18 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
     if (payload.kind === "block") {
       const start = moveToDay(payload.startAt, day);
       const duration = new Date(payload.endAt).getTime() - new Date(payload.startAt).getTime();
-      run(() =>
-        updateBlockTimes({
+      const end = new Date(start.getTime() + duration);
+      const previous = localBlocks;
+      setLocalBlocks((current) => current.map((block) => block.id === payload.id ? { ...block, startAt: start.toISOString(), endAt: end.toISOString() } : block));
+      startTransition(async () => {
+        const result = await updateBlockTimes({
           id: payload.id,
           startAtIso: start.toISOString(),
-          endAtIso: new Date(start.getTime() + duration).toISOString(),
-        }),
-      );
+          endAtIso: end.toISOString(),
+        });
+        setError(result.error);
+        if (result.error) setLocalBlocks(previous);
+      });
       return;
     }
 
@@ -181,13 +188,39 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
   function resizeBlock(block: CalendarBlock, deltaMinutes: number) {
     const nextEnd = new Date(new Date(block.endAt).getTime() + deltaMinutes * 60_000);
     if (nextEnd <= new Date(block.startAt)) return;
-    run(() =>
-      updateBlockTimes({
+    const previous = localBlocks;
+    setLocalBlocks((current) => current.map((entry) => entry.id === block.id ? { ...entry, endAt: nextEnd.toISOString() } : entry));
+    startTransition(async () => {
+      const result = await updateBlockTimes({
         id: block.id,
         startAtIso: block.startAt,
         endAtIso: nextEnd.toISOString(),
-      }),
-    );
+      });
+      setError(result.error);
+      if (result.error) setLocalBlocks(previous);
+    });
+  }
+
+  function toggleLock(block: CalendarBlock) {
+    const previous = localBlocks;
+    const locked = !block.locked;
+    setLocalBlocks((current) => current.map((entry) => entry.id === block.id ? { ...entry, locked } : entry));
+    startTransition(async () => {
+      const result = await setBlockLocked({ id: block.id, locked });
+      setError(result.error);
+      if (result.error) setLocalBlocks(previous);
+    });
+  }
+
+  function removeBlock(block: CalendarBlock) {
+    const previous = localBlocks;
+    setLocalBlocks((current) => current.filter((entry) => entry.id !== block.id));
+    setSelectedBlock(null);
+    startTransition(async () => {
+      const result = await deleteBlock({ id: block.id });
+      setError(result.error);
+      if (result.error) setLocalBlocks(previous);
+    });
   }
 
   return (
@@ -225,7 +258,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
         }`}
       >
         {days.map((day) => {
-          const dayBlocks = blocks.filter(
+          const dayBlocks = localBlocks.filter(
             (block) => localDateKey(new Date(block.startAt)) === day,
           );
           const dayEvents = events.filter(
@@ -238,7 +271,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
               key={day}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => dropOnDay(event, day)}
-              className={`min-h-32 rounded-lg border border-zinc-200 p-2 dark:border-zinc-800 ${
+              className={`min-h-32 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-2.5 hover:border-indigo-200 dark:hover:border-indigo-800 ${
                 view === "month" ? "min-h-40" : "min-h-96"
               }`}
             >
@@ -250,16 +283,16 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                   type="button"
                   onClick={() => addManualBlock(day)}
                   disabled={isPending}
-                  className="text-xs text-zinc-400 hover:text-zinc-700"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[var(--primary)] hover:text-[var(--primary-deep)]"
                 >
-                  Add block
+                  <Plus size={12} /> Add
                 </button>
               </div>
               <div className="flex flex-col gap-1.5">
                 {dayEvents.map((event) => (
                   <article
                     key={event.id}
-                    className="rounded bg-sky-100 px-2 py-1 text-xs text-sky-900 dark:bg-sky-950 dark:text-sky-200"
+                    className="rounded-lg border border-sky-200 bg-[var(--sky-soft)] px-2.5 py-2 text-xs text-sky-900 dark:border-sky-900 dark:text-sky-200"
                   >
                     <p className="truncate font-medium">{event.title}</p>
                     <p className="truncate opacity-70">
@@ -276,7 +309,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                     draggable={!block.done}
                     onDragStart={(event) => startBlockDrag(event, block)}
                     onClick={() => setSelectedBlock(block)}
-                    className="cursor-pointer rounded border border-zinc-400 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-950"
+                    className="cursor-pointer rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-xs text-indigo-950 shadow-sm hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-100"
                   >
                     <p className="truncate font-medium">{block.title}</p>
                     <p className="text-zinc-500">
@@ -305,12 +338,11 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          run(() =>
-                            setBlockLocked({ id: block.id, locked: !block.locked }),
-                          );
+                          toggleLock(block);
                         }}
+                        className="inline-flex items-center gap-1"
                       >
-                        {block.locked ? "Unlock" : "Lock"}
+                        {block.locked ? <LockOpen size={11} /> : <Lock size={11} />}{block.locked ? "Unlock" : "Lock"}
                       </button>
                     </div>
                   </article>
@@ -321,7 +353,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
         })}
       </div>
 
-      <details className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+      <details className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] p-3">
         <summary className="cursor-pointer text-sm text-zinc-500">
           Unscheduled ({items.length})
         </summary>
@@ -344,15 +376,16 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
       </details>
 
       {selectedBlock ? (
-        <aside className="fixed right-4 bottom-4 z-40 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+        <aside className="fixed right-4 bottom-20 z-40 w-80 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-2xl lg:bottom-4">
           <div className="flex items-start justify-between gap-3">
             <h2 className="font-medium">{selectedBlock.title}</h2>
             <button
               type="button"
               onClick={() => setSelectedBlock(null)}
-              className="text-sm text-zinc-500"
+              aria-label="Close block details"
+              className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
             >
-              Close
+              <X size={16} />
             </button>
           </div>
           <p className="mt-2 text-sm text-zinc-500">
@@ -364,8 +397,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
           <button
             type="button"
             onClick={() => {
-              run(() => deleteBlock({ id: selectedBlock.id }));
-              setSelectedBlock(null);
+              removeBlock(selectedBlock);
             }}
             className="mt-4 text-sm text-red-600"
           >

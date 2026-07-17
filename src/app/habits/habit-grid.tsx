@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { Archive, Plus } from "lucide-react";
 import { archiveHabit, createHabit, setHabitLog } from "./actions";
 
 export type HabitGridRow = {
@@ -16,6 +17,9 @@ export type HabitGridRow = {
 
 export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string[] }) {
   const [error, setError] = useState<string | null>(null);
+  const [completedByHabit, setCompletedByHabit] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(rows.map((habit) => [habit.id, habit.completedDates])),
+  );
   const [isPending, startTransition] = useTransition();
 
   function add(event: FormEvent<HTMLFormElement>) {
@@ -39,23 +43,24 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <div className="min-w-max p-3">
-          <div className="grid grid-cols-[10rem_repeat(30,1.5rem)] gap-1 text-center text-[10px] text-zinc-500">
+      <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)]">
+        <div className="min-w-max p-4">
+          <div className="grid grid-cols-[11rem_repeat(30,1.65rem)] gap-1.5 text-center text-[10px] text-[var(--muted)]">
             <span />
             {dates.map((date) => <span key={date}>{date.slice(8)}</span>)}
             {rows.map((habit) => {
-              const completed = new Set(habit.completedDates);
+              const completed = new Set(completedByHabit[habit.id] ?? []);
               return (
                 <div key={habit.id} className="contents">
                   <div className="flex items-center justify-between gap-2 pr-2 text-left text-sm text-zinc-900 dark:text-zinc-100">
-                    <span className="truncate">{habit.name}</span>
+                    <span className="truncate font-semibold">{habit.name}</span>
                     <button
                       type="button"
                       onClick={() => startTransition(async () => setError((await archiveHabit({ id: habit.id })).error))}
-                      className="text-xs text-zinc-400"
+                      aria-label={`Archive ${habit.name}`}
+                      className="rounded-lg p-1.5 text-zinc-400 hover:bg-[var(--danger-soft)] hover:text-rose-500"
                     >
-                      Archive
+                      <Archive size={14} />
                     </button>
                   </div>
                   {dates.map((date) => {
@@ -64,16 +69,33 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
                       <button
                         key={date}
                         type="button"
-                        disabled={isPending}
                         aria-label={`${habit.name}, ${date}, ${done ? "done" : "not done"}`}
-                        onClick={() => startTransition(async () => setError((await setHabitLog({ habitId: habit.id, date, done: !done })).error))}
-                        className="size-5 rounded-full border"
+                        onClick={() => {
+                          const nextDone = !done;
+                          setCompletedByHabit((current) => {
+                            const values = new Set(current[habit.id] ?? []);
+                            if (nextDone) values.add(date); else values.delete(date);
+                            return { ...current, [habit.id]: [...values] };
+                          });
+                          startTransition(async () => {
+                            const result = await setHabitLog({ habitId: habit.id, date, done: nextDone });
+                            setError(result.error);
+                            if (result.error) {
+                              setCompletedByHabit((current) => {
+                                const values = new Set(current[habit.id] ?? []);
+                                if (done) values.add(date); else values.delete(date);
+                                return { ...current, [habit.id]: [...values] };
+                              });
+                            }
+                          });
+                        }}
+                        className="size-6 rounded-lg border shadow-sm hover:scale-110"
                         style={{ backgroundColor: done ? habit.color : "transparent", borderColor: habit.color }}
                       />
                     );
                   })}
-                  <div className="col-span-full mb-3 ml-40 text-xs text-zinc-500">
-                    Current {habit.currentStreak} · Longest {habit.longestStreak} · {habit.completionRate}% of target
+                  <div className="col-span-full mb-4 ml-44 flex gap-4 text-xs text-[var(--muted)]">
+                    <span><strong className="text-[var(--foreground)]">{habit.currentStreak}</strong> current streak</span><span><strong className="text-[var(--foreground)]">{habit.longestStreak}</strong> longest</span><span><strong className="text-[var(--foreground)]">{habit.completionRate}%</strong> of target</span>
                   </div>
                 </div>
               );
@@ -82,9 +104,10 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
         </div>
       </div>
 
-      <form onSubmit={add} className="grid gap-3 rounded-lg border border-zinc-200 p-4 sm:grid-cols-2 dark:border-zinc-800">
-        <input name="name" required placeholder="Habit name" className="rounded border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-700" />
-        <select name="cadence" className="rounded border border-zinc-200 bg-transparent px-3 py-2 text-sm dark:border-zinc-700">
+      <form onSubmit={add} className="grid gap-3 rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] p-4 sm:grid-cols-2">
+        <div className="sm:col-span-2"><h2 className="font-semibold">Add a habit</h2><p className="mt-1 text-xs text-[var(--muted)]">Keep it specific and easy to check off.</p></div>
+        <input name="name" required placeholder="Habit name" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--primary)]" />
+        <select name="cadence" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--primary)]">
           <option value="daily">Daily</option>
           <option value="weekdays">Weekdays</option>
           <option value="custom">Specific days</option>
@@ -99,7 +122,7 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
             ))}
           </div>
         </fieldset>
-        <button disabled={isPending} className="rounded bg-zinc-900 px-3 py-2 text-sm text-white sm:col-span-2 dark:bg-zinc-100 dark:text-zinc-900">Add habit</button>
+        <button disabled={isPending} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[var(--primary-deep)] sm:col-span-2"><Plus size={16} /> Add habit</button>
         {error ? <p className="text-sm text-red-600 sm:col-span-2">{error}</p> : null}
       </form>
     </div>

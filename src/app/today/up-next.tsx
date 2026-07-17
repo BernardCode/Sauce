@@ -2,6 +2,7 @@
 
 import type { TodayBlock } from "./types";
 import { useNow } from "./use-now";
+import { ArrowRight, Clock3 } from "lucide-react";
 
 function countdownLabel(target: Date, now: Date): string {
   const minutes = Math.ceil((target.getTime() - now.getTime()) / 60_000);
@@ -23,17 +24,19 @@ export function UpNext({ blocks }: { blocks: TodayBlock[] }) {
         )[0]
     : null;
   return (
-    <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <h2 className="text-sm font-medium">Up next</h2>
+    <section className="relative overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white shadow-lg shadow-indigo-500/15 dark:border-indigo-800">
+      <div className="absolute -right-6 -top-6 size-24 rounded-full bg-white/10" />
+      <div className="relative flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-indigo-100"><Clock3 size={15} /> Up next</div>
       {next && now ? (
-        <div className="mt-2">
-          <p className="font-medium">{next.title}</p>
-          <p className="text-sm text-zinc-500">
+        <div className="relative mt-4">
+          <p className="text-lg font-semibold tracking-[-0.02em]">{next.title}</p>
+          <p className="mt-1 text-sm text-indigo-100">
             {countdownLabel(new Date(next.startAt), now)}
           </p>
+          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/14 px-3 py-1.5 text-xs font-medium">Open schedule <ArrowRight size={13} /></div>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-zinc-500">Nothing scheduled.</p>
+        <div className="relative mt-4"><p className="font-medium">Your time is open.</p><p className="mt-1 text-sm text-indigo-100">Drag a task onto the schedule when you are ready.</p></div>
       )}
     </section>
   );

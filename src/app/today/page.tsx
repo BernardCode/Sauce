@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { AppHeader } from "@/app/components/app-header";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +18,7 @@ import type { TodayBlock, TodayEvent } from "./types";
 import { TodayHabits } from "./today-habits";
 import { QuickNote } from "./quick-note";
 import { UpNext } from "./up-next";
+import { TodayWorkspace } from "./today-workspace";
 
 type ItemRow = {
   id: string;
@@ -219,17 +221,19 @@ export default async function TodayPage() {
     .select("id, kind, enabled, last_synced_at")
     .eq("user_id", user.id);
   const staleCutoff = staleSourceCutoffMs();
-  await Promise.allSettled(
-    (sources ?? [])
-      .filter(
+  const staleSources = (sources ?? [])
+    .filter(
         (source) =>
           source.enabled &&
           ["gcal", "ics"].includes(source.kind) &&
           (!source.last_synced_at ||
             new Date(source.last_synced_at).getTime() < staleCutoff),
-      )
-      .map((source) => syncCalendarSource(source)),
-  );
+      );
+  if (staleSources.length) {
+    after(async () => {
+      await Promise.allSettled(staleSources.map((source) => syncCalendarSource(source)));
+    });
+  }
 
   const [openResult, doneResult, projectItemsResult, blocksResult, eventsResult, userResult, habitsResult] =
     await Promise.all([
@@ -411,7 +415,7 @@ export default async function TodayPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-6">
+    <div className="app-page">
       <AppHeader />
       <main className="flex flex-1 flex-col">
         {loadError ? (
@@ -420,16 +424,24 @@ export default async function TodayPage() {
           </p>
         ) : (
           <>
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">Your day, at a glance</p>
+              <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">What deserves your attention?</h1>
+              <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">A clear plan for the work that matters, with room to adjust as the day changes.</p>
+            </div>
+            <div className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] shadow-sm">
+              Drag tasks onto the schedule to plan them
+            </div>
+          </div>
           {!expectedPlanRun ? (
             <p className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
               The planner has not recorded its expected run. Your existing schedule is unchanged.
             </p>
           ) : null}
-          <div className="flex flex-1 flex-col gap-8 pt-6 lg:flex-row">
-            <section
-              aria-label="Schedule"
-              className="order-2 lg:order-1 lg:w-80 lg:shrink-0"
-            >
+          <div className="pt-6">
+            <TodayWorkspace
+              schedule={
               <DayRail
                 blocks={blocks}
                 events={events}
@@ -437,8 +449,9 @@ export default async function TodayPage() {
                 sleepHour={sleepHour}
                 itemDueDates={itemDueDates}
               />
-            </section>
-            <aside className="order-3 flex flex-col gap-4 lg:w-64 lg:shrink-0">
+              }
+              focus={
+              <>
               <UpNext blocks={blocks} />
               <TodayHabits
                 date={localToday.date}
@@ -453,8 +466,8 @@ export default async function TodayPage() {
                 date={localToday.date}
                 initialBody={dailyNote?.body_md ?? ""}
               />
-              <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                <h2 className="text-sm font-medium">At risk</h2>
+              <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] p-4">
+                <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">At risk</h2><span className="rounded-full bg-[var(--danger-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-600">Projects</span></div>
                 {atRiskProjects.length ? (
                   <ul className="mt-2 flex flex-col gap-2">
                     {atRiskProjects.map((project) => (
@@ -469,20 +482,19 @@ export default async function TodayPage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-2 text-sm text-zinc-500">No projects at risk.</p>
+                  <p className="mt-2 text-sm text-[var(--muted)]">Everything fits before its deadline.</p>
                 )}
               </section>
-            </aside>
-            <section
-              aria-label="Todo list"
-              className="order-1 flex flex-1 flex-col lg:order-2"
-            >
+              </>
+              }
+              tasks={
               <ItemList
                 openItems={openItems}
                 doneItems={doneItems}
                 blocks={blocks}
               />
-            </section>
+              }
+            />
           </div>
           </>
         )}
