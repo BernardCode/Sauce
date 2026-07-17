@@ -83,7 +83,7 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
 
   useEffect(() => {
     if (!position) return;
-    menuRef.current?.querySelector<HTMLElement>("[role='menuitem']")?.focus();
+    menuRef.current?.querySelector<HTMLElement>("[role='menuitem']")?.focus({ preventScroll: true });
 
     function onPointerDown(event: PointerEvent) {
       if (!menuRef.current?.contains(event.target as Node)) close();
@@ -94,12 +94,10 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
     };
   }, [position]);
 
