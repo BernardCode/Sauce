@@ -4,10 +4,14 @@ import { AppHeader } from "@/app/components/app-header";
 import { syncGoogleCalendarSource } from "@/lib/calendar/google";
 import { createClient } from "@/lib/supabase/server";
 import { isProjectAtRisk } from "@/lib/projects/risk";
+import { habitIsDue } from "@/lib/habits/due";
+import { habitDaysSchema } from "@/lib/planner/schemas";
+import { localParts, safeTimeZone } from "@/lib/planner/time";
 import Link from "next/link";
 import { DayRail } from "./day-rail";
 import { ItemList, type TodayItem } from "./item-list";
 import type { TodayBlock, TodayEvent } from "./types";
+import { TodayHabits } from "./today-habits";
 
 type ItemRow = {
   id: string;
@@ -189,7 +193,7 @@ export default async function TodayPage() {
       .map((source) => syncGoogleCalendarSource(source.id)),
   );
 
-  const [openResult, doneResult, projectItemsResult, blocksResult, eventsResult, userResult] =
+  const [openResult, doneResult, projectItemsResult, blocksResult, eventsResult, userResult, habitsResult] =
     await Promise.all([
     supabase
       .from("items")
@@ -224,9 +228,15 @@ export default async function TodayPage() {
       .order("start_at", { ascending: true }),
     supabase
       .from("users")
-      .select("working_hours_json")
+      .select("timezone, working_hours_json")
       .eq("id", user.id)
       .single(),
+    supabase
+      .from("habits")
+      .select("id, name, cadence, days_json, color")
+      .eq("user_id", user.id)
+      .eq("archived", false)
+      .order("name"),
     ]);
 
   const loadError =
@@ -234,7 +244,8 @@ export default async function TodayPage() {
     doneResult.error ??
     projectItemsResult.error ??
     blocksResult.error ??
-    eventsResult.error;
+    eventsResult.error ??
+    habitsResult.error;
   const projectRows = (projectItemsResult.data ?? []) as ItemRow[];
   const projects = new Map(
     projectRows.filter((item) => item.is_project).map((item) => [item.id, item]),
@@ -261,6 +272,29 @@ export default async function TodayPage() {
   const sleepHour = parsedHours.success ? (parsedHours.data.sleep ?? 23) : 23;
 
   const nowMs = requestTimeMs();
+  const localToday = localParts(
+    new Date(nowMs),
+    safeTimeZone(userResult.data?.timezone ?? "UTC"),
+  );
+  const dueHabits = (habitsResult.data ?? []).filter((habit) => {
+    const parsedDays = habitDaysSchema.safeParse(habit.days_json ?? []);
+    return habitIsDue(
+      habit.cadence,
+      parsedDays.success ? parsedDays.data : [],
+      localToday.weekday,
+    );
+  });
+  const { data: todayHabitLogs } = dueHabits.length
+    ? await supabase
+        .from("habit_logs")
+        .select("habit_id, done")
+        .eq("user_id", user.id)
+        .eq("date", localToday.date)
+        .in("habit_id", dueHabits.map((habit) => habit.id))
+    : { data: [] };
+  const doneHabitIds = new Set(
+    (todayHabitLogs ?? []).filter((log) => log.done).map((log) => log.habit_id),
+  );
   const atRiskProjects = [...projects.values()].filter((project) => {
     if (!project.due_at || project.status !== "open") return false;
     const deadlineMs = new Date(project.due_at).getTime();
@@ -324,6 +358,15 @@ export default async function TodayPage() {
               />
             </section>
             <aside className="order-3 flex flex-col gap-4 lg:w-64 lg:shrink-0">
+              <TodayHabits
+                date={localToday.date}
+                habits={dueHabits.map((habit) => ({
+                  id: habit.id,
+                  name: habit.name,
+                  color: habit.color,
+                  done: doneHabitIds.has(habit.id),
+                }))}
+              />
               <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                 <h2 className="text-sm font-medium">At risk</h2>
                 {atRiskProjects.length ? (

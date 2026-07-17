@@ -4,6 +4,7 @@ import { signOut } from "@/app/auth/actions";
 const links = [
   { href: "/today", label: "Today" },
   { href: "/calendar", label: "Calendar" },
+  { href: "/habits", label: "Habits" },
   { href: "/settings", label: "Settings" },
 ];
 
