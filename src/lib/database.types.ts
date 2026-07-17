@@ -231,6 +231,85 @@ export type Database = {
           },
         ]
       }
+      links: {
+        Row: {
+          created_at: string
+          favicon_url: string | null
+          id: string
+          position: number
+          tag: string
+          title: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          position?: number
+          tag?: string
+          title: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          position?: number
+          tag?: string
+          title?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          body_md: string
+          daily_date: string | null
+          id: string
+          pinned: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_md?: string
+          daily_date?: string | null
+          id?: string
+          pinned?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_md?: string
+          daily_date?: string | null
+          id?: string
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           actual_minutes: number | null
@@ -435,6 +514,13 @@ export type Database = {
         Args: {
           ordered_step_ids: string[]
           project_id_arg: string
+        }
+        Returns: undefined
+      }
+      reorder_links: {
+        Args: {
+          ordered_link_ids: string[]
+          tag_arg: string
         }
         Returns: undefined
       }
