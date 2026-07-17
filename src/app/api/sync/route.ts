@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { syncGoogleCalendarSource } from "@/lib/calendar/google";
+import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const cronEnvironmentSchema = z.object({
@@ -33,8 +33,8 @@ export async function GET(request: Request) {
   let synced = 0;
   let failed = 0;
   for (const source of sources ?? []) {
-    if (source.kind !== "gcal") continue;
-    const result = await syncGoogleCalendarSource(source.id);
+    if (!["gcal", "ics"].includes(source.kind)) continue;
+    const result = await syncCalendarSource(source);
     if (result.ok) synced += 1;
     else failed += 1;
   }

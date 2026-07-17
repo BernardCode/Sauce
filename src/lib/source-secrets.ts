@@ -17,6 +17,10 @@ export const googleSourceSecretSchema = z.object({
 
 export type GoogleSourceSecret = z.infer<typeof googleSourceSecretSchema>;
 
+export const icsSourceSecretSchema = z.object({
+  url: z.url(),
+});
+
 function getEncryptionKey(): Buffer {
   const encoded = z.string().min(1).safeParse(process.env.SOURCE_SECRET_KEY);
   if (!encoded.success) {
@@ -43,7 +47,7 @@ export function encryptSourceSecret(value: unknown): string {
     .join(".");
 }
 
-export function decryptGoogleSourceSecret(value: string): GoogleSourceSecret {
+export function decryptSourceSecret(value: string): unknown {
   const parts = encodedSecretSchema.safeParse(value.split("."));
   if (!parts.success) {
     throw new Error("The source credential is malformed.");
@@ -66,7 +70,11 @@ export function decryptGoogleSourceSecret(value: string): GoogleSourceSecret {
   } catch {
     throw new Error("The source credential could not be decoded.");
   }
-  const secret = googleSourceSecretSchema.safeParse(parsed);
+  return parsed;
+}
+
+export function decryptGoogleSourceSecret(value: string): GoogleSourceSecret {
+  const secret = googleSourceSecretSchema.safeParse(decryptSourceSecret(value));
   if (!secret.success) {
     throw new Error("The source credential has an invalid shape.");
   }
