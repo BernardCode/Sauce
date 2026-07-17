@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 export type TaskContextMenuHandle = {
   openAt: (x: number, y: number) => void;
@@ -128,7 +129,7 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
       >
         <MoreHorizontal size={16} />
       </button>
-      {position ? (
+      {position ? createPortal(
         <div
           ref={menuRef}
           role="menu"
@@ -143,7 +144,8 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
           {calendarUrl ? <a href={calendarUrl} target="_blank" rel="noreferrer" role="menuitem" onClick={close}><ExternalLink size={15} />Add deadline to Google Calendar</a> : null}
           <button type="button" role="menuitem" onClick={copyTask}><Clipboard size={15} />{copied ? "Copied" : "Copy task details"}</button>
           {onComplete ? <button type="button" role="menuitem" className="task-context-complete" onClick={() => { onComplete(); close(); }}><Check size={15} />Mark complete</button> : null}
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
