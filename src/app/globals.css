@@ -21,6 +21,11 @@
   --success-soft: #f7f7f5;
   --warning-soft: #f7f7f5;
   --danger-soft: #f7f7f5;
+  --today-panel: #fff5f4;
+  --today-panel-line: #f3d4d1;
+  --today-row: #fffafa;
+  --today-row-hover: #ffffff;
+  --today-accent: #c84b42;
   --shadow-sm: none;
   color-scheme: light;
 }
@@ -52,6 +57,11 @@
     --success-soft: #2f2f2f;
     --warning-soft: #2f2f2f;
     --danger-soft: #2f2f2f;
+    --today-panel: #332827;
+    --today-panel-line: #5a3d3a;
+    --today-row: #2d2423;
+    --today-row-hover: #352a29;
+    --today-accent: #e6a19a;
     --shadow-sm: none;
     color-scheme: dark;
 }

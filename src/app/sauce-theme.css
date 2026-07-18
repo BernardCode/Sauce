@@ -55,7 +55,6 @@ body {
 }
 
 .app-nav-today,
-.app-nav-assignments,
 .app-nav-calendar,
 .app-nav-sat,
 .app-nav-habits,
@@ -360,6 +359,13 @@ body {
   gap: 0.45rem;
 }
 
+.today-task-panel {
+  border: 1px solid var(--today-panel-line);
+  border-radius: 0.75rem;
+  background: var(--today-panel);
+  padding: 0.75rem;
+}
+
 .today-task-row {
   display: flex;
   min-height: 4rem;
@@ -367,7 +373,7 @@ body {
   gap: 0.75rem;
   border: 1px solid transparent !important;
   border-radius: 0.4rem !important;
-  background: var(--surface-subtle) !important;
+  background: var(--today-row) !important;
   padding: 0.85rem 0.9rem;
   box-shadow: none !important;
   transition: background-color 150ms ease, border-color 150ms ease,
@@ -375,8 +381,8 @@ body {
 }
 
 .today-task-row:hover {
-  border-color: var(--line-strong) !important;
-  background: color-mix(in srgb, var(--surface-subtle) 72%, var(--surface)) !important;
+  border-color: var(--today-panel-line) !important;
+  background: var(--today-row-hover) !important;
   box-shadow: none !important;
   transform: none !important;
 }
@@ -399,6 +405,10 @@ body {
 
 .today-project-checkbox {
   border-style: dashed;
+}
+
+.today-task-pending {
+  opacity: 0.62;
 }
 
 .today-task-title {
@@ -428,6 +438,82 @@ body {
   content: "·";
 }
 
+.today-task-add-row {
+  min-height: 3rem;
+  border: 1px solid var(--today-panel-line);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--today-row) 72%, transparent);
+  padding: 0.45rem 0.7rem;
+}
+
+.today-task-entry {
+  display: flex;
+  width: 100%;
+  min-height: 2rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.today-task-entry-plus {
+  flex: none;
+  color: var(--today-accent);
+  font-size: 1.15rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.app-page .today-task-entry-input {
+  width: 100%;
+  min-height: 2rem;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: var(--foreground) !important;
+  font-size: 0.86rem;
+  box-shadow: none !important;
+  outline: 0;
+}
+
+.app-page .today-task-entry-input:focus {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-page .today-task-entry-input::placeholder {
+  color: var(--today-accent);
+  opacity: 0.92;
+}
+
+.today-task-entry-status {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.today-task-entry-button {
+  flex: none;
+  min-height: 2rem;
+  border: 0;
+  background: transparent;
+  padding: 0 0.25rem;
+  color: var(--today-accent);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.today-task-entry-button:disabled {
+  opacity: 0;
+}
+
+.today-task-entry-error {
+  flex-basis: 100%;
+  margin-left: 1.65rem;
+  color: var(--foreground);
+  font-size: 0.7rem;
+}
+
 .today-empty-state {
   border-radius: 0.4rem;
   background: var(--surface-subtle);
@@ -444,19 +530,11 @@ body {
   font-size: 0.78rem;
 }
 
-.motion-item-card,
-[data-page="assignments"] article.group {
+.motion-item-card:not(.today-task-row) {
   border-color: var(--line) !important;
   border-radius: 0.4rem !important;
   background: var(--surface-subtle) !important;
   box-shadow: none !important;
-}
-
-[data-page="assignments"] article.group:hover {
-  border-color: var(--line-strong) !important;
-  background: var(--surface) !important;
-  box-shadow: none !important;
-  transform: none !important;
 }
 
 .motion-up-next {
@@ -581,6 +659,7 @@ body {
 }
 
 .app-mobile-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border-color: var(--line);
   background: color-mix(in srgb, var(--surface) 96%, transparent);
   padding-top: 0;
@@ -729,6 +808,10 @@ body {
   .today-task-row {
     min-height: 3.7rem;
     padding: 0.75rem;
+  }
+
+  .today-task-panel {
+    padding: 0.55rem;
   }
 
   .task-menu-trigger {

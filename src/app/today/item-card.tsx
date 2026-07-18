@@ -19,7 +19,7 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
   const contextDetails = [
-    item.parentTitle ?? item.course,
+    item.course ?? (item.origin === "feed" ? "School feed" : null),
     due?.label,
     item.estMinutes ? `${item.estMinutes} minutes` : null,
   ]
@@ -67,8 +67,8 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
           />
         </div>
         <div className="today-task-meta">
-          {item.parentTitle ?? item.course ? (
-            <span>{item.parentTitle ?? item.course}</span>
+          {item.course || item.origin === "feed" ? (
+            <span>{item.course ?? "School feed"}</span>
           ) : null}
           {item.dueAt ? <span>{due?.label ?? " "}</span> : null}
           {item.estMinutes ? <span>{item.estMinutes}m</span> : null}

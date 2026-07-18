@@ -12,20 +12,17 @@ type ItemRow = {
   due_at: string | null;
   est_minutes: number | null;
   is_project: boolean;
-  parent_id: string | null;
+  origin: string;
 };
 
 const itemColumns =
-  "id, title, course, due_at, est_minutes, is_project, parent_id";
+  "id, title, course, due_at, est_minutes, is_project, origin";
 
 function staleSourceCutoffMs(): number {
   return Date.now() - 15 * 60 * 1000;
 }
 
-function toTodayItem(
-  row: ItemRow,
-  projects: Map<string, ItemRow>,
-): TodayItem {
+function toTodayItem(row: ItemRow): TodayItem {
   return {
     id: row.id,
     title: row.title,
@@ -33,9 +30,7 @@ function toTodayItem(
     dueAt: row.due_at,
     estMinutes: row.est_minutes,
     isProject: row.is_project,
-    parentTitle: row.parent_id
-      ? (projects.get(row.parent_id)?.title ?? "Project")
-      : null,
+    origin: row.origin,
   };
 }
 
@@ -70,31 +65,17 @@ export default async function TodayPage() {
     });
   }
 
-  const [openResult, projectItemsResult] = await Promise.all([
-    supabase
-      .from("items")
-      .select(itemColumns)
-      .eq("user_id", user.id)
-      .eq("status", "open")
-      .order("due_at", { ascending: true, nullsFirst: false })
-      .limit(24),
-    supabase
-      .from("items")
-      .select(itemColumns)
-      .eq("user_id", user.id)
-      .or("is_project.eq.true,parent_id.not.is.null"),
-  ]);
+  // Manual work and synced school assignments intentionally share this query.
+  const openResult = await supabase
+    .from("items")
+    .select(itemColumns)
+    .eq("user_id", user.id)
+    .eq("status", "open")
+    .is("parent_id", null)
+    .order("due_at", { ascending: true, nullsFirst: false });
 
-  const projectRows = (projectItemsResult.data ?? []) as ItemRow[];
-  const projects = new Map(
-    projectRows
-      .filter((item) => item.is_project)
-      .map((item) => [item.id, item]),
-  );
-  const openItems = ((openResult.data ?? []) as ItemRow[]).map((item) =>
-    toTodayItem(item, projects),
-  );
-  const loadError = openResult.error ?? projectItemsResult.error;
+  const openItems = ((openResult.data ?? []) as ItemRow[]).map(toTodayItem);
+  const loadError = openResult.error;
 
   return (
     <div className="app-page" data-page="today">

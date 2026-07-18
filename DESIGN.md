@@ -6,7 +6,7 @@ sauce is a calm academic workspace for one student. It should feel focused, quic
 
 1. Make the next useful action obvious.
 2. Keep planning information dense enough to scan without feeling crowded.
-3. Use only white, gray, and black until a future color pass assigns specific pastel surfaces.
+3. Use white, gray, and black throughout the workspace. Today may use one light blush surface around its task list.
 4. Favor immediate local feedback for personal actions.
 5. Keep every route visually related to the same workspace.
 
@@ -15,7 +15,7 @@ sauce is a calm academic workspace for one student. It should feel focused, quic
 - Typography: Manrope for interface text and headings, Geist Mono for times and compact data.
 - Primary color: near-black. Use it for selected navigation, primary actions, focus rings, and current context.
 - Surfaces: Notion-like white and warm neutral grays with thin borders and almost no shadows.
-- Semantic states: communicate with copy, weight, and neutral contrast. Do not introduce hue.
+- Semantic states: communicate with copy, weight, and neutral contrast. The Today list's blush surface is the only current hue.
 - Shape: small radii for controls and panels. Avoid excessive pills and nested rounded cards.
 - Motion: short and purposeful. Prefer 150 to 260 ms transitions, with full reduced-motion support.
 
@@ -37,8 +37,7 @@ sauce is a calm academic workspace for one student. It should feel focused, quic
 
 ## Route character
 
-- Today: one focused list of top open tasks, with no metrics, warnings, or secondary widgets.
-- Assignments: compact work queue with obvious due state and fast capture.
+- Today: the unified task and assignment inbox, with an always-visible quick-add row and no metrics, warnings, or secondary widgets.
 - Calendar: scheduling surface with readable time hierarchy and calm event colors.
 - SAT: focused study plan, not a promotional hero page.
 - Habits: simple consistency tracking with low-friction daily completion.

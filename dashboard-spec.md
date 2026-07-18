@@ -70,11 +70,11 @@ The load-bearing decisions in this schema:
 
 ### 1. Today (the main page)
 
-The default route is a focused list of the highest-priority open tasks, sorted by deadline. It contains no schedule, planner warnings, metrics, habits, notes, focus widgets, recovery controls, or dashboard statistics.
+The default route is the single task and assignment inbox, sorted by deadline. It contains no schedule, planner warnings, metrics, habits, notes, focus widgets, recovery controls, or dashboard statistics.
 
 A task row shows only what is needed to act: a completion checkbox, title, optional course or project label, relative due date, and estimate. The row keeps its context menu for secondary actions. Project rows link to the project view and are not directly completable.
 
-Today deliberately does not include task capture. New tasks are added from the global command menu or the Assignments page. Scheduling and missed-work recovery live in Calendar, active work lives in Do Now, habits live in Habits, notes live in Notes, and risk or review information lives in Assignments and Weekly Review.
+The task list sits inside one soft blush panel. Its final row is always a quick-add text box, including when the list is empty. Manual tasks and assignments synchronized from Canvas, Schoology, or another school feed use the same `items` table and appear in this list without a separate Assignments page. Scheduling and missed-work recovery live in Calendar, active work lives in Do Now, habits live in Habits, notes live in Notes, and risk information lives in Weekly Review.
 
 ### 2. Calendar
 
@@ -106,7 +106,7 @@ A grid: habits down the left, the last 30 days across the top, filled dots for c
 
 Adding a habit takes a name, a cadence (daily, weekdays, or specific days), a weekly target, and a color. That's it. No reminders, no "why" fields, no gamification.
 
-Habits appear in the Today sidebar and are also fed to the planner, so if you have a "ride 30 minutes" habit and an empty 5pm, Claude can propose a block for it.
+Habits are fed to the planner, so if you have a "ride 30 minutes" habit and an empty 5pm, Claude can propose a block for it.
 
 ### 5. Links
 
@@ -122,7 +122,7 @@ A list of short notes on the left, a markdown editor on the right. Live preview 
 
 Deliberately not a wiki. No nesting, no backlinks, no databases. If a note grows past a page it belongs somewhere else.
 
-Every day gets an automatic daily note. The Today page's quick-note widget appends to it.
+Every day gets an automatic daily note in Notes.
 
 ### 7. Settings
 
@@ -278,7 +278,7 @@ Each of these should be independently shippable and useful.
 7. **Habits.** Small table, grid UI, sidebar row. An afternoon of work.
 8. **Links and notes.** The easy pages, built last.
 9. **School feeds.** ICS ingestion for Canvas or Schoology, once you've confirmed the feeds exist.
-10. **Student command center.** Add the Assignments page, Do Now focus surface, SAT goals and practice history, spaced mistake review, missed-work recovery, careful alerts, command menu, and weekly review. SAT question content stays in the official College Board question bank or another properly licensed source. The dashboard stores only the student's own practice results and links.
+10. **Student command center.** Expand Today into the unified assignment inbox, then add the Do Now focus surface, SAT goals and practice history, spaced mistake review, missed-work recovery, careful alerts, command menu, and weekly review. SAT question content stays in the official College Board question bank or another properly licensed source. The dashboard stores only the student's own practice results and links.
 
 Steps 1 through 3 have real value even if you never build the AI. Step 4 is worth having before step 5, because a dashboard you can talk to from any chat is already useful. And step 6 is where the "breaks big projects down for me" idea lives, so if that's the feature you're most excited about, know that it sits on top of everything else and is worth building last, not first.
 
@@ -290,7 +290,7 @@ The finalized student workflow adds three owner-scoped tables:
 * `sat_sessions`: section, skill, mode, duration, questions, correct answers, and completion time
 * `sat_mistakes`: section, skill, mistake reason, takeaway, confidence, optional source link, and next review date
 
-Assignments retain the original item model and add `energy` with `low`, `medium`, and `high` values. Courses continue to use the existing `course` field so feeds, projects, and manually captured work share one category system.
+Assignments retain the original item model and add `energy` with `low`, `medium`, and `high` values. Courses continue to use the existing `course` field so feeds, projects, and manually captured work share one category system. There is no separate Assignments route in navigation. Legacy `/assignments` links redirect to Today.
 
 The daily workflow is now:
 

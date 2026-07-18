@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setItemDone } from "./actions";
 import { ItemCard } from "./item-card";
-import { isSameLocalDay } from "./relative-time";
+import { QuickAdd } from "./quick-add";
 import { useNow } from "./use-now";
 
 export type TodayItem = {
@@ -14,7 +14,7 @@ export type TodayItem = {
   dueAt: string | null;
   estMinutes: number | null;
   isProject: boolean;
-  parentTitle: string | null;
+  origin: string;
 };
 
 type Props = {
@@ -29,19 +29,10 @@ export function ItemList({ openItems }: Props) {
   const now = useNow();
   const [leaving, setLeaving] = useState<Record<string, true>>({});
   const [doneError, setDoneError] = useState<string | null>(null);
+  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const topItems = openItems
-    .filter((item) => {
-      if (item.isProject || item.parentTitle === null) return true;
-      return Boolean(
-        now &&
-          item.dueAt &&
-          isSameLocalDay(new Date(item.dueAt), now),
-      );
-    })
-    .sort((a, b) => dueTime(a) - dueTime(b))
-    .slice(0, 10);
+  const sortedItems = [...openItems].sort((a, b) => dueTime(a) - dueTime(b));
 
   function handleDone(id: string) {
     setDoneError(null);
@@ -59,20 +50,19 @@ export function ItemList({ openItems }: Props) {
     });
   }
 
-  if (!topItems.length) {
-    return <p className="today-empty-state">No open tasks.</p>;
-  }
-
   return (
-    <section aria-label="Top tasks">
+    <section className="today-task-panel" aria-label="Tasks">
       <ul className="today-task-list">
-        {topItems.map((item) =>
+        {sortedItems.map((item) =>
           item.isProject ? (
             <li key={item.id} className="today-task-row today-project-row">
               <span className="today-project-checkbox" aria-hidden="true" />
               <Link href={`/projects/${item.id}`} className="min-w-0 flex-1">
                 <span className="today-task-title">{item.title}</span>
-                <span className="today-task-meta">Project</span>
+                <span className="today-task-meta">
+                  <span>Project</span>
+                  {item.course ? <span>{item.course}</span> : null}
+                </span>
               </Link>
             </li>
           ) : (
@@ -85,6 +75,15 @@ export function ItemList({ openItems }: Props) {
             />
           ),
         )}
+        {pendingTitle ? (
+          <li className="today-task-row today-task-pending" aria-live="polite">
+            <span className="today-project-checkbox" aria-hidden="true" />
+            <span className="today-task-title">{pendingTitle}</span>
+          </li>
+        ) : null}
+        <li className="today-task-add-row">
+          <QuickAdd onPendingChange={setPendingTitle} />
+        </li>
       </ul>
       {doneError ? <p className="today-list-error">{doneError}</p> : null}
     </section>
