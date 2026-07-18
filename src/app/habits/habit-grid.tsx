@@ -114,7 +114,7 @@ export function HabitGrid({ rows, dates }: { rows: HabitGridRow[]; dates: string
           <option value="custom">Specific days</option>
         </select>
         <label className="text-sm">Weekly target <input name="target" type="number" min={1} max={7} defaultValue={7} className="ml-2 w-16 rounded border bg-transparent px-2 py-1" /></label>
-        <label className="text-sm">Color <input name="color" type="color" defaultValue="#0ea5e9" className="ml-2" /></label>
+        <label className="text-sm">Color <input name="color" type="color" defaultValue="#37352f" className="ml-2" /></label>
         <fieldset className="sm:col-span-2">
           <legend className="text-sm text-zinc-500">Specific days</legend>
           <div className="mt-1 flex flex-wrap gap-3 text-sm">

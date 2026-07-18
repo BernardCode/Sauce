@@ -2,25 +2,25 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --background: #f4f4f1;
-  --foreground: #090909;
+  --background: #ffffff;
+  --foreground: #37352f;
   --surface: #ffffff;
-  --surface-subtle: #ecece8;
+  --surface-subtle: #f7f7f5;
   --surface-raised: #ffffff;
-  --line: #d6d6d0;
-  --line-strong: #b6b6ae;
-  --muted: #666660;
-  --primary: #090909;
-  --primary-deep: #000000;
-  --primary-soft: #e3e3de;
+  --line: #e9e9e7;
+  --line-strong: #d3d3d1;
+  --muted: #787774;
+  --primary: #37352f;
+  --primary-deep: #191919;
+  --primary-soft: #f1f1ef;
   --primary-contrast: #ffffff;
-  --task-accent: #f05a00;
-  --task-soft: #fff0e5;
-  --task-ink: #963900;
-  --sky-soft: #edf3f5;
-  --success-soft: #edf8f2;
-  --warning-soft: #fbf5e8;
-  --danger-soft: #fbedef;
+  --task-accent: #37352f;
+  --task-soft: #f7f7f5;
+  --task-ink: #37352f;
+  --sky-soft: #f7f7f5;
+  --success-soft: #f7f7f5;
+  --warning-soft: #f7f7f5;
+  --danger-soft: #f7f7f5;
   --shadow-sm: none;
   color-scheme: light;
 }
@@ -33,26 +33,26 @@
 }
 
 :root[data-theme="dark"] {
-    --background: #050505;
-    --foreground: #f4f4f1;
-    --surface: #0c0c0c;
-    --surface-subtle: #171717;
-    --surface-raised: #121212;
-    --line: #2b2b2b;
-    --line-strong: #474747;
-    --muted: #a0a09a;
-    --primary: #f4f4f1;
+    --background: #191919;
+    --foreground: #ebebea;
+    --surface: #202020;
+    --surface-subtle: #2f2f2f;
+    --surface-raised: #252525;
+    --line: #373737;
+    --line-strong: #4d4d4d;
+    --muted: #9b9b98;
+    --primary: #ebebea;
     --primary-deep: #ffffff;
-    --primary-soft: #242424;
-    --primary-contrast: #050505;
-    --task-accent: #ff7214;
-    --task-soft: #2b1609;
-    --task-ink: #ffb47f;
-    --sky-soft: #142024;
-    --success-soft: #183126;
-    --warning-soft: #332d20;
-    --danger-soft: #372129;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 10px 28px rgba(0, 0, 0, 0.12);
+    --primary-soft: #333333;
+    --primary-contrast: #191919;
+    --task-accent: #ebebea;
+    --task-soft: #2f2f2f;
+    --task-ink: #ebebea;
+    --sky-soft: #2f2f2f;
+    --success-soft: #2f2f2f;
+    --warning-soft: #2f2f2f;
+    --danger-soft: #2f2f2f;
+    --shadow-sm: none;
     color-scheme: dark;
 }
 

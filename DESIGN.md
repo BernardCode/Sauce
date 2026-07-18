@@ -1,28 +1,28 @@
-# Daylight design system
+# sauce design system
 
-Daylight is a calm academic workspace for one student. It should feel focused, quick, and dependable, not like a collection of separate productivity templates.
+sauce is a calm academic workspace for one student. It should feel focused, quick, and dependable, not like a collection of separate productivity templates.
 
 ## Product principles
 
 1. Make the next useful action obvious.
 2. Keep planning information dense enough to scan without feeling crowded.
-3. Use color for meaning and state, not decoration.
+3. Use only white, gray, and black until a future color pass assigns specific pastel surfaces.
 4. Favor immediate local feedback for personal actions.
 5. Keep every route visually related to the same workspace.
 
 ## Visual direction
 
 - Typography: Manrope for interface text and headings, Geist Mono for times and compact data.
-- Primary color: cobalt. Use it for selected navigation, primary actions, focus rings, and current context.
-- Surfaces: quiet ink-and-paper neutrals with thin borders and minimal shadows.
-- Semantic colors: red for overdue or destructive states, amber for due soon, green for completion, blue for informational context.
-- Shape: medium radii for controls and panels. Avoid excessive pills and nested rounded cards.
+- Primary color: near-black. Use it for selected navigation, primary actions, focus rings, and current context.
+- Surfaces: Notion-like white and warm neutral grays with thin borders and almost no shadows.
+- Semantic states: communicate with copy, weight, and neutral contrast. Do not introduce hue.
+- Shape: small radii for controls and panels. Avoid excessive pills and nested rounded cards.
 - Motion: short and purposeful. Prefer 150 to 260 ms transitions, with full reduced-motion support.
 
 ## Layout rules
 
 - The desktop sidebar stays compact and stable across every authenticated route.
-- Page headers use a small context label, a direct title, and one short description.
+- Page headers use a direct title. Add supporting copy only when the action would otherwise be unclear.
 - Primary work areas may use panels, but avoid cards inside cards unless the nesting communicates hierarchy.
 - On mobile, keep the page title and core action visible before secondary metrics.
 - Touch targets should be at least 44 pixels high whenever space allows.
@@ -37,7 +37,7 @@ Daylight is a calm academic workspace for one student. It should feel focused, q
 
 ## Route character
 
-- Today: action-first daily briefing and focus plan.
+- Today: one focused list of top open tasks, with no metrics, warnings, or secondary widgets.
 - Assignments: compact work queue with obvious due state and fast capture.
 - Calendar: scheduling surface with readable time hierarchy and calm event colors.
 - SAT: focused study plan, not a promotional hero page.

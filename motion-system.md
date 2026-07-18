@@ -1,6 +1,6 @@
-# Daylight motion system
+# sauce motion system
 
-This is the ranked set of 100 motion details used across Daylight. Rank 1 has the highest product value. Rank 100 is the most optional. Lower-ranked effects are not louder. They are rarer, shorter, or only visible after direct interaction.
+This is the ranked set of 100 motion details used across sauce. Rank 1 has the highest product value. Rank 100 is the most optional. Lower-ranked effects are not louder. They are rarer, shorter, or only visible after direct interaction.
 
 Every effect follows four rules:
 
@@ -39,7 +39,7 @@ Every effect follows four rules:
 | 26 | Live status ping | Instant updates badge |
 | 27 | Connection card hover | Sidebar connection status |
 | 28 | Brand wordmark settle | Sidebar first render |
-| 29 | Brand mark sparkle tilt | Daylight logo hover |
+| 29 | Brand mark sparkle tilt | sauce logo hover |
 | 30 | Top bar glass settle | Header first render |
 | 31 | Kicker dot pulse | Page eyebrow labels |
 | 32 | Card accent sweep | Workspace card hover |

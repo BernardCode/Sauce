@@ -29,7 +29,7 @@ export function AppHeader() {
     <>
       <aside className="app-sidebar" aria-label="Dashboard navigation">
         <Link href="/today" className="app-brand">
-          <strong>Daylight</strong>
+          <strong>sauce</strong>
         </Link>
 
         <nav className="app-nav" aria-label="Main navigation">
@@ -53,7 +53,7 @@ export function AppHeader() {
       </aside>
 
       <header className="app-topbar">
-        <div className="app-topbar-brand">Daylight</div>
+        <div className="app-topbar-brand">sauce</div>
         <div className="flex items-center gap-2"><CommandMenu /><AppQuickActions /><ThemeToggle /></div>
       </header>
 

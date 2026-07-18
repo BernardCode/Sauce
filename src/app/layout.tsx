@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Manrope } from "next/font/google";
 import { MotionOrchestrator } from "@/app/components/motion-orchestrator";
 import "./globals.css";
-import "./black-theme.css";
+import "./sauce-theme.css";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Daylight",
+  title: "sauce",
   description: "A calm personal dashboard for your tasks, schedule, habits, notes, and projects.",
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var theme=localStorage.getItem("daylight-theme");if(theme!=="light"&&theme!=="dark"){theme=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme;}catch(error){}})();`,
+            __html: `(function(){try{var theme=localStorage.getItem("sauce-theme")||localStorage.getItem("daylight-theme");if(theme!=="light"&&theme!=="dark"){theme="light";}document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme;}catch(error){}})();`,
           }}
         />
       </head>

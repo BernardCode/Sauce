@@ -43,7 +43,7 @@ function googleCalendarUrl(title: string, dueAt: string | null): string | null {
     action: "TEMPLATE",
     text: `Due: ${title}`,
     dates: `${localDateStamp(start)}/${localDateStamp(end)}`,
-    details: `Deadline from Daylight. Due ${due.toLocaleString()}.`,
+    details: `Deadline from sauce. Due ${due.toLocaleString()}.`,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
@@ -132,7 +132,7 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
           <div className="task-context-title"><span>Task actions</span><strong>{title}</strong></div>
           {projectHref ? <Link href={projectHref} role="menuitem" onClick={close}>Open project</Link> : null}
           {onShowSchedule ? <button type="button" role="menuitem" onClick={() => { onShowSchedule(); close(); }}>Show on today&apos;s schedule</button> : null}
-          <Link href="/calendar" role="menuitem" onClick={close}>{scheduled ? "View in Daylight calendar" : "Plan in Daylight calendar"}</Link>
+          <Link href="/calendar" role="menuitem" onClick={close}>{scheduled ? "View in sauce calendar" : "Plan in sauce calendar"}</Link>
           {calendarUrl ? <a href={calendarUrl} target="_blank" rel="noreferrer" role="menuitem" onClick={close}>Add deadline to Google Calendar</a> : null}
           <button type="button" role="menuitem" onClick={copyTask}>{copied ? "Copied" : "Copy task details"}</button>
           {onComplete ? <button type="button" role="menuitem" className="task-context-complete" onClick={() => { onComplete(); close(); }}>Mark complete</button> : null}

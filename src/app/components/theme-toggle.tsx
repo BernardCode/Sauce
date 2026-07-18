@@ -6,7 +6,7 @@ export function ThemeToggle() {
     const next = root.dataset.theme === "dark" ? "light" : "dark";
     root.dataset.theme = next;
     root.style.colorScheme = next;
-    window.localStorage.setItem("daylight-theme", next);
+    window.localStorage.setItem("sauce-theme", next);
   }
 
   return (

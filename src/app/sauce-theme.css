@@ -1,0 +1,737 @@
+/* sauce neutral workspace theme */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--foreground);
+}
+
+.app-sidebar {
+  width: 14.5rem;
+  border-color: var(--line);
+  background: var(--surface-subtle);
+  padding: 1rem 0.75rem;
+}
+
+.app-brand {
+  display: block;
+  margin: 0 0 1.25rem;
+  padding: 0.5rem 0.65rem 0.9rem;
+  color: var(--foreground);
+}
+
+.app-brand strong {
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.045em;
+}
+
+.app-nav {
+  gap: 0.15rem;
+}
+
+.app-nav-link {
+  min-height: 2.35rem;
+  border-radius: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 560;
+}
+
+.app-nav-link:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: var(--foreground);
+}
+
+.app-nav-link[data-active="true"] {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.app-nav-today,
+.app-nav-assignments,
+.app-nav-calendar,
+.app-nav-sat,
+.app-nav-habits,
+.app-nav-notes,
+.app-nav-links,
+.app-nav-settings {
+  --nav-color: var(--foreground);
+}
+
+.app-sidebar-footer {
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+}
+
+.app-signout {
+  min-height: 2.25rem;
+  border-radius: 0.35rem;
+  color: var(--muted);
+}
+
+.app-signout:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+}
+
+.app-topbar {
+  min-height: 3.5rem;
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--background) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.app-topbar-brand {
+  color: var(--foreground);
+  font-size: 0.88rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+
+.app-command-button,
+.app-tool-button,
+.theme-toggle {
+  width: auto;
+  height: auto;
+  min-height: 2.1rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  padding: 0.4rem 0.55rem;
+  color: var(--muted);
+  box-shadow: none;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.app-command-button:hover,
+.app-tool-button:hover,
+.theme-toggle:hover {
+  border-color: transparent;
+  background: var(--primary-soft);
+  color: var(--foreground);
+  transform: none;
+}
+
+.app-add-task {
+  background: var(--foreground);
+  color: var(--background);
+  padding-inline: 0.75rem;
+}
+
+.app-add-task:hover {
+  background: color-mix(in srgb, var(--foreground) 82%, var(--background));
+  color: var(--background);
+}
+
+.shortcut-popover,
+.shortcut-chord,
+.task-context-menu {
+  border-color: var(--line);
+  border-radius: 0.4rem;
+  background: var(--surface);
+  box-shadow: 0 10px 28px color-mix(in srgb, black 12%, transparent);
+}
+
+.shortcut-chord {
+  color: var(--foreground);
+}
+
+.shortcut-popover-heading button,
+.shortcut-list > div,
+.task-context-menu > a,
+.task-context-menu > button {
+  border-radius: 0.3rem;
+}
+
+.theme-moon,
+.theme-sun,
+.app-live-pill,
+.app-status-card,
+.app-brand-mark,
+.app-nav-label,
+.page-kicker,
+.page-description,
+.app-context-hint {
+  display: none !important;
+}
+
+.theme-dark-label {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-light-label {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-dark-label {
+  display: inline;
+}
+
+.app-page svg {
+  display: none !important;
+}
+
+.app-page div[class*="size-"]:has(> svg:only-child),
+.app-page span[class*="size-"]:has(> svg:only-child),
+.task-drag-cue {
+  display: none !important;
+}
+
+.app-page button:has(> svg:only-child),
+.app-page a:has(> svg:only-child) {
+  width: auto !important;
+  min-width: 0;
+  height: auto !important;
+  min-height: 1.85rem;
+  border-radius: 0.3rem !important;
+  padding: 0.3rem 0.45rem !important;
+  color: var(--muted) !important;
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+
+.app-page button:has(> svg:only-child)::after,
+.app-page a:has(> svg:only-child)::after {
+  content: attr(aria-label);
+}
+
+.app-page button[aria-label^="Complete "]::after,
+.app-page button[aria-label^="Mark "]::after {
+  content: "Done" !important;
+}
+
+.app-page button[aria-label^="Lock "]::after {
+  content: "Lock" !important;
+}
+
+.app-page button[aria-label^="Unlock "]::after {
+  content: "Unlock" !important;
+}
+
+.app-page button[aria-label^="Archive "]::after {
+  content: "Archive" !important;
+}
+
+.app-page button[aria-label="Add task"]::after,
+.app-page button[aria-label="Add note"]::after {
+  content: "Add" !important;
+}
+
+.app-page > main {
+  width: min(100%, 80rem);
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3rem !important;
+}
+
+.page-intro {
+  min-height: 3rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.75rem;
+}
+
+.page-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(1.7rem, 2.4vw, 2.2rem);
+  font-weight: 720;
+  letter-spacing: -0.05em;
+}
+
+.workspace-card,
+.today-pane,
+.focus-card,
+.project-summary,
+.student-briefing,
+.sat-plan {
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workspace-card {
+  padding: 1rem 0;
+}
+
+.workspace-card::before,
+.workspace-card::after {
+  display: none !important;
+}
+
+.workspace-card:hover,
+.today-pane:hover,
+.focus-card:hover,
+.project-summary:hover,
+.student-briefing:hover,
+.sat-plan:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.focus-card,
+.project-summary,
+.sat-plan {
+  padding: 1.25rem 0;
+}
+
+.segmented-control {
+  border-color: var(--line);
+  border-radius: 0.35rem;
+  background: var(--surface-subtle);
+  box-shadow: none;
+}
+
+.segmented-control a,
+.segmented-control button {
+  border-radius: 0.25rem;
+}
+
+.segmented-control a[data-active="true"] {
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px color-mix(in srgb, black 8%, transparent);
+}
+
+.task-menu-trigger {
+  width: auto;
+  height: auto;
+  margin: -0.2rem -0.25rem -0.2rem auto;
+  border-radius: 0.3rem;
+  padding: 0.25rem 0.4rem;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 650;
+  opacity: 0;
+}
+
+.today-task-row:hover .task-menu-trigger,
+.task-menu-trigger:focus-visible,
+.task-menu-trigger[aria-expanded="true"],
+[data-page="assignments"] article:hover .task-menu-trigger {
+  opacity: 1;
+}
+
+.task-menu-trigger:hover,
+.task-menu-trigger[aria-expanded="true"] {
+  background: var(--primary-soft);
+}
+
+.task-context-title span {
+  color: var(--muted);
+}
+
+.task-context-menu > a:hover,
+.task-context-menu > button:hover {
+  background: var(--surface-subtle);
+  color: var(--foreground);
+}
+
+.task-context-menu .task-context-complete {
+  color: var(--foreground);
+}
+
+.today-task-page {
+  width: min(100%, 44rem);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.today-simple-header {
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.85rem;
+}
+
+.today-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.today-task-row {
+  display: flex;
+  min-height: 4rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid transparent !important;
+  border-radius: 0.4rem !important;
+  background: var(--surface-subtle) !important;
+  padding: 0.85rem 0.9rem;
+  box-shadow: none !important;
+  transition: background-color 150ms ease, border-color 150ms ease,
+    opacity 180ms ease, transform 180ms ease;
+}
+
+.today-task-row:hover {
+  border-color: var(--line-strong) !important;
+  background: color-mix(in srgb, var(--surface-subtle) 72%, var(--surface)) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.today-task-checkbox,
+.today-project-checkbox {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  margin-top: 0.18rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.2rem;
+  background: var(--surface);
+}
+
+.today-task-checkbox {
+  cursor: pointer;
+  accent-color: var(--foreground);
+}
+
+.today-project-checkbox {
+  border-style: dashed;
+}
+
+.today-task-title {
+  display: block;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 560;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  margin-top: 0.28rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.today-task-meta > span + span::before {
+  margin-right: 0.8rem;
+  color: var(--line-strong);
+  content: "·";
+}
+
+.today-empty-state {
+  border-radius: 0.4rem;
+  background: var(--surface-subtle);
+  padding: 1.25rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.today-list-error {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--line-strong);
+  padding-top: 0.75rem;
+  color: var(--foreground);
+  font-size: 0.78rem;
+}
+
+.motion-item-card,
+[data-page="assignments"] article.group {
+  border-color: var(--line) !important;
+  border-radius: 0.4rem !important;
+  background: var(--surface-subtle) !important;
+  box-shadow: none !important;
+}
+
+[data-page="assignments"] article.group:hover {
+  border-color: var(--line-strong) !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.motion-up-next {
+  border: 0 !important;
+  border-radius: 0.4rem !important;
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+  box-shadow: none !important;
+}
+
+.motion-up-next-orb {
+  display: none !important;
+}
+
+.motion-calendar-block,
+.motion-rail-block:not([data-done="true"]) {
+  border-color: var(--line-strong) !important;
+  background: var(--surface-subtle) !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.motion-calendar-event {
+  border-color: var(--line) !important;
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+}
+
+.motion-calendar-day,
+.motion-calendar-block,
+.motion-calendar-event,
+.motion-project-card,
+.motion-habit-table,
+.motion-habit-grid form,
+.motion-link-card,
+.motion-detail-panel,
+.motion-disclosure {
+  border-radius: 0.4rem !important;
+  box-shadow: none !important;
+}
+
+.motion-calendar-day:hover,
+.motion-calendar-block:hover,
+.motion-calendar-event:hover,
+.motion-project-card:hover {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.motion-rail-block[data-dragging="true"],
+.motion-auth-feature:hover {
+  box-shadow: none !important;
+}
+
+.motion-rebreakdown[data-copied="true"] {
+  border-color: var(--line-strong) !important;
+}
+
+.motion-quick-note[data-status="Saved"] .motion-save-status {
+  color: var(--foreground) !important;
+}
+
+.motion-progress-fill,
+.motion-timeline-bar,
+.project-progress-track > div {
+  background: var(--foreground) !important;
+}
+
+.motion-habit-cell {
+  border-color: var(--line-strong) !important;
+  background: transparent !important;
+}
+
+.motion-habit-cell[data-done="true"] {
+  background: var(--foreground) !important;
+}
+
+.app-page input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+.app-page select,
+.app-page textarea {
+  border-color: var(--line-strong) !important;
+  border-radius: 0.35rem !important;
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.app-page input::placeholder,
+.app-page textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 68%, transparent);
+}
+
+.app-page input:focus,
+.app-page select:focus,
+.app-page textarea:focus {
+  border-color: var(--foreground) !important;
+  box-shadow: 0 0 0 1px var(--foreground) !important;
+}
+
+.app-page button,
+.app-page a[class*="rounded"] {
+  border-radius: 0.35rem !important;
+}
+
+.more-tools-list {
+  border-top: 1px solid var(--line);
+}
+
+.more-tool-row {
+  min-height: 3.4rem;
+  padding: 0.85rem 0;
+}
+
+.more-tool-row:hover {
+  background: transparent;
+  color: var(--foreground);
+}
+
+.motion-pending-add {
+  background: none;
+  color: var(--foreground);
+}
+
+.app-mobile-nav {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  padding-top: 0;
+}
+
+.app-mobile-nav a {
+  min-height: 3.25rem;
+  justify-content: center;
+  border-top: 0.15rem solid transparent;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 650;
+}
+
+.app-mobile-nav a[data-active="true"] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.motion-auth {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.motion-auth .theme-toggle {
+  color: var(--muted);
+}
+
+@keyframes motion-alert {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+}
+
+.app-page [class*="text-red-"],
+.app-page [class*="text-rose-"],
+.app-page [class*="text-amber-"],
+.app-page [class*="text-emerald-"],
+.app-page [class*="text-green-"],
+.app-page [class*="text-sky-"],
+.app-page [class*="text-blue-"],
+.app-page [class*="text-indigo-"],
+.app-page [class*="text-violet-"],
+.app-page [class*="text-purple-"],
+.app-page [class*="text-teal-"],
+.app-page [class*="text-orange-"],
+.app-page [class*="text-yellow-"],
+.app-page [class*="text-cyan-"],
+.app-page [class*="text-pink-"] {
+  color: var(--foreground) !important;
+}
+
+.app-page [class*="bg-red-"],
+.app-page [class*="bg-rose-"],
+.app-page [class*="bg-amber-"],
+.app-page [class*="bg-emerald-"],
+.app-page [class*="bg-green-"],
+.app-page [class*="bg-sky-"],
+.app-page [class*="bg-blue-"],
+.app-page [class*="bg-indigo-"],
+.app-page [class*="bg-violet-"],
+.app-page [class*="bg-purple-"],
+.app-page [class*="bg-teal-"],
+.app-page [class*="bg-orange-"],
+.app-page [class*="bg-yellow-"],
+.app-page [class*="bg-cyan-"],
+.app-page [class*="bg-pink-"] {
+  background-color: var(--surface-subtle) !important;
+}
+
+.app-page [class*="border-red-"],
+.app-page [class*="border-rose-"],
+.app-page [class*="border-amber-"],
+.app-page [class*="border-emerald-"],
+.app-page [class*="border-green-"],
+.app-page [class*="border-sky-"],
+.app-page [class*="border-blue-"],
+.app-page [class*="border-indigo-"],
+.app-page [class*="border-violet-"],
+.app-page [class*="border-purple-"],
+.app-page [class*="border-teal-"],
+.app-page [class*="border-orange-"],
+.app-page [class*="border-yellow-"],
+.app-page [class*="border-cyan-"],
+.app-page [class*="border-pink-"] {
+  border-color: var(--line-strong) !important;
+}
+
+.app-page [class*="ring-red-"],
+.app-page [class*="ring-rose-"],
+.app-page [class*="ring-amber-"],
+.app-page [class*="ring-emerald-"],
+.app-page [class*="ring-green-"],
+.app-page [class*="ring-sky-"],
+.app-page [class*="ring-blue-"] {
+  --tw-ring-color: var(--foreground) !important;
+}
+
+@media (min-width: 1024px) {
+  .app-page {
+    padding-left: 14.5rem !important;
+  }
+
+  .app-topbar-brand {
+    visibility: hidden;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-topbar {
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem !important;
+  }
+
+  .app-topbar > div:last-child {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .app-tool-label {
+    display: none;
+  }
+
+  .app-tool-button[aria-label="Open Google Calendar"]::after {
+    content: "Calendar";
+  }
+
+  .app-page > main {
+    padding: 1rem 1rem 5.5rem !important;
+  }
+
+  .today-task-page {
+    padding-top: 1rem;
+  }
+
+  .today-simple-header {
+    margin-bottom: 1rem;
+  }
+
+  .today-task-row {
+    min-height: 3.7rem;
+    padding: 0.75rem;
+  }
+
+  .task-menu-trigger {
+    opacity: 1;
+  }
+}
