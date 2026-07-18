@@ -70,51 +70,15 @@ The load-bearing decisions in this schema:
 
 ### 1. Today (the main page)
 
-The default route. Three columns on desktop, stacked on mobile.
+The default route is a focused list of the highest-priority open tasks, sorted by deadline. It contains no schedule, planner warnings, metrics, habits, notes, focus widgets, recovery controls, or dashboard statistics.
 
-The two halves are the todo list and the schedule. They sit side by side and they talk to each other, but they never merge into one hybrid widget.
+A task row shows only what is needed to act: a completion checkbox, title, optional course or project label, relative due date, and estimate. The row keeps its context menu for secondary actions. Project rows link to the project view and are not directly completable.
 
-**Center: the todo list (items).** Cards, one per open item, sorted by due date. This is a list of obligations. It has no times on it.
-
-A plain task card shows:
-
-* Checkbox on the left. Checking it sets `status = done`, plays a small animation, and moves the card to a collapsed "Done today" section at the bottom. Any block pointing at it is marked done too.
-* Title, and beneath it the course or source tag as a small colored pill.
-* Due date, rendered in relative language ("due tomorrow 11:59pm"), and colored amber inside 24 hours, red if overdue.
-* Estimated minutes, editable. Pre-filled from the course default and shown in a muted style until you or the completion loop overrides it.
-* A small clock glyph if the item is scheduled, showing the day and start time ("today, 4:00") as a read-only badge. Hovering it highlights the matching block on the rail; clicking scrolls the rail to that block. Time editing happens on the schedule, never here.
-* A collapsed "why" line showing the reason from its block, if it has one.
-
-A project card looks different. Instead of a single checkbox it shows a progress bar (steps done over steps total, or minutes done over estimated) and a disclosure arrow. Only today's steps of a project surface as their own rows in the main list, tagged with the project name, so the list stays about today. Clicking the project card opens the project view (below) with the full step breakdown and timeline. You don't check off a project directly; it completes when its last step does.
-
-Items with no block are flagged with a thin accent-colored left border and an "unscheduled" pill. That flag is the app's main nudge: Claude couldn't fit it, or you pulled it off the schedule and never put it back.
-
-Above the list: a single-line quick-add input. Typing "chem lab writeup fri 5pm 90m" parses into an item with a due date and estimate. It does not create a block. Parsing is a small deterministic parser, no AI in the loop; anything it can't read becomes a plain untimed item, which is a fine failure. Prefix a quick-add with `*` (or flip a small toggle) to mark it a project, which queues it for Claude to break down on the next run.
-
-Below the list: a "Someday" bucket for items with no due date, collapsed by default.
-
-**Left: the schedule (blocks).** A vertical timeline from your wake time to your sleep time, hour-marked. Three things render on it:
-
-* Calendar events, as solid non-draggable bars. They're facts, not decisions.
-* Blocks, as draggable and resizable cards showing the item title and the time range.
-* A red line marking the current time.
-
-All time editing lives here. Dragging or resizing a block updates `start_at` and `end_at` and flips `origin` to `manual`. Dragging an item card from the todo list onto an empty slot creates a block for it. Dragging a block off the rail deletes the block, and the item goes back to unscheduled without being deleted.
-
-Each block has a lock toggle in its corner. Locked blocks are never moved by the planner. Clicking a block opens a small popover with the item's due date, the planner's reason, and a "do this now" button that starts a plain elapsed-time counter. When you stop it, the elapsed minutes are written to the block's `actual_minutes`, subtracted from the item's `remaining_minutes`, and folded into the course's running average. That's the whole learning loop: it happens as a side effect of you just working, with nothing extra to fill in.
-
-Blocks with no item behind them ("bike to school," "dinner") are supported and render in a muted style.
-
-**Right: the sidebar.** Stacked widgets:
-
-* Up next. The single next block, large, with a countdown. This is the "what should I be doing" answer.
-* Habits. Today's habits as a row of tappable circles. Tap to fill.
-* At risk. Any project whose remaining steps no longer fit before its deadline given your free hours. This is the one nag worth having, because it's the thing you can't see by looking at today.
-* Quick note. A textarea that appends to a daily scratch note. No save button, just autosave.
+Today deliberately does not include task capture. New tasks are added from the global command menu or the Assignments page. Scheduling and missed-work recovery live in Calendar, active work lives in Do Now, habits live in Habits, notes live in Notes, and risk or review information lives in Assignments and Weekly Review.
 
 ### 2. Calendar
 
-This is the schedule half of Today, zoomed out past one day. Month, week, and day views. Renders events and blocks together, visually distinguished (events are filled, blocks are outlined). Read-only for events. Blocks behave exactly as they do on the Today rail: drag, resize, lock, delete.
+This is the app's scheduling surface. Month, week, and day views render events and blocks together, visually distinguished. Events are read-only. Blocks can be dragged, resized, locked, and deleted.
 
 A collapsible panel on the right holds the unscheduled items, so you can drag next week's assignments straight onto next Tuesday. This is the main way you plan ahead by hand.
 
@@ -331,7 +295,7 @@ Assignments retain the original item model and add `energy` with `low`, `medium`
 The daily workflow is now:
 
 1. Capture work from the command menu, quick add, or bulk paste.
-2. Review the Today briefing for overdue work, near deadlines, SAT reviews, and planned minutes.
+2. Review the short Today task list and complete the next obligation.
 3. Open Do Now for the next scheduled block and record progress without navigating elsewhere.
 4. Recover missed blocks by moving them later, moving them to tomorrow, or unscheduling them.
 5. Use Weekly Review to compare completed work, planned and actual focus time, habit consistency, SAT progress, and next week's load.
