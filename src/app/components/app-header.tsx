@@ -9,7 +9,6 @@ import { AppQuickActions } from "@/app/components/app-quick-actions";
 
 const links = [
   { href: "/today", label: "Today", short: "Today" },
-  { href: "/assignments", label: "Assignments", short: "Work" },
   { href: "/calendar", label: "Calendar", short: "Calendar" },
   { href: "/sat", label: "SAT Studio", short: "SAT" },
   { href: "/habits", label: "Habits", short: "Habits" },

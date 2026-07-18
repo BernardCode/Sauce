@@ -10,7 +10,6 @@ import { OPEN_COMMAND_MENU_EVENT } from "@/app/components/ui-events";
 const destinations = [
   { href: "/today", label: "Today" },
   { href: "/focus", label: "Do now" },
-  { href: "/assignments", label: "Assignments" },
   { href: "/calendar", label: "Calendar" },
   { href: "/sat", label: "SAT studio" },
   { href: "/habits", label: "Habits" },
@@ -60,7 +59,7 @@ export function CommandMenu() {
     startTransition(async () => {
       const result = await addItem({ title: parsed.title, dueAtIso: parsed.dueAt?.toISOString() ?? null, estMinutes: parsed.estMinutes, isProject: parsed.isProject ?? false });
       setError(result.error);
-      if (!result.error) { setOpen(false); setQuery(""); router.push("/assignments"); router.refresh(); }
+      if (!result.error) { setOpen(false); setQuery(""); router.push("/today"); router.refresh(); }
     });
   }
 
