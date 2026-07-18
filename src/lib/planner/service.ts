@@ -99,7 +99,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
       .or("locked.eq.true,origin.eq.manual"),
     admin
       .from("habits")
-      .select("id, name, cadence, days_json, target_per_week, color")
+      .select("id, name, cadence, days_json, target_per_week, color, scheduled_time")
       .eq("user_id", parsedUserId.data)
       .eq("archived", false),
     admin

@@ -198,6 +198,7 @@ export type Database = {
           days_json: Json | null
           id: string
           name: string
+          scheduled_time: string | null
           target_per_week: number
           user_id: string
         }
@@ -208,6 +209,7 @@ export type Database = {
           days_json?: Json | null
           id?: string
           name: string
+          scheduled_time?: string | null
           target_per_week: number
           user_id: string
         }
@@ -218,6 +220,7 @@ export type Database = {
           days_json?: Json | null
           id?: string
           name?: string
+          scheduled_time?: string | null
           target_per_week?: number
           user_id?: string
         }

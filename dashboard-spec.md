@@ -44,7 +44,7 @@ events       id, source_id, external_id, title, location,
 course_defaults  course, default_minutes, sample_count
 
 habits       id, name, cadence ('daily'|'weekdays'|'custom'),
-             days_json, target_per_week, color, archived
+             days_json, target_per_week, color, scheduled_time, archived
 
 habit_logs   habit_id, date, done
              UNIQUE (habit_id, date)
@@ -104,7 +104,7 @@ If the steps as scheduled run past the deadline, the whole panel gets an at-risk
 
 A grid: habits down the left, the last 30 days across the top, filled dots for completions. Under it, per-habit stats: current streak, longest streak, completion rate against target.
 
-Adding a habit takes a name, a cadence (daily, weekdays, or specific days), a weekly target, and a color. That's it. No reminders, no "why" fields, no gamification.
+Adding a habit takes a name, a cadence (daily, weekdays, or specific days), a weekly target, a color, and an optional schedule time. A scheduled time places the habit on Calendar but does not create a notification or reminder. The current day always has a dedicated completion control before the history grid.
 
 Habits are fed to the planner, so if you have a "ride 30 minutes" habit and an empty 5pm, Claude can propose a block for it.
 
