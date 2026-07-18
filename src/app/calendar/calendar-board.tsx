@@ -9,10 +9,12 @@ import {
   setBlockLocked,
   updateBlockTimes,
 } from "@/app/today/block-actions";
+import { setHabitLog } from "@/app/habits/actions";
 import { createManualBlock } from "./actions";
 import type {
   CalendarBlock,
   CalendarEvent,
+  CalendarHabit,
   CalendarItem,
   CalendarSource,
 } from "./types";
@@ -40,6 +42,7 @@ type Props = {
   events: CalendarEvent[];
   items: CalendarItem[];
   sources: CalendarSource[];
+  habits: CalendarHabit[];
 };
 
 function localDateKey(date: Date): string {
@@ -62,6 +65,14 @@ function dayLabel(value: string, view: Props["view"]): string {
     weekday: view === "month" ? "short" : "long",
     month: "short",
     day: "numeric",
+  });
+}
+
+function habitTimeLabel(value: string): string {
+  const [hours, minutes] = value.split(":").map(Number);
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -90,9 +101,10 @@ function moveToDay(iso: string, day: string): Date {
   );
 }
 
-export function CalendarBoard({ view, days, blocks, events, items, sources }: Props) {
+export function CalendarBoard({ view, days, blocks, events, items, sources, habits }: Props) {
   const [hiddenSources, setHiddenSources] = useState<Record<string, true>>({});
   const [localBlocks, setLocalBlocks] = useState(blocks);
+  const [localHabits, setLocalHabits] = useState(habits);
   const [selectedBlock, setSelectedBlock] = useState<CalendarBlock | null>(null);
   const [dragTargetDay, setDragTargetDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -225,6 +237,23 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
     });
   }
 
+  function toggleHabit(habit: CalendarHabit) {
+    const previous = localHabits;
+    const done = !habit.done;
+    setLocalHabits((current) =>
+      current.map((entry) => entry.id === habit.id ? { ...entry, done } : entry),
+    );
+    startTransition(async () => {
+      const result = await setHabitLog({
+        habitId: habit.habitId,
+        date: habit.date,
+        done,
+      });
+      setError(result.error);
+      if (result.error) setLocalHabits(previous);
+    });
+  }
+
   return (
     <div className="motion-calendar flex min-h-0 flex-1 flex-col gap-4" data-view={view}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -268,6 +297,7 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
               localDateKey(new Date(event.startAt)) === day &&
               !hiddenSources[event.sourceId],
           );
+          const dayHabits = localHabits.filter((habit) => habit.date === day);
           return (
             <section
               key={day}
@@ -298,6 +328,23 @@ export function CalendarBoard({ view, days, blocks, events, items, sources }: Pr
                 </button>
               </div>
               <div className="flex flex-col gap-1.5">
+                {dayHabits.map((habit) => (
+                  <button
+                    key={habit.id}
+                    type="button"
+                    data-done={habit.done}
+                    aria-pressed={habit.done}
+                    aria-label={`Mark ${habit.name} ${habit.done ? "not done" : "done"} for ${habit.date}`}
+                    onClick={() => toggleHabit(habit)}
+                    className="motion-calendar-habit"
+                  >
+                    <span className="calendar-habit-check" aria-hidden="true">{habit.done ? "✓" : ""}</span>
+                    <span className="calendar-habit-copy">
+                      <span className="calendar-habit-title">{habit.name}</span>
+                      <span className="calendar-habit-time">{habitTimeLabel(habit.scheduledTime)}, habit</span>
+                    </span>
+                  </button>
+                ))}
                 {dayEvents.map((event) => (
                   <article
                     key={event.id}

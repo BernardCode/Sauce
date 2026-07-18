@@ -32,3 +32,12 @@ export type CalendarSource = {
   label: string;
   enabled: boolean;
 };
+
+export type CalendarHabit = {
+  id: string;
+  habitId: string;
+  name: string;
+  date: string;
+  scheduledTime: string;
+  done: boolean;
+};

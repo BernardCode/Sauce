@@ -4,6 +4,8 @@ import { after } from "next/server";
 import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
+import { buildHabitSchedule } from "@/lib/habits/schedule";
+import { habitDaysSchema } from "@/lib/planner/schemas";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarBoard } from "./calendar-board";
 
@@ -91,7 +93,15 @@ export default async function CalendarPage({
     });
   }
 
-  const [blocksResult, eventsResult, itemsResult, liveBlocksResult, sourcesResult] =
+  const [
+    blocksResult,
+    eventsResult,
+    itemsResult,
+    liveBlocksResult,
+    sourcesResult,
+    habitsResult,
+    habitLogsResult,
+  ] =
     await Promise.all([
       supabase
         .from("blocks")
@@ -126,9 +136,30 @@ export default async function CalendarPage({
         .eq("user_id", user.id)
         .eq("enabled", true)
         .order("label"),
+      supabase
+        .from("habits")
+        .select("id, name, cadence, days_json, scheduled_time")
+        .eq("user_id", user.id)
+        .eq("archived", false)
+        .not("scheduled_time", "is", null)
+        .order("scheduled_time"),
+      supabase
+        .from("habit_logs")
+        .select("habit_id, date, done")
+        .eq("user_id", user.id)
+        .gte("date", range.days[0])
+        .lte("date", range.days[range.days.length - 1]),
     ]);
 
-  const errors = [blocksResult.error, eventsResult.error, itemsResult.error, sourcesResult.error];
+  const errors = [
+    blocksResult.error,
+    eventsResult.error,
+    itemsResult.error,
+    liveBlocksResult.error,
+    sourcesResult.error,
+    habitsResult.error,
+    habitLogsResult.error,
+  ];
   if (errors.some(Boolean)) {
     return (
       <div className="app-page" data-page="calendar">
@@ -144,6 +175,25 @@ export default async function CalendarPage({
     (liveBlocksResult.data ?? []).flatMap((block) =>
       block.item_id ? [block.item_id] : [],
     ),
+  );
+  const completedHabitDates = new Set(
+    (habitLogsResult.data ?? [])
+      .filter((log) => log.done)
+      .map((log) => `${log.habit_id}:${log.date}`),
+  );
+  const calendarHabits = buildHabitSchedule(
+    range.days,
+    (habitsResult.data ?? []).map((habit) => {
+      const parsedDays = habitDaysSchema.safeParse(habit.days_json ?? []);
+      return {
+        id: habit.id,
+        name: habit.name,
+        cadence: habit.cadence,
+        days: parsedDays.success ? parsedDays.data : [],
+        scheduledTime: habit.scheduled_time?.slice(0, 5) ?? null,
+      };
+    }),
+    completedHabitDates,
   );
   const previous = dateKey(addDays(anchor, -range.step));
   const next = dateKey(addDays(anchor, range.step));
@@ -174,7 +224,7 @@ export default async function CalendarPage({
           </div>
         </div>
         <div className="workspace-card flex flex-1 flex-col"><CalendarBoard
-          key={`${query.view}:${range.days[0]}:${(blocksResult.data ?? []).map((block) => `${block.id}:${block.start_at}:${block.end_at}:${block.locked}`).join("|")}`}
+          key={`${query.view}:${range.days[0]}:${(blocksResult.data ?? []).map((block) => `${block.id}:${block.start_at}:${block.end_at}:${block.locked}`).join("|")}:${calendarHabits.map((habit) => `${habit.id}:${habit.scheduledTime}:${habit.done}`).join("|")}`}
           view={query.view}
           days={range.days}
           blocks={(blocksResult.data ?? []).map((block) => ({
@@ -206,6 +256,7 @@ export default async function CalendarPage({
               remainingMinutes: item.remaining_minutes,
             }))}
           sources={sourcesResult.data ?? []}
+          habits={calendarHabits}
         /></div>
       </main>
     </div>

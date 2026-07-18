@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/components/app-header";
+import { habitIsDue } from "@/lib/habits/due";
 import { calculateHabitStats } from "@/lib/habits/stats";
+import { habitDaysSchema } from "@/lib/planner/schemas";
 import { createClient } from "@/lib/supabase/server";
 import { HabitGrid } from "./habit-grid";
 
@@ -13,7 +15,7 @@ export default async function HabitsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/");
   const [{ data: habits }, { data: logs }] = await Promise.all([
-    supabase.from("habits").select("id, name, color, target_per_week").eq("user_id", user.id).eq("archived", false).order("name"),
+    supabase.from("habits").select("id, name, cadence, days_json, target_per_week, scheduled_time").eq("user_id", user.id).eq("archived", false).order("name"),
     supabase.from("habit_logs").select("habit_id, date, done").eq("user_id", user.id).eq("done", true).order("date"),
   ]);
   const today = requestDate();
@@ -23,11 +25,15 @@ export default async function HabitsPage() {
   });
   const rows = (habits ?? []).map((habit) => {
     const completedDates = (logs ?? []).filter((log) => log.habit_id === habit.id).map((log) => log.date);
+    const parsedDays = habitDaysSchema.safeParse(habit.days_json ?? []);
+    const days = parsedDays.success ? parsedDays.data : [];
     return {
       id: habit.id,
       name: habit.name,
-      color: habit.color,
-      targetPerWeek: habit.target_per_week,
+      cadence: habit.cadence,
+      days,
+      scheduledTime: habit.scheduled_time?.slice(0, 5) ?? null,
+      todayDue: habitIsDue(habit.cadence, days, today.getUTCDay()),
       completedDates,
       ...calculateHabitStats(completedDates, today, habit.target_per_week),
     };
@@ -37,14 +43,9 @@ export default async function HabitsPage() {
       <AppHeader />
       <main>
         <div className="page-intro">
-          <div>
-            <p className="page-kicker">Small actions, visible momentum</p>
-            <h1 className="page-title">Habit tracker</h1>
-            <p className="page-description">A quiet thirty-day view of the routines you want to keep. Tap any day to update it instantly.</p>
-          </div>
-          <div className="rounded-full bg-[var(--success-soft)] px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">{rows.length} active {rows.length === 1 ? "habit" : "habits"}</div>
+          <h1 className="page-title">Habits</h1>
         </div>
-        <div className="workspace-card"><HabitGrid rows={rows} dates={dates} /></div>
+        <HabitGrid rows={rows} dates={dates} todayDate={dates[dates.length - 1]} />
       </main>
     </div>
   );
