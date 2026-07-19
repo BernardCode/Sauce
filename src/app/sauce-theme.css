@@ -360,7 +360,7 @@ body {
 }
 
 .today-task-panel {
-  border: 1px solid var(--today-panel-line);
+  border: 0;
   border-radius: 0.75rem;
   background: var(--today-panel);
   padding: 0.75rem;
