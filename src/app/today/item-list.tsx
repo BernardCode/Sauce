@@ -81,9 +81,7 @@ export function ItemList({ openItems }: Props) {
             <span className="today-task-title">{pendingTitle}</span>
           </li>
         ) : null}
-        <li className="today-task-add-row">
-          <QuickAdd onPendingChange={setPendingTitle} />
-        </li>
+        <QuickAdd onPendingChange={setPendingTitle} />
       </ul>
       {doneError ? <p className="today-list-error">{doneError}</p> : null}
     </section>

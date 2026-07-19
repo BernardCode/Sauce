@@ -4,32 +4,49 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
-const addItemSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "A task needs a title.")
-    .max(500, "Keep titles under 500 characters."),
-  dueAtIso: z
-    .iso
-    .datetime({ offset: true, error: "That due date is not valid." })
-    .nullable(),
-  estMinutes: z
-    .number()
-    .int("The estimate must be whole minutes.")
-    .positive("The estimate must be at least a minute.")
-    .max(600, "Estimates cap out at 600 minutes.")
-    .nullable(),
-  isProject: z.boolean().default(false),
-  course: z.string().trim().min(1).max(80).nullable().default(null),
-  energy: z.enum(["low", "medium", "high"]).default("medium"),
-});
+const optionalIsoTime = z.iso.datetime({ offset: true }).nullable().default(null);
+
+const addItemSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "A task needs a title.")
+      .max(500, "Keep titles under 500 characters."),
+    dueAtIso: optionalIsoTime,
+    estMinutes: z
+      .number()
+      .int("The estimate must be whole minutes.")
+      .positive("The estimate must be at least a minute.")
+      .max(600, "Estimates cap out at 600 minutes.")
+      .nullable(),
+    isProject: z.boolean().default(false),
+    course: z.string().trim().min(1).max(80).nullable().default(null),
+    energy: z.enum(["low", "medium", "high"]).default("medium"),
+    scheduledStartIso: optionalIsoTime,
+  })
+  .superRefine((value, context) => {
+    if (value.scheduledStartIso && value.estMinutes === null) {
+      context.addIssue({
+        code: "custom",
+        path: ["estMinutes"],
+        message: "A scheduled task needs a duration.",
+      });
+    }
+    if (value.scheduledStartIso && value.isProject) {
+      context.addIssue({
+        code: "custom",
+        path: ["scheduledStartIso"],
+        message: "Schedule a project step instead of the whole project.",
+      });
+    }
+  });
 
 const setItemDoneSchema = z.object({
   id: z.uuid("That item id is not valid."),
 });
 
-type ActionResult = { error: string | null };
+type ActionResult = { error: string | null; warning?: string | null };
 
 export async function addItem(input: unknown): Promise<ActionResult> {
   const parsed = addItemSchema.safeParse(input);
@@ -45,27 +62,60 @@ export async function addItem(input: unknown): Promise<ActionResult> {
     return { error: "You are signed out. Refresh and sign in again." };
   }
 
-  const { title, dueAtIso, estMinutes, isProject, course, energy } = parsed.data;
-  const { error } = await supabase.from("items").insert({
-    user_id: user.id,
+  const {
     title,
-    due_at: dueAtIso,
-    est_minutes: estMinutes,
-    // Remaining starts equal to the estimate; it drops as blocks complete.
-    remaining_minutes: estMinutes,
-    is_project: isProject,
+    dueAtIso,
+    estMinutes,
+    isProject,
     course,
     energy,
-    origin: "manual",
-    status: "open",
-  });
+    scheduledStartIso,
+  } = parsed.data;
+  const { data: item, error } = await supabase
+    .from("items")
+    .insert({
+      user_id: user.id,
+      title,
+      due_at: dueAtIso,
+      est_minutes: estMinutes,
+      // Remaining starts equal to the estimate; it drops as blocks complete.
+      remaining_minutes: estMinutes,
+      is_project: isProject,
+      course,
+      energy,
+      origin: "manual",
+      status: "open",
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !item) {
     return { error: "Could not save the task. Try again." };
   }
 
+  let warning: string | null = null;
+  if (scheduledStartIso && estMinutes !== null) {
+    const endAtIso = new Date(
+      new Date(scheduledStartIso).getTime() + estMinutes * 60_000,
+    ).toISOString();
+    const { error: blockError } = await supabase.from("blocks").insert({
+      user_id: user.id,
+      item_id: item.id,
+      title,
+      start_at: scheduledStartIso,
+      end_at: endAtIso,
+      origin: "manual",
+      reason: "Scheduled when the task was created.",
+    });
+    if (blockError) {
+      warning = "Task saved, but it could not be added to Calendar.";
+    } else {
+      revalidatePath("/calendar");
+    }
+  }
+
   revalidatePath("/today");
-  return { error: null };
+  return { error: null, warning };
 }
 
 export async function setItemDone(input: unknown): Promise<ActionResult> {

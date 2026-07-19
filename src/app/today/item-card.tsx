@@ -25,6 +25,9 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
   ]
     .filter(Boolean)
     .join(", ");
+  const hasMeta = Boolean(
+    item.course || item.origin === "feed" || item.dueAt || item.estMinutes,
+  );
 
   function handleContextMenu(event: ReactMouseEvent<HTMLLIElement>) {
     if (
@@ -66,13 +69,15 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
             onComplete={() => onDone(item.id)}
           />
         </div>
-        <div className="today-task-meta">
-          {item.course || item.origin === "feed" ? (
-            <span>{item.course ?? "School feed"}</span>
-          ) : null}
-          {item.dueAt ? <span>{due?.label ?? " "}</span> : null}
-          {item.estMinutes ? <span>{item.estMinutes}m</span> : null}
-        </div>
+        {hasMeta ? (
+          <div className="today-task-meta">
+            {item.course || item.origin === "feed" ? (
+              <span>{item.course ?? "School feed"}</span>
+            ) : null}
+            {item.dueAt ? <span>{due?.label ?? " "}</span> : null}
+            {item.estMinutes ? <span>{item.estMinutes}m</span> : null}
+          </div>
+        ) : null}
       </div>
     </li>
   );

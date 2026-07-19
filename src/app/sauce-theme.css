@@ -368,13 +368,13 @@ body {
 
 .today-task-row {
   display: flex;
-  min-height: 4rem;
+  min-height: 0;
   align-items: flex-start;
   gap: 0.75rem;
   border: 1px solid transparent !important;
   border-radius: 0.4rem !important;
   background: var(--today-row) !important;
-  padding: 0.85rem 0.9rem;
+  padding: 0.68rem 0.8rem;
   box-shadow: none !important;
   transition: background-color 150ms ease, border-color 150ms ease,
     opacity 180ms ease, transform 180ms ease;
@@ -444,37 +444,105 @@ body {
   padding: 0;
 }
 
-.today-task-entry {
-  display: block;
-  width: 100%;
-}
-
 .app-page .today-task-entry-input {
   width: 100%;
-  min-height: 3rem;
-  border: 1px solid var(--today-panel-line) !important;
-  border-radius: 0.55rem !important;
-  background: color-mix(in srgb, var(--today-row) 72%, transparent) !important;
-  padding: 0.45rem 1.15rem !important;
-  color: var(--foreground) !important;
+  min-height: 2.4rem;
+  cursor: text;
+  border: 1px solid
+    color-mix(in srgb, var(--today-accent) 58%, transparent) !important;
+  border-radius: 0.42rem !important;
+  background: transparent !important;
+  padding: 0.35rem 0.9rem !important;
+  color: var(--today-accent) !important;
   font-size: 0.86rem;
+  text-align: left;
   box-shadow: none !important;
   outline: 0;
 }
 
 .app-page .today-task-entry-input:focus {
-  border: 1px solid var(--today-panel-line) !important;
+  border-color: var(--today-accent) !important;
   box-shadow: none !important;
 }
 
-.app-page .today-task-entry-input::placeholder {
-  color: var(--today-accent);
-  opacity: 0.92;
+.today-task-draft-row {
+  border-radius: 0.45rem;
+  background: var(--today-row);
+  padding: 0.68rem 0.8rem;
+}
+
+.today-task-draft-form {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.65rem;
+}
+
+.today-task-draft-checkbox {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.12rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.2rem;
+  background: var(--surface);
+}
+
+.app-page .today-task-draft-title {
+  width: 100%;
+  min-height: 1.35rem;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: var(--foreground) !important;
+  font-size: 0.9rem;
+  font-weight: 560;
+  line-height: 1.35;
+  box-shadow: none !important;
+  outline: 0;
+}
+
+.today-task-draft-options {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) 7.5rem minmax(8rem, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.today-task-draft-option {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.app-page .today-task-draft-option input {
+  width: 100%;
+  min-height: 2rem;
+  border: 1px solid var(--today-panel-line) !important;
+  border-radius: 0.35rem !important;
+  background: color-mix(in srgb, var(--surface) 72%, transparent) !important;
+  padding: 0.3rem 0.5rem !important;
+  color: var(--foreground) !important;
+  font-size: 0.74rem;
+  font-weight: 500;
+  box-shadow: none !important;
+  outline: 0;
+}
+
+.app-page .today-task-draft-option input:focus {
+  border-color: var(--today-accent) !important;
 }
 
 .today-task-entry-error {
-  margin: 0.2rem 0.25rem 0;
+  margin-top: 0.45rem;
   color: var(--foreground);
+  font-size: 0.7rem;
+}
+
+.today-task-trigger-message {
+  margin: 0.4rem 0.25rem 0;
+  color: var(--muted);
   font-size: 0.7rem;
 }
 
@@ -1146,12 +1214,20 @@ body {
   }
 
   .today-task-row {
-    min-height: 3.7rem;
+    min-height: 0;
     padding: 0.75rem;
   }
 
   .today-task-panel {
     padding: 0.55rem;
+  }
+
+  .today-task-draft-options {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .today-task-draft-option:last-child {
+    grid-column: 1 / -1;
   }
 
   .task-menu-trigger {
