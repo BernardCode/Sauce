@@ -32,6 +32,19 @@ describe("parseQuickAdd", () => {
     });
   });
 
+  it("keeps a metadata-like entry when it would leave no title", () => {
+    expect(parseQuickAdd("30m", NOW)).toEqual({
+      title: "30m",
+      dueAt: null,
+      estMinutes: null,
+    });
+    expect(parseQuickAdd("tomorrow", NOW)).toEqual({
+      title: "tomorrow",
+      dueAt: null,
+      estMinutes: null,
+    });
+  });
+
   it("parses the spec example with weekday, time, and estimate", () => {
     const result = parseQuickAdd("chem lab writeup fri 5pm 90m", NOW);
     expect(result.title).toBe("chem lab writeup");

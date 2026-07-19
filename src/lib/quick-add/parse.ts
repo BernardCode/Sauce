@@ -94,10 +94,13 @@ export function parseQuickAdd(
     break;
   }
 
+  const parsedTitle = content.slice(0, cut).trimEnd();
+  const containsOnlyMetadata = parsedTitle === "" && content !== "";
+
   return {
-    title: content.slice(0, cut).trimEnd(),
-    dueAt,
-    estMinutes,
+    title: containsOnlyMetadata ? content : parsedTitle,
+    dueAt: containsOnlyMetadata ? null : dueAt,
+    estMinutes: containsOnlyMetadata ? null : estMinutes,
     ...(isProject ? { isProject: true as const } : {}),
   };
 }

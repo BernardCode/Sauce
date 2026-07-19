@@ -10,7 +10,6 @@ export function QuickAdd({
   onPendingChange?: (title: string | null) => void;
 }) {
   const [value, setValue] = useState("");
-  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -25,7 +24,6 @@ export function QuickAdd({
     // knows the user's timezone.
     const parsed = parseQuickAdd(trimmed);
     setValue("");
-    setPendingTitle(parsed.title);
     onPendingChange?.(parsed.title);
 
     startTransition(async () => {
@@ -41,35 +39,28 @@ export function QuickAdd({
       } else {
         setError(null);
       }
-      setPendingTitle(null);
       onPendingChange?.(null);
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="motion-quick-add today-task-entry">
-      <span className="today-task-entry-plus" aria-hidden="true">+</span>
-      <div className="min-w-0 flex-1">
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          placeholder="New task"
-          aria-label="Add a task"
-          className="today-task-entry-input"
-        />
-        {pendingTitle ? <span className="today-task-entry-status">Adding {pendingTitle}...</span> : null}
-      </div>
-      <button
-        type="submit"
-        disabled={isPending || value.trim() === ""}
-        aria-label="Add task"
-        className="today-task-entry-button"
-      >
-        Add
-      </button>
+    <form
+      onSubmit={handleSubmit}
+      className="motion-quick-add today-task-entry"
+      aria-busy={isPending}
+    >
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="New task"
+        aria-label="Add a task"
+        className="today-task-entry-input"
+      />
       {error ? (
-        <p className="today-task-entry-error">{error}</p>
+        <p className="today-task-entry-error" role="alert">
+          {error}
+        </p>
       ) : null}
     </form>
   );
