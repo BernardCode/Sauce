@@ -37,7 +37,7 @@ sauce is a calm academic workspace for one student. It should feel focused, quic
 
 ## Route character
 
-- Today: the unified task and assignment inbox, with an always-visible quick-add row and no metrics, warnings, or secondary widgets.
+- Today: the unified task and assignment inbox with an always-visible quick-add row, plus a narrower right-side schedule containing only today's commitments. Keep the task list visually dominant and omit metrics, warnings, and unrelated widgets.
 - Calendar: scheduling surface with readable time hierarchy and calm event colors.
 - SAT: focused study plan, not a promotional hero page.
 - Habits: simple consistency tracking with low-friction daily completion.

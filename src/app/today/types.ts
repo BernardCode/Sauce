@@ -19,6 +19,15 @@ export type TodayEvent = {
   allDay: boolean;
 };
 
+export type TodayScheduledHabit = {
+  id: string;
+  habitId: string;
+  name: string;
+  date: string;
+  scheduledTime: string;
+  done: boolean;
+};
+
 // DataTransfer type for dragging an item card onto the rail. The payload is
 // JSON: { itemId: string, durationMinutes: number }.
 export const ITEM_DRAG_MIME = "application/x-dashboard-item";

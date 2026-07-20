@@ -6,6 +6,7 @@ import type {
 } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { z } from "zod";
+import { setHabitLog } from "@/app/habits/actions";
 import {
   createBlockForItem,
   deleteBlock,
@@ -21,6 +22,7 @@ import {
   type ItemDragPayload,
   type TodayBlock,
   type TodayEvent,
+  type TodayScheduledHabit,
 } from "./types";
 import { useNow } from "./use-now";
 
@@ -41,6 +43,7 @@ const INDENT_STEP_PX = 12;
 type Props = {
   blocks: TodayBlock[];
   events?: TodayEvent[];
+  habits?: TodayScheduledHabit[];
   wakeHour: number;
   sleepHour: number;
   // Due dates by item id for the popover. Optional so the page can wire it
@@ -98,6 +101,14 @@ function hourLabel(hour: number): string {
   return `${display}${inDay < 12 ? "am" : "pm"}`;
 }
 
+function habitTimeLabel(value: string): string {
+  const [hours, minutes] = value.split(":").map(Number);
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function parseItemDragPayload(raw: string): ItemDragPayload | null {
   let parsed: unknown;
   try {
@@ -112,6 +123,7 @@ function parseItemDragPayload(raw: string): ItemDragPayload | null {
 export function DayRail({
   blocks,
   events = [],
+  habits = [],
   wakeHour,
   sleepHour,
   itemDueDates = {},
@@ -141,7 +153,10 @@ export function DayRail({
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [habitDoneById, setHabitDoneById] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(habits.map((habit) => [habit.habitId, habit.done])),
+  );
+  const [isPending, startTransition] = useTransition();
 
   // A sleep hour at or before the wake hour would collapse the rail, so
   // fall back to a one hour window rather than divide into nonsense.
@@ -280,20 +295,7 @@ export function DayRail({
       : null;
 
   const nowMs = now ? now.getTime() : null;
-  const todayKey = now
-    ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-        now.getDate(),
-      ).padStart(2, "0")}`
-    : null;
-  const allDayEvents =
-    todayKey === null
-      ? []
-      : events.filter(
-          (event) =>
-            event.allDay &&
-            event.startAt.slice(0, 10) <= todayKey &&
-            event.endAt.slice(0, 10) > todayKey,
-        );
+  const allDayEvents = now === null ? [] : events.filter((event) => event.allDay);
   const nowTop =
     nowMs !== null &&
     windowStartMs !== null &&
@@ -380,6 +382,27 @@ export function DayRail({
     startTransition(async () => {
       const result = await setBlockLocked({ id: block.id, locked: !block.locked });
       if (result.error) setActionError(result.error);
+    });
+  }
+
+  function handleToggleHabit(habit: TodayScheduledHabit) {
+    const previous = habitDoneById[habit.habitId] ?? false;
+    const done = !previous;
+    setHabitDoneById((current) => ({ ...current, [habit.habitId]: done }));
+    setActionError(null);
+    startTransition(async () => {
+      const result = await setHabitLog({
+        habitId: habit.habitId,
+        date: habit.date,
+        done,
+      });
+      if (result.error) {
+        setActionError(result.error);
+        setHabitDoneById((current) => ({
+          ...current,
+          [habit.habitId]: previous,
+        }));
+      }
     });
   }
 
@@ -556,6 +579,32 @@ export function DayRail({
           ))}
         </div>
       ) : null}
+      {habits.length > 0 ? (
+        <div className="today-rail-habits" aria-label="Scheduled habits">
+          {habits.map((habit) => {
+            const done = habitDoneById[habit.habitId] ?? habit.done;
+            return (
+              <button
+                key={habit.id}
+                type="button"
+                data-done={done}
+                aria-pressed={done}
+                disabled={isPending}
+                onClick={() => handleToggleHabit(habit)}
+                className="today-rail-habit"
+              >
+                <span className="today-rail-habit-check" aria-hidden="true">
+                  {done ? "✓" : ""}
+                </span>
+                <span className="today-rail-habit-name">{habit.name}</span>
+                <span className="today-rail-habit-time">
+                  {habitTimeLabel(habit.scheduledTime)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       <div
         ref={railRef}
         className="relative min-w-0"
@@ -590,6 +639,7 @@ export function DayRail({
         placed.length === 0 &&
         placedEvents.length === 0 &&
         allDayEvents.length === 0 &&
+        habits.length === 0 &&
         pendingCreate === null ? (
           <p className="motion-empty-state pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-zinc-500">
             Nothing scheduled today. Drag a task here.

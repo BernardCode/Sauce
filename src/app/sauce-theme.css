@@ -347,10 +347,159 @@ body {
   padding: 2rem 0 4rem;
 }
 
+.today-daily-page {
+  width: min(100%, 70rem);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.today-daily-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.today-task-column {
+  min-width: 0;
+}
+
 .today-simple-header {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--line);
   padding-bottom: 0.85rem;
+}
+
+.today-schedule-panel {
+  min-width: 0;
+  border-radius: 0.8rem;
+  background: var(--surface-subtle);
+  padding: 0.65rem;
+}
+
+.today-schedule-header {
+  display: flex;
+  min-height: 1.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0.25rem 0.55rem;
+}
+
+.today-schedule-header > a {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.today-schedule-header > a:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
+.today-schedule-scroll {
+  max-height: min(42rem, calc(100vh - 10.5rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.today-schedule-panel .motion-day-rail {
+  gap: 0.45rem;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.today-schedule-panel .motion-all-day-event,
+.today-schedule-panel .motion-rail-event {
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.today-schedule-panel .motion-now-line {
+  border-color: var(--foreground) !important;
+}
+
+.today-rail-habits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-left: 2.5rem;
+}
+
+.today-rail-habit {
+  display: grid;
+  grid-template-columns: 0.85rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  padding: 0.45rem 0.55rem;
+  color: var(--foreground);
+  text-align: left;
+}
+
+.today-rail-habit:hover {
+  border-color: var(--line-strong);
+}
+
+.today-rail-habit:disabled {
+  opacity: 0.65;
+}
+
+.today-rail-habit-check {
+  display: grid;
+  width: 0.85rem;
+  height: 0.85rem;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.18rem;
+  font-size: 0.58rem;
+  line-height: 1;
+}
+
+.today-rail-habit-name {
+  overflow: hidden;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-rail-habit-time {
+  color: var(--muted);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.62rem;
+}
+
+.today-rail-habit[data-done="true"] .today-rail-habit-check {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.today-rail-habit[data-done="true"] .today-rail-habit-name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+@media (min-width: 860px) {
+  .today-daily-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  }
+
+  .today-schedule-panel {
+    position: sticky;
+    top: 4.75rem;
+  }
 }
 
 .today-task-list {
@@ -1266,6 +1415,10 @@ body {
     padding-top: 1rem;
   }
 
+  .today-daily-page {
+    padding-top: 1rem;
+  }
+
   .route-loading-page {
     padding-top: 1rem;
   }
@@ -1281,6 +1434,14 @@ body {
 
   .today-task-panel {
     padding: 0.55rem;
+  }
+
+  .today-schedule-panel {
+    padding: 0.55rem;
+  }
+
+  .today-schedule-scroll {
+    max-height: 32rem;
   }
 
   .today-task-draft-options {

@@ -70,11 +70,11 @@ The load-bearing decisions in this schema:
 
 ### 1. Today (the main page)
 
-The default route is the single task and assignment inbox, sorted by deadline. It contains no schedule, planner warnings, metrics, habits, notes, focus widgets, recovery controls, or dashboard statistics.
+The default route is a two-part daily workspace. The task and assignment inbox remains the primary surface on the left, sorted by deadline. A narrower schedule on the right shows today's calendar events, work blocks, all-day commitments, and scheduled habits. It contains no planner warnings, metrics, notes, focus widgets, recovery controls, or dashboard statistics.
 
 A task row shows only what is needed to act: a completion checkbox, title, optional course or project label, relative due date, and estimate. The row keeps its context menu for secondary actions. Project rows link to the project view and are not directly completable.
 
-The task list sits inside one soft blush panel. Its final row is always a quick-add text box, including when the list is empty. Manual tasks and assignments synchronized from Canvas, Schoology, or another school feed use the same `items` table and appear in this list without a separate Assignments page. Scheduling and missed-work recovery live in Calendar, active work lives in Do Now, habits live in Habits, notes live in Notes, and risk information lives in Weekly Review.
+The task list sits inside one soft blush panel. Its final row is always a quick-add text box, including when the list is empty. Manual tasks and assignments synchronized from Canvas, Schoology, or another school feed use the same `items` table and appear in this list without a separate Assignments page. The Today schedule is limited to the current day and supports the existing block interactions. Planning ahead and missed-work recovery live in Calendar, active work lives in Do Now, full habit management lives in Habits, notes live in Notes, and risk information lives in Weekly Review.
 
 ### 2. Calendar
 
@@ -295,7 +295,7 @@ Assignments retain the original item model and add `energy` with `low`, `medium`
 The daily workflow is now:
 
 1. Capture work from the command menu, quick add, or bulk paste.
-2. Review the short Today task list and complete the next obligation.
+2. Review the short Today task list and today's commitments, then complete the next obligation.
 3. Open Do Now for the next scheduled block and record progress without navigating elsewhere.
 4. Recover missed blocks by moving them later, moving them to tomorrow, or unscheduling them.
 5. Use Weekly Review to compare completed work, planned and actual focus time, habit consistency, SAT progress, and next week's load.
