@@ -11,7 +11,18 @@ const routeShortcuts: Record<string, string> = {
   t: "/today",
 };
 
-const prefetchedRoutes = ["/today", "/calendar", "/focus", "/sat", "/habits"];
+const prefetchedRoutes = [
+  "/today",
+  "/calendar",
+  "/focus",
+  "/sat",
+  "/habits",
+  "/more",
+  "/notes",
+  "/links",
+  "/review",
+  "/settings",
+];
 
 function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && target.matches("input, textarea, select, [contenteditable='true']");
@@ -34,7 +45,19 @@ export function AppQuickActions() {
   const [waitingForDestination, setWaitingForDestination] = useState(false);
 
   useEffect(() => {
-    for (const route of prefetchedRoutes) router.prefetch(route);
+    function prefetchWorkspace() {
+      for (const route of prefetchedRoutes) router.prefetch(route);
+    }
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(prefetchWorkspace, {
+        timeout: 1_500,
+      });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(prefetchWorkspace, 250);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [router]);
 
   useEffect(() => {

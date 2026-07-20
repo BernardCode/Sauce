@@ -11,11 +11,10 @@ import { formatDue } from "./relative-time";
 type Props = {
   item: TodayItem;
   now: Date | null;
-  leaving: boolean;
   onDone: (id: string) => void;
 };
 
-export function ItemCard({ item, now, leaving, onDone }: Props) {
+export function ItemCard({ item, now, onDone }: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
   const contextDetails = [
@@ -26,7 +25,11 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
     .filter(Boolean)
     .join(", ");
   const hasMeta = Boolean(
-    item.course || item.origin === "feed" || item.dueAt || item.estMinutes,
+    item.course ||
+      item.origin === "feed" ||
+      item.dueAt ||
+      item.estMinutes ||
+      item.optimistic,
   );
 
   function handleContextMenu(event: ReactMouseEvent<HTMLLIElement>) {
@@ -44,30 +47,34 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
   return (
     <li
       onContextMenu={handleContextMenu}
-      data-leaving={leaving}
-      className={`motion-item-card today-task-row ${
-        leaving ? "translate-x-2 opacity-0" : "opacity-100"
-      }`}
+      data-saving={item.optimistic === true}
+      className="today-task-row"
     >
       <input
         type="checkbox"
-        checked={leaving}
-        disabled={leaving}
+        checked={false}
+        disabled={item.optimistic}
         onChange={() => onDone(item.id)}
-        aria-label={`Mark "${item.title}" done`}
+        aria-label={
+          item.optimistic
+            ? `Saving "${item.title}"`
+            : `Mark "${item.title}" done`
+        }
         className="today-task-checkbox"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           <span className="today-task-title min-w-0 flex-1">{item.title}</span>
-          <TaskContextMenu
-            ref={contextMenuRef}
-            title={item.title}
-            details={contextDetails}
-            dueAt={item.dueAt}
-            scheduled={false}
-            onComplete={() => onDone(item.id)}
-          />
+          {item.optimistic ? null : (
+            <TaskContextMenu
+              ref={contextMenuRef}
+              title={item.title}
+              details={contextDetails}
+              dueAt={item.dueAt}
+              scheduled={false}
+              onComplete={() => onDone(item.id)}
+            />
+          )}
         </div>
         {hasMeta ? (
           <div className="today-task-meta">
@@ -76,6 +83,7 @@ export function ItemCard({ item, now, leaving, onDone }: Props) {
             ) : null}
             {item.dueAt ? <span>{due?.label ?? " "}</span> : null}
             {item.estMinutes ? <span>{item.estMinutes}m</span> : null}
+            {item.optimistic ? <span>Saving</span> : null}
           </div>
         ) : null}
       </div>

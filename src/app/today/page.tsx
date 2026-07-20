@@ -3,7 +3,8 @@ import { after } from "next/server";
 import { AppHeader } from "@/app/components/app-header";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
-import { ItemList, type TodayItem } from "./item-list";
+import { ItemList } from "./item-list";
+import type { TodayItem } from "./task-types";
 
 type ItemRow = {
   id: string;
@@ -44,10 +45,20 @@ export default async function TodayPage() {
     redirect("/");
   }
 
-  const { data: sources } = await supabase
-    .from("sources")
-    .select("id, kind, enabled, last_synced_at")
-    .eq("user_id", user.id);
+  const [sourcesResult, openResult] = await Promise.all([
+    supabase
+      .from("sources")
+      .select("id, kind, enabled, last_synced_at")
+      .eq("user_id", user.id),
+    supabase
+      .from("items")
+      .select(itemColumns)
+      .eq("user_id", user.id)
+      .eq("status", "open")
+      .is("parent_id", null)
+      .order("due_at", { ascending: true, nullsFirst: false }),
+  ]);
+  const sources = sourcesResult.data;
   const staleCutoff = staleSourceCutoffMs();
   const staleSources = (sources ?? []).filter(
     (source) =>
@@ -64,15 +75,6 @@ export default async function TodayPage() {
       );
     });
   }
-
-  // Manual work and synced school assignments intentionally share this query.
-  const openResult = await supabase
-    .from("items")
-    .select(itemColumns)
-    .eq("user_id", user.id)
-    .eq("status", "open")
-    .is("parent_id", null)
-    .order("due_at", { ascending: true, nullsFirst: false });
 
   const openItems = ((openResult.data ?? []) as ItemRow[]).map(toTodayItem);
   const loadError = openResult.error;

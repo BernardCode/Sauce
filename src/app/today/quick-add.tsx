@@ -10,6 +10,7 @@ import {
 } from "react";
 import { parseQuickAdd } from "@/lib/quick-add/parse";
 import { addItem } from "./actions";
+import type { TodayItem } from "./task-types";
 
 function todayAtTime(value: string): string | null {
   const match = /^(\d{2}):(\d{2})$/.exec(value);
@@ -43,9 +44,9 @@ function endOfDueDate(value: string): string | null {
 }
 
 export function QuickAdd({
-  onPendingChange,
+  onOptimisticAdd,
 }: {
-  onPendingChange?: (title: string | null) => void;
+  onOptimisticAdd: (item: TodayItem) => void;
 }) {
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -55,14 +56,14 @@ export function QuickAdd({
   const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [savingCount, setSavingCount] = useState(0);
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (isComposing) titleInputRef.current?.focus();
   }, [isComposing]);
 
   function openComposer() {
-    if (isPending) return;
     setMessage(null);
     setError(null);
     setIsComposing(true);
@@ -79,14 +80,13 @@ export function QuickAdd({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
-    if (event.key !== "Escape" || isPending) return;
+    if (event.key !== "Escape") return;
     event.preventDefault();
     resetComposer();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isPending) return;
 
     const trimmed = value.trim();
     if (trimmed === "") {
@@ -97,6 +97,10 @@ export function QuickAdd({
     // Parsing happens here, not in the action, because only the browser
     // knows the user's timezone.
     const parsed = parseQuickAdd(trimmed);
+    if (parsed.title === "") {
+      setError("A task needs a title.");
+      return;
+    }
     const explicitMinutes = duration === "" ? null : Number(duration);
     if (
       explicitMinutes !== null &&
@@ -124,28 +128,49 @@ export function QuickAdd({
       return;
     }
 
+    const dueAtIso =
+      explicitDueAtIso ?? (parsed.dueAt ? parsed.dueAt.toISOString() : null);
+    const temporaryId = crypto.randomUUID();
+    const submittedDraft = {
+      value,
+      scheduledTime,
+      duration,
+      dueDate,
+    };
+
     setError(null);
-    setIsComposing(false);
-    onPendingChange?.(parsed.title);
+    setSavingCount((count) => count + 1);
+    resetComposer();
 
     startTransition(async () => {
+      onOptimisticAdd({
+        id: temporaryId,
+        title: parsed.title,
+        course: null,
+        dueAt: dueAtIso,
+        estMinutes,
+        isProject: parsed.isProject === true,
+        origin: "manual",
+        optimistic: true,
+      });
       const result = await addItem({
         title: parsed.title,
-        dueAtIso:
-          explicitDueAtIso ??
-          (parsed.dueAt ? parsed.dueAt.toISOString() : null),
+        dueAtIso,
         estMinutes,
         isProject: parsed.isProject === true,
         scheduledStartIso,
       });
       if (result.error) {
+        setValue(submittedDraft.value);
+        setScheduledTime(submittedDraft.scheduledTime);
+        setDuration(submittedDraft.duration);
+        setDueDate(submittedDraft.dueDate);
         setError(result.error);
         setIsComposing(true);
       } else {
-        resetComposer();
         setMessage(result.warning ?? null);
       }
-      onPendingChange?.(null);
+      setSavingCount((count) => Math.max(0, count - 1));
     });
   }
 
@@ -158,7 +183,7 @@ export function QuickAdd({
             onSubmit={handleSubmit}
             onKeyDown={handleKeyDown}
             className="today-task-draft-form"
-            aria-busy={isPending}
+            aria-busy={savingCount > 0}
           >
             <span className="today-task-draft-checkbox" aria-hidden="true" />
             <div className="min-w-0">
@@ -171,6 +196,8 @@ export function QuickAdd({
                 aria-label="Task title"
                 className="today-task-draft-title"
                 autoComplete="off"
+                maxLength={500}
+                required
               />
               <div className="today-task-draft-options">
                 <label className="today-task-draft-option">
@@ -221,7 +248,6 @@ export function QuickAdd({
       <li className="today-task-add-row">
         <button
           type="button"
-          disabled={isPending}
           onClick={openComposer}
           aria-label="Start a new task"
           aria-expanded={isComposing}

@@ -356,35 +356,65 @@ body {
 .today-task-list {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.42rem;
 }
 
 .today-task-panel {
   border: 0;
-  border-radius: 0.75rem;
+  border-radius: 0.8rem;
   background: var(--today-panel);
-  padding: 0.75rem;
+  padding: 0.65rem;
+}
+
+.today-task-list-header {
+  display: flex;
+  min-height: 1.35rem;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0.25rem 0.5rem;
+}
+
+.today-task-list-label {
+  border-radius: 0.24rem;
+  background: color-mix(in srgb, var(--today-accent) 16%, transparent);
+  padding: 0.12rem 0.38rem;
+  color: color-mix(in srgb, var(--today-accent) 70%, var(--foreground));
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.today-task-count {
+  color: var(--today-accent);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.7rem;
+  line-height: 1;
 }
 
 .today-task-row {
   display: flex;
-  min-height: 0;
+  min-height: 2.7rem;
   align-items: flex-start;
-  gap: 0.75rem;
-  border: 1px solid transparent !important;
-  border-radius: 0.4rem !important;
+  gap: 0.7rem;
+  border: 1px solid var(--today-panel-line) !important;
+  border-radius: 0.55rem !important;
   background: var(--today-row) !important;
-  padding: 0.68rem 0.8rem;
+  padding: 0.68rem 0.75rem;
   box-shadow: none !important;
   transition: background-color 150ms ease, border-color 150ms ease,
     opacity 180ms ease, transform 180ms ease;
 }
 
 .today-task-row:hover {
-  border-color: var(--today-panel-line) !important;
+  border-color: color-mix(in srgb, var(--today-accent) 40%, var(--today-panel-line)) !important;
   background: var(--today-row-hover) !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+.today-task-row[data-saving="true"] {
+  animation: motion-rise-in 160ms ease-out both;
+  opacity: 0.72;
 }
 
 .today-task-checkbox,
@@ -405,10 +435,6 @@ body {
 
 .today-project-checkbox {
   border-style: dashed;
-}
-
-.today-task-pending {
-  opacity: 0.62;
 }
 
 .today-task-title {
@@ -446,15 +472,16 @@ body {
 
 .app-page .today-task-entry-input {
   width: 100%;
-  min-height: 2.4rem;
+  min-height: 2.65rem;
   cursor: text;
   border: 1px solid
-    color-mix(in srgb, var(--today-accent) 58%, transparent) !important;
-  border-radius: 0.42rem !important;
-  background: transparent !important;
-  padding: 0.35rem 0.9rem !important;
+    color-mix(in srgb, var(--today-accent) 56%, transparent) !important;
+  border-radius: 0.55rem !important;
+  background: color-mix(in srgb, var(--surface) 24%, transparent) !important;
+  padding: 0.55rem 0.85rem !important;
   color: var(--today-accent) !important;
   font-size: 0.86rem;
+  font-weight: 560;
   text-align: left;
   box-shadow: none !important;
   outline: 0;
@@ -466,9 +493,10 @@ body {
 }
 
 .today-task-draft-row {
-  border-radius: 0.45rem;
+  border: 1px solid var(--today-panel-line);
+  border-radius: 0.55rem;
   background: var(--today-row);
-  padding: 0.68rem 0.8rem;
+  padding: 0.68rem 0.75rem;
 }
 
 .today-task-draft-form {
@@ -505,7 +533,7 @@ body {
   display: grid;
   grid-template-columns: minmax(8rem, 1fr) 7.5rem minmax(8rem, 1fr);
   gap: 0.5rem;
-  margin-top: 0.55rem;
+  margin-top: 0.6rem;
 }
 
 .today-task-draft-option {
@@ -552,6 +580,35 @@ body {
   padding: 1.25rem;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.route-loading-page {
+  width: min(100%, 44rem);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.route-loading-title {
+  width: 5.5rem;
+  height: 2.2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.35rem;
+  background: var(--surface-subtle);
+}
+
+.route-loading-panel {
+  display: grid;
+  gap: 0.42rem;
+  border-radius: 0.8rem;
+  background: var(--surface-subtle);
+  padding: 0.65rem;
+}
+
+.route-loading-panel > div {
+  height: 2.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--surface);
 }
 
 .today-list-error {
@@ -1206,6 +1263,10 @@ body {
   }
 
   .today-task-page {
+    padding-top: 1rem;
+  }
+
+  .route-loading-page {
     padding-top: 1rem;
   }
 

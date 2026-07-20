@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import type { AddItemResult } from "./task-types";
 
 const optionalIsoTime = z.iso.datetime({ offset: true }).nullable().default(null);
 
@@ -48,7 +49,7 @@ const setItemDoneSchema = z.object({
 
 type ActionResult = { error: string | null; warning?: string | null };
 
-export async function addItem(input: unknown): Promise<ActionResult> {
+export async function addItem(input: unknown): Promise<AddItemResult> {
   const parsed = addItemSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "That task could not be saved." };
@@ -86,7 +87,7 @@ export async function addItem(input: unknown): Promise<ActionResult> {
       origin: "manual",
       status: "open",
     })
-    .select("id")
+    .select("id, title, course, due_at, est_minutes, is_project, origin")
     .single();
 
   if (error || !item) {
@@ -115,7 +116,19 @@ export async function addItem(input: unknown): Promise<ActionResult> {
   }
 
   revalidatePath("/today");
-  return { error: null, warning };
+  return {
+    error: null,
+    warning,
+    item: {
+      id: item.id,
+      title: item.title,
+      course: item.course,
+      dueAt: item.due_at,
+      estMinutes: item.est_minutes,
+      isProject: item.is_project,
+      origin: item.origin,
+    },
+  };
 }
 
 export async function setItemDone(input: unknown): Promise<ActionResult> {

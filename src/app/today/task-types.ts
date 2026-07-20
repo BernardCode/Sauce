@@ -1,0 +1,16 @@
+export type TodayItem = {
+  id: string;
+  title: string;
+  course: string | null;
+  dueAt: string | null;
+  estMinutes: number | null;
+  isProject: boolean;
+  origin: string;
+  optimistic?: boolean;
+};
+
+export type AddItemResult = {
+  error: string | null;
+  warning?: string | null;
+  item?: TodayItem;
+};

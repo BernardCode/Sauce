@@ -73,26 +73,6 @@ export default async function CalendarPage({
     : new Date();
   const range = getRange(query.view, anchor);
 
-  const { data: initialSources } = await supabase
-    .from("sources")
-    .select("id, kind, label, enabled, last_synced_at")
-    .eq("user_id", user.id)
-    .order("label");
-  const staleCutoff = staleCutoffMs();
-  const staleSources = (initialSources ?? [])
-    .filter(
-        (source) =>
-          source.enabled &&
-          ["gcal", "ics"].includes(source.kind) &&
-          (!source.last_synced_at ||
-            new Date(source.last_synced_at).getTime() < staleCutoff),
-      );
-  if (staleSources.length) {
-    after(async () => {
-      await Promise.allSettled(staleSources.map((source) => syncCalendarSource(source)));
-    });
-  }
-
   const [
     blocksResult,
     eventsResult,
@@ -132,7 +112,7 @@ export default async function CalendarPage({
         .not("item_id", "is", null),
       supabase
         .from("sources")
-        .select("id, label, enabled")
+        .select("id, kind, label, enabled, last_synced_at")
         .eq("user_id", user.id)
         .eq("enabled", true)
         .order("label"),
@@ -150,6 +130,21 @@ export default async function CalendarPage({
         .gte("date", range.days[0])
         .lte("date", range.days[range.days.length - 1]),
     ]);
+
+  const staleCutoff = staleCutoffMs();
+  const staleSources = (sourcesResult.data ?? []).filter(
+    (source) =>
+      ["gcal", "ics"].includes(source.kind) &&
+      (!source.last_synced_at ||
+        new Date(source.last_synced_at).getTime() < staleCutoff),
+  );
+  if (staleSources.length) {
+    after(async () => {
+      await Promise.allSettled(
+        staleSources.map((source) => syncCalendarSource(source)),
+      );
+    });
+  }
 
   const errors = [
     blocksResult.error,
