@@ -28,7 +28,20 @@ const icsSourceSchema = z.object({
 
 type ActionResult = { error: string | null };
 
-export async function createManualBlock(input: unknown): Promise<ActionResult> {
+type ManualBlockResult = ActionResult & {
+  block?: {
+    id: string;
+    itemId: null;
+    title: string;
+    startAt: string;
+    endAt: string;
+    locked: boolean;
+    done: boolean;
+    reason: null;
+  };
+};
+
+export async function createManualBlock(input: unknown): Promise<ManualBlockResult> {
   const parsed = manualBlockSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "That block is not valid." };
@@ -45,19 +58,35 @@ export async function createManualBlock(input: unknown): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { error: "You are signed out. Refresh and sign in again." };
 
-  const { error } = await supabase.from("blocks").insert({
-    user_id: user.id,
-    item_id: null,
-    title: parsed.data.title,
-    start_at: parsed.data.startAtIso,
-    end_at: parsed.data.endAtIso,
-    origin: "manual",
-  });
-  if (error) return { error: "Could not create that block. Try again." };
+  const { data, error } = await supabase
+    .from("blocks")
+    .insert({
+      user_id: user.id,
+      item_id: null,
+      title: parsed.data.title,
+      start_at: parsed.data.startAtIso,
+      end_at: parsed.data.endAtIso,
+      origin: "manual",
+    })
+    .select("id, title, start_at, end_at, locked, done")
+    .single();
+  if (error || !data) return { error: "Could not create that block. Try again." };
 
   revalidatePath("/calendar");
   revalidatePath("/today");
-  return { error: null };
+  return {
+    error: null,
+    block: {
+      id: data.id,
+      itemId: null,
+      title: data.title,
+      startAt: data.start_at,
+      endAt: data.end_at,
+      locked: data.locked,
+      done: data.done,
+      reason: null,
+    },
+  };
 }
 
 export async function syncSource(input: unknown): Promise<ActionResult> {

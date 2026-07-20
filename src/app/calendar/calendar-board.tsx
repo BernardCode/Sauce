@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition, type DragEvent } from "react";
-import { Lock, LockOpen, Plus, X } from "lucide-react";
+import {
+  useMemo,
+  useState,
+  useTransition,
+  type DragEvent,
+  type FormEvent,
+} from "react";
 import { z } from "zod";
 import {
   createBlockForItem,
@@ -62,7 +67,7 @@ function clockLabel(value: string): string {
 function dayLabel(value: string, view: Props["view"]): string {
   const date = new Date(`${value}T12:00:00`);
   return date.toLocaleDateString(undefined, {
-    weekday: view === "month" ? "short" : "long",
+    weekday: view === "day" ? "long" : "short",
     month: "short",
     day: "numeric",
   });
@@ -107,6 +112,8 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
   const [localHabits, setLocalHabits] = useState(habits);
   const [selectedBlock, setSelectedBlock] = useState<CalendarBlock | null>(null);
   const [dragTargetDay, setDragTargetDay] = useState<string | null>(null);
+  const [composerDay, setComposerDay] = useState<string | null>(null);
+  const [manualTitle, setManualTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -186,17 +193,50 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
     );
   }
 
-  function addManualBlock(day: string) {
-    const title = window.prompt("Block title");
-    if (!title?.trim()) return;
+  function addManualBlock(event: FormEvent<HTMLFormElement>, day: string) {
+    event.preventDefault();
+    const title = manualTitle.trim();
+    if (!title) return;
+
     const start = new Date(`${day}T09:00:00`);
-    run(() =>
-      createManualBlock({
+    const end = new Date(start.getTime() + 60 * 60_000);
+    const optimisticId = crypto.randomUUID();
+    const optimisticBlock: CalendarBlock = {
+      id: optimisticId,
+      itemId: null,
+      title,
+      startAt: start.toISOString(),
+      endAt: end.toISOString(),
+      locked: false,
+      done: false,
+      reason: null,
+    };
+
+    setLocalBlocks((current) => [...current, optimisticBlock]);
+    setManualTitle("");
+    setComposerDay(null);
+    setError(null);
+
+    startTransition(async () => {
+      const result = await createManualBlock({
         title,
         startAtIso: start.toISOString(),
-        endAtIso: new Date(start.getTime() + 60 * 60_000).toISOString(),
-      }),
-    );
+        endAtIso: end.toISOString(),
+      });
+      setError(result.error);
+      if (result.error || !result.block) {
+        setLocalBlocks((current) =>
+          current.filter((block) => block.id !== optimisticId),
+        );
+        return;
+      }
+      const savedBlock: CalendarBlock = result.block;
+      setLocalBlocks((current) =>
+        current.map((block) =>
+          block.id === optimisticId ? savedBlock : block,
+        ),
+      );
+    });
   }
 
   function resizeBlock(block: CalendarBlock, deltaMinutes: number) {
@@ -255,11 +295,17 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
   }
 
   return (
-    <div className="motion-calendar flex min-h-0 flex-1 flex-col gap-4" data-view={view}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+    <div className="motion-calendar calendar-workspace" data-view={view}>
+      <header className="neutral-panel-header calendar-board-header">
+        <div className="neutral-panel-heading">
+          <span className="neutral-panel-label">Schedule</span>
+          <span className="neutral-panel-count">
+            {localBlocks.length + events.length + localHabits.length}
+          </span>
+        </div>
+        <div className="calendar-source-filters" aria-label="Visible calendars">
           {sources.map((source) => (
-            <label key={source.id} className="motion-source-filter flex items-center gap-1.5">
+            <label key={source.id} className="motion-source-filter calendar-source-filter">
               <input
                 type="checkbox"
                 checked={!hiddenSources[source.id]}
@@ -276,16 +322,17 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
             </label>
           ))}
         </div>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      </div>
+      </header>
+
+      {error ? <p className="neutral-feedback" role="alert">{error}</p> : null}
 
       <div
-        className={`grid flex-1 gap-2 ${
+        className={`calendar-days ${
           view === "day"
-            ? "grid-cols-1"
+            ? "calendar-days-day"
             : view === "week"
-              ? "grid-cols-1 md:grid-cols-7"
-              : "grid-cols-2 md:grid-cols-7"
+              ? "calendar-days-week"
+              : "calendar-days-month"
         }`}
       >
         {days.map((day) => {
@@ -310,24 +357,46 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
               }}
               onDrop={(event) => dropOnDay(event, day)}
               data-drop-target={dragTargetDay === day}
-              className={`motion-calendar-day min-h-32 rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-2.5 hover:border-[var(--task-accent)] ${
-                view === "month" ? "min-h-40" : "min-h-96"
-              }`}
+              data-today={day === localDateKey(new Date())}
+              className="motion-calendar-day calendar-day"
             >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h2 className="text-xs font-medium text-zinc-500">
+              <header className="calendar-day-header">
+                <h2>
                   {dayLabel(day, view)}
                 </h2>
                 <button
                   type="button"
-                  onClick={() => addManualBlock(day)}
+                  onClick={() => {
+                    setComposerDay((current) => current === day ? null : day);
+                    setManualTitle("");
+                  }}
                   disabled={isPending}
-                  className="motion-calendar-add inline-flex items-center gap-1 text-xs font-medium text-[var(--primary)] hover:text-[var(--primary-deep)]"
+                  className="motion-calendar-add calendar-day-add"
                 >
-                  <Plus size={12} /> Add
+                  New block
                 </button>
-              </div>
-              <div className="flex flex-col gap-1.5">
+              </header>
+              <div className="calendar-day-items">
+                {composerDay === day ? (
+                  <form
+                    onSubmit={(event) => addManualBlock(event, day)}
+                    className="calendar-block-composer"
+                  >
+                    <input
+                      value={manualTitle}
+                      onChange={(event) => setManualTitle(event.target.value)}
+                      placeholder="Block title"
+                      aria-label={`New block for ${dayLabel(day, view)}`}
+                      autoFocus
+                    />
+                    <div>
+                      <span>9:00 AM, 60 min</span>
+                      <button type="submit" disabled={isPending || !manualTitle.trim()}>
+                        Add
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
                 {dayHabits.map((habit) => (
                   <button
                     key={habit.id}
@@ -348,10 +417,10 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
                 {dayEvents.map((event) => (
                   <article
                     key={event.id}
-                    className="motion-calendar-event rounded-lg border border-sky-200 bg-[var(--sky-soft)] px-2.5 py-2 text-xs text-sky-900 dark:border-sky-900 dark:text-sky-200"
+                    className="motion-calendar-event calendar-event-row"
                   >
-                    <p className="truncate font-medium">{event.title}</p>
-                    <p className="truncate opacity-70">
+                    <p className="calendar-entry-title">{event.title}</p>
+                    <p className="calendar-entry-meta">
                       {event.allDay ? "All day" : clockLabel(event.startAt)}
                       {sourceLabels[event.sourceId]
                         ? `, ${sourceLabels[event.sourceId]}`
@@ -365,13 +434,13 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
                     draggable={!block.done}
                     onDragStart={(event) => startBlockDrag(event, block)}
                     onClick={() => setSelectedBlock(block)}
-                    className="motion-calendar-block cursor-pointer rounded-lg border border-[var(--task-accent)] bg-[var(--task-soft)] px-2.5 py-2 text-xs text-[var(--task-ink)]"
+                    className="motion-calendar-block calendar-block-row"
                   >
-                    <p className="truncate font-medium">{block.title}</p>
-                    <p className="text-zinc-500">
+                    <p className="calendar-entry-title">{block.title}</p>
+                    <p className="calendar-entry-meta">
                       {clockLabel(block.startAt)} to {clockLabel(block.endAt)}
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-2 text-zinc-400">
+                    <div className="calendar-block-actions">
                       <button
                         type="button"
                         onClick={(event) => {
@@ -396,9 +465,8 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
                           event.stopPropagation();
                           toggleLock(block);
                         }}
-                        className="inline-flex items-center gap-1"
                       >
-                        {block.locked ? <LockOpen size={11} /> : <Lock size={11} />}{block.locked ? "Unlock" : "Lock"}
+                        {block.locked ? "Unlock" : "Lock"}
                       </button>
                     </div>
                   </article>
@@ -409,53 +477,53 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
         })}
       </div>
 
-      <details className="motion-disclosure rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] p-3">
-        <summary className="cursor-pointer text-sm text-zinc-500">
+      <details className="motion-disclosure calendar-unscheduled">
+        <summary>
           Unscheduled ({items.length})
         </summary>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="calendar-unscheduled-list">
           {items.map((item) => (
             <button
               key={item.id}
               type="button"
               draggable
               onDragStart={(event) => startItemDrag(event, item)}
-              className="motion-draggable-item cursor-grab rounded-full border border-zinc-300 px-3 py-1 text-xs dark:border-zinc-700"
+              className="motion-draggable-item calendar-unscheduled-row"
             >
               {item.title}
             </button>
           ))}
           {items.length === 0 ? (
-            <p className="text-sm text-zinc-500">Everything open is scheduled.</p>
+            <p className="neutral-empty-row">Everything open is scheduled.</p>
           ) : null}
         </div>
       </details>
 
       {selectedBlock ? (
-        <aside className="motion-detail-panel fixed right-4 bottom-20 z-40 w-80 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-2xl lg:bottom-4">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="font-medium">{selectedBlock.title}</h2>
+        <aside className="motion-detail-panel calendar-detail-panel">
+          <div className="calendar-detail-header">
+            <h2>{selectedBlock.title}</h2>
             <button
               type="button"
               onClick={() => setSelectedBlock(null)}
               aria-label="Close block details"
-              className="motion-panel-close rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
+              className="motion-panel-close"
             >
-              <X size={16} />
+              Close
             </button>
           </div>
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="calendar-detail-time">
             {clockLabel(selectedBlock.startAt)} to {clockLabel(selectedBlock.endAt)}
           </p>
           {selectedBlock.reason ? (
-            <p className="mt-2 text-sm text-zinc-500">Why: {selectedBlock.reason}</p>
+            <p className="calendar-detail-reason">{selectedBlock.reason}</p>
           ) : null}
           <button
             type="button"
             onClick={() => {
               removeBlock(selectedBlock);
             }}
-            className="mt-4 text-sm text-red-600"
+            className="calendar-unschedule-button"
           >
             Unschedule
           </button>

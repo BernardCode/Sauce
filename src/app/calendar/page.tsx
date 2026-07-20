@@ -25,6 +25,36 @@ function addDays(date: Date, amount: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
 }
 
+function rangeLabel(view: "month" | "week" | "day", anchor: Date): string {
+  if (view === "month") {
+    return anchor.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  if (view === "day") {
+    return anchor.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  const start = addDays(anchor, -anchor.getDay());
+  const end = addDays(start, 6);
+  const startLabel = start.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  const endLabel = end.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return `${startLabel} to ${endLabel}`;
+}
+
 function getRange(view: "month" | "week" | "day", anchor: Date) {
   if (view === "day") {
     const start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
@@ -196,63 +226,68 @@ export default async function CalendarPage({
   return (
     <div className="app-page" data-page="calendar">
       <AppHeader />
-      <main className="flex flex-1 flex-col gap-4">
+      <main className="calendar-page-shell flex flex-1 flex-col gap-4">
         <div className="page-intro">
-          <div><p className="page-kicker">See where your time is going</p><h1 className="page-title">Calendar</h1><p className="page-description">Events are fixed commitments. Work blocks are yours to move, resize, lock, or remove.</p></div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="segmented-control">
-            <Link href={`/calendar?view=${query.view}&date=${previous}`} aria-label="Previous period">Previous</Link>
-            <Link href={`/calendar?view=${query.view}`}>Today</Link>
-            <Link href={`/calendar?view=${query.view}&date=${next}`} aria-label="Next period">Next</Link>
+          <div>
+            <h1 className="page-title">Calendar</h1>
+            <p className="calendar-range-label">{rangeLabel(query.view, anchor)}</p>
+          </div>
+          <div className="calendar-page-controls">
+            <div className="segmented-control" aria-label="Change date range">
+              <Link href={`/calendar?view=${query.view}&date=${previous}`} aria-label="Previous period">Previous</Link>
+              <Link href={`/calendar?view=${query.view}`}>Today</Link>
+              <Link href={`/calendar?view=${query.view}&date=${next}`} aria-label="Next period">Next</Link>
             </div>
-            <div className="segmented-control">
-            {(["month", "week", "day"] as const).map((view) => (
-              <Link
-                key={view}
-                href={`/calendar?view=${view}&date=${dateKey(anchor)}`}
-                data-active={view === query.view}
-              >
-                {view[0].toUpperCase() + view.slice(1)}
-              </Link>
-            ))}
+            <div className="segmented-control" aria-label="Calendar view">
+              {(["month", "week", "day"] as const).map((view) => (
+                <Link
+                  key={view}
+                  href={`/calendar?view=${view}&date=${dateKey(anchor)}`}
+                  data-active={view === query.view}
+                >
+                  {view[0].toUpperCase() + view.slice(1)}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
-        <div className="workspace-card flex flex-1 flex-col"><CalendarBoard
-          key={`${query.view}:${range.days[0]}:${(blocksResult.data ?? []).map((block) => `${block.id}:${block.start_at}:${block.end_at}:${block.locked}`).join("|")}:${calendarHabits.map((habit) => `${habit.id}:${habit.scheduledTime}:${habit.done}`).join("|")}`}
-          view={query.view}
-          days={range.days}
-          blocks={(blocksResult.data ?? []).map((block) => ({
-            id: block.id,
-            itemId: block.item_id,
-            title: block.title,
-            startAt: block.start_at,
-            endAt: block.end_at,
-            locked: block.locked,
-            done: block.done,
-            reason: block.reason,
-          }))}
-          events={(eventsResult.data ?? []).map((event) => ({
-            id: event.id,
-            sourceId: event.source_id,
-            title: event.title,
-            location: event.location,
-            startAt: event.start_at,
-            endAt: event.end_at,
-            allDay: event.all_day,
-          }))}
-          items={(itemsResult.data ?? [])
-            .filter((item) => !scheduledIds.has(item.id))
-            .map((item) => ({
-              id: item.id,
-              title: item.title,
-              dueAt: item.due_at,
-              estMinutes: item.est_minutes,
-              remainingMinutes: item.remaining_minutes,
+        <section className="neutral-panel calendar-panel">
+          <CalendarBoard
+            key={`${query.view}:${range.days[0]}:${(blocksResult.data ?? []).map((block) => `${block.id}:${block.start_at}:${block.end_at}:${block.locked}`).join("|")}:${calendarHabits.map((habit) => `${habit.id}:${habit.scheduledTime}:${habit.done}`).join("|")}`}
+            view={query.view}
+            days={range.days}
+            blocks={(blocksResult.data ?? []).map((block) => ({
+              id: block.id,
+              itemId: block.item_id,
+              title: block.title,
+              startAt: block.start_at,
+              endAt: block.end_at,
+              locked: block.locked,
+              done: block.done,
+              reason: block.reason,
             }))}
-          sources={sourcesResult.data ?? []}
-          habits={calendarHabits}
-        /></div>
+            events={(eventsResult.data ?? []).map((event) => ({
+              id: event.id,
+              sourceId: event.source_id,
+              title: event.title,
+              location: event.location,
+              startAt: event.start_at,
+              endAt: event.end_at,
+              allDay: event.all_day,
+            }))}
+            items={(itemsResult.data ?? [])
+              .filter((item) => !scheduledIds.has(item.id))
+              .map((item) => ({
+                id: item.id,
+                title: item.title,
+                dueAt: item.due_at,
+                estMinutes: item.est_minutes,
+                remainingMinutes: item.remaining_minutes,
+              }))}
+            sources={sourcesResult.data ?? []}
+            habits={calendarHabits}
+          />
+        </section>
       </main>
     </div>
   );

@@ -1,68 +1,464 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { ArrowUpRight, BookOpenCheck, Brain, CalendarClock, CheckCircle2, Target } from "lucide-react";
-import { addSatMistake, logSatSession, reviewSatMistake, saveSatProfile } from "./actions";
 import { addItem } from "@/app/today/actions";
+import {
+  addSatMistake,
+  logSatSession,
+  reviewSatMistake,
+  saveSatProfile,
+} from "./actions";
 
-type Profile = { testDate: string | null; targetScore: number; currentScore: number | null; weeklyMinutes: number };
-type Session = { id: string; section: string; skill: string; mode: string; minutes: number; questions: number; correct: number; completedAt: string };
-type Mistake = { id: string; section: string; skill: string; reason: string; takeaway: string; confidence: number; sourceUrl: string | null; nextReviewAt: string };
+type Profile = {
+  testDate: string | null;
+  targetScore: number;
+  currentScore: number | null;
+  weeklyMinutes: number;
+};
 
-const mathSkills = ["Algebra", "Advanced Math", "Problem Solving", "Geometry and Trigonometry"];
-const readingSkills = ["Information and Ideas", "Craft and Structure", "Expression of Ideas", "Standard English Conventions"];
+type Session = {
+  id: string;
+  section: string;
+  skill: string;
+  mode: string;
+  minutes: number;
+  questions: number;
+  correct: number;
+  completedAt: string;
+};
 
-export function SatWorkspace({ initialProfile, sessions, mistakes }: { initialProfile: Profile; sessions: Session[]; mistakes: Mistake[] }) {
+type Mistake = {
+  id: string;
+  section: string;
+  skill: string;
+  reason: string;
+  takeaway: string;
+  confidence: number;
+  sourceUrl: string | null;
+  nextReviewAt: string;
+};
+
+const mathSkills = [
+  "Algebra",
+  "Advanced Math",
+  "Problem Solving",
+  "Geometry and Trigonometry",
+];
+
+const readingSkills = [
+  "Information and Ideas",
+  "Craft and Structure",
+  "Expression of Ideas",
+  "Standard English Conventions",
+];
+
+function sectionLabel(section: string): string {
+  return section === "math" ? "Math" : "Reading and Writing";
+}
+
+export function SatWorkspace({
+  initialProfile,
+  sessions,
+  mistakes,
+}: {
+  initialProfile: Profile;
+  sessions: Session[];
+  mistakes: Mistake[];
+}) {
   const [profile, setProfile] = useState(initialProfile);
+  const [sessionRows, setSessionRows] = useState(sessions);
+  const [mistakeRows, setMistakeRows] = useState(mistakes);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const now = new Date();
-  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
-  const weekMinutes = sessions.filter((session) => new Date(session.completedAt) >= weekStart).reduce((sum, session) => sum + session.minutes, 0);
-  const reviewedQuestions = sessions.reduce((sum, session) => sum + session.questions, 0);
-  const correctQuestions = sessions.reduce((sum, session) => sum + session.correct, 0);
-  const accuracy = reviewedQuestions ? Math.round(correctQuestions / reviewedQuestions * 100) : 0;
-  const daysUntil = profile.testDate ? Math.ceil((new Date(`${profile.testDate}T12:00:00`).getTime() - now.getTime()) / 86_400_000) : null;
-  const skillStats = new Map<string, { correct: number; questions: number }>();
-  for (const session of sessions) { const entry = skillStats.get(session.skill) ?? { correct: 0, questions: 0 }; entry.correct += session.correct; entry.questions += session.questions; skillStats.set(session.skill, entry); }
-  const weakest = [...skillStats.entries()].filter(([, value]) => value.questions >= 3).sort((a, b) => a[1].correct / a[1].questions - b[1].correct / b[1].questions)[0];
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 6);
 
-  function run(action: () => Promise<{ error: string | null }>, success: string, form?: HTMLFormElement) {
-    setError(null); setMessage(null);
-    startTransition(async () => { const result = await action(); setError(result.error); if (!result.error) { setMessage(success); form?.reset(); } });
+  const weekMinutes = sessionRows
+    .filter((session) => new Date(session.completedAt) >= weekStart)
+    .reduce((sum, session) => sum + session.minutes, 0);
+  const reviewedQuestions = sessionRows.reduce(
+    (sum, session) => sum + session.questions,
+    0,
+  );
+  const correctQuestions = sessionRows.reduce(
+    (sum, session) => sum + session.correct,
+    0,
+  );
+  const accuracy = reviewedQuestions
+    ? Math.round((correctQuestions / reviewedQuestions) * 100)
+    : 0;
+  const daysUntil = profile.testDate
+    ? Math.ceil(
+        (new Date(`${profile.testDate}T12:00:00`).getTime() - now.getTime()) /
+          86_400_000,
+      )
+    : null;
+  const skillStats = new Map<string, { correct: number; questions: number }>();
+
+  for (const session of sessionRows) {
+    const entry = skillStats.get(session.skill) ?? { correct: 0, questions: 0 };
+    entry.correct += session.correct;
+    entry.questions += session.questions;
+    skillStats.set(session.skill, entry);
   }
 
-  function saveGoals() { run(() => saveSatProfile(profile), "Goals saved."); }
+  const weakest = [...skillStats.entries()]
+    .filter(([, value]) => value.questions >= 3)
+    .sort(
+      (a, b) =>
+        a[1].correct / a[1].questions - b[1].correct / b[1].questions,
+    )[0];
+
+  function showResult(errorText: string | null, success: string) {
+    setError(errorText);
+    setMessage(errorText ? null : success);
+  }
+
+  function saveGoals() {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await saveSatProfile(profile);
+      showResult(result.error, "Goals saved.");
+    });
+  }
+
   function planPractice() {
     const due = new Date();
     due.setDate(due.getDate() + 1);
     due.setHours(20, 0, 0, 0);
-    run(() => addItem({ title: `SAT ${weakest?.[0] ?? "mixed practice"}`, dueAtIso: due.toISOString(), estMinutes: 45, isProject: false, course: "SAT", energy: "high" }), "A 45-minute SAT assignment was added for tomorrow.");
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await addItem({
+        title: `SAT ${weakest?.[0] ?? "mixed practice"}`,
+        dueAtIso: due.toISOString(),
+        estMinutes: 45,
+        isProject: false,
+        course: "SAT",
+        energy: "high",
+      });
+      showResult(result.error, "Added 45 minutes of SAT practice for tomorrow.");
+    });
   }
-  function logPractice(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); run(() => logSatSession({ section: data.get("section"), skill: data.get("skill"), mode: data.get("mode"), minutes: Number(data.get("minutes")), questions: Number(data.get("questions")), correct: Number(data.get("correct")) }), "Practice logged.", form); }
-  function logMistake(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); run(() => addSatMistake({ section: data.get("section"), skill: data.get("skill"), reason: data.get("reason"), takeaway: data.get("takeaway"), confidence: Number(data.get("confidence")), sourceUrl: data.get("sourceUrl") }), "Added to your review queue.", form); }
+
+  function logPractice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const session: Session = {
+      id: crypto.randomUUID(),
+      section: String(data.get("section")),
+      skill: String(data.get("skill")),
+      mode: String(data.get("mode")),
+      minutes: Number(data.get("minutes")),
+      questions: Number(data.get("questions")),
+      correct: Number(data.get("correct")),
+      completedAt: new Date().toISOString(),
+    };
+
+    setSessionRows((current) => [session, ...current]);
+    setError(null);
+    setMessage("Practice logged.");
+    form.reset();
+    startTransition(async () => {
+      const result = await logSatSession({
+        section: session.section,
+        skill: session.skill,
+        mode: session.mode,
+        minutes: session.minutes,
+        questions: session.questions,
+        correct: session.correct,
+      });
+      if (result.error) {
+        setSessionRows((current) =>
+          current.filter((entry) => entry.id !== session.id),
+        );
+        showResult(result.error, "");
+      }
+    });
+  }
+
+  function logMistake(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const mistake = {
+      section: String(data.get("section")),
+      skill: String(data.get("skill")),
+      reason: String(data.get("reason")),
+      takeaway: String(data.get("takeaway")),
+      confidence: Number(data.get("confidence")),
+      sourceUrl: String(data.get("sourceUrl") ?? ""),
+    };
+
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await addSatMistake(mistake);
+      showResult(result.error, "Added to spaced review.");
+      if (!result.error) form.reset();
+    });
+  }
+
+  function reviewMistake(mistake: Mistake, outcome: "again" | "resolved") {
+    const previous = mistakeRows;
+    setMistakeRows((current) =>
+      current.filter((entry) => entry.id !== mistake.id),
+    );
+    setError(null);
+    setMessage(outcome === "resolved" ? "Review completed." : "Review rescheduled.");
+    startTransition(async () => {
+      const result = await reviewSatMistake({ id: mistake.id, outcome });
+      if (result.error) {
+        setMistakeRows(previous);
+        showResult(result.error, "");
+      }
+    });
+  }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-      <div className="flex flex-col gap-5">
-        <section className="sat-plan">
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="sat-plan-label">Next study block</p><h2>{weakest ? `Strengthen ${weakest[0]}` : "Log a practice set to personalize your plan"}</h2><p className="sat-plan-copy">{daysUntil === null ? "Add your test date to build urgency into the plan." : daysUntil > 0 ? `${daysUntil} days until test day. ${Math.max(0, profile.weeklyMinutes - weekMinutes)} minutes remain in this week's target.` : "Test day has arrived. Keep today calm and focused."}</p></div><div className="sat-plan-actions"><a href="https://satsuitequestionbank.collegeboard.org/" target="_blank" rel="noreferrer" className="motion-forward">Question bank <ArrowUpRight size={14} /></a><button type="button" onClick={planPractice} disabled={isPending}>Plan 45 minutes</button></div></div>
-          <div className="sat-plan-metrics"><div><strong>{weekMinutes}</strong><span>Minutes this week</span></div><div><strong>{accuracy}%</strong><span>Practice accuracy</span></div><div><strong>{mistakes.length}</strong><span>Reviews due</span></div></div>
-        </section>
+    <div className="sat-workspace">
+      <section className="neutral-panel sat-plan-panel">
+        <header className="neutral-panel-header">
+          <div className="neutral-panel-heading">
+            <span className="neutral-panel-label">This week</span>
+            <span className="neutral-panel-count">{weekMinutes}m</span>
+          </div>
+          <span className="neutral-panel-note">
+            {daysUntil === null ? "Set test date" : `${Math.max(0, daysUntil)} days to test`}
+          </span>
+        </header>
+        <div className="neutral-list">
+          <article className="neutral-row sat-next-row">
+            <div className="neutral-row-copy">
+              <h2>
+                {weakest
+                  ? `Strengthen ${weakest[0]}`
+                  : "Log a practice set to personalize your plan"}
+              </h2>
+              <p>
+                {daysUntil === null
+                  ? "Add your test date, then log one practice set."
+                  : `${Math.max(0, profile.weeklyMinutes - weekMinutes)} minutes remain in your weekly target.`}
+              </p>
+            </div>
+            <div className="neutral-row-actions">
+              <a
+                href="https://satsuitequestionbank.collegeboard.org/"
+                target="_blank"
+                rel="noreferrer"
+                className="neutral-secondary-button"
+              >
+                Question bank
+              </a>
+              <button
+                type="button"
+                onClick={planPractice}
+                disabled={isPending}
+                className="neutral-primary-button"
+              >
+                Plan 45 minutes
+              </button>
+            </div>
+          </article>
+          <div className="sat-metric-row" aria-label="SAT progress">
+            <div><strong>{weekMinutes}</strong><span>minutes this week</span></div>
+            <div><strong>{accuracy}%</strong><span>practice accuracy</span></div>
+            <div><strong>{mistakeRows.length}</strong><span>reviews due</span></div>
+          </div>
+        </div>
+      </section>
 
-        <section className="workspace-card"><div className="mb-4 flex items-center gap-2"><Target size={18} className="text-[var(--primary)]" /><h2 className="font-semibold">Score and schedule goals</h2></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="motion-field text-xs text-[var(--muted)]">Test date<input type="date" value={profile.testDate ?? ""} onChange={(event) => setProfile({ ...profile, testDate: event.target.value || null })} className="mt-1 w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]" /></label><label className="motion-field text-xs text-[var(--muted)]">Current score<input type="number" min={400} max={1600} value={profile.currentScore ?? ""} onChange={(event) => setProfile({ ...profile, currentScore: event.target.value ? Number(event.target.value) : null })} className="mt-1 w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]" /></label><label className="motion-field text-xs text-[var(--muted)]">Target score<input type="number" min={400} max={1600} value={profile.targetScore} onChange={(event) => setProfile({ ...profile, targetScore: Number(event.target.value) })} className="mt-1 w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]" /></label><label className="motion-field text-xs text-[var(--muted)]">Minutes per week<input type="number" min={30} max={2100} value={profile.weeklyMinutes} onChange={(event) => setProfile({ ...profile, weeklyMinutes: Number(event.target.value) })} className="mt-1 w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]" /></label></div><button type="button" onClick={saveGoals} disabled={isPending} className="mt-4 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white">Save SAT goals</button></section>
+      {error ? <p className="neutral-feedback" role="alert">{error}</p> : null}
+      {message ? <p className="neutral-feedback" role="status">{message}</p> : null}
 
-        <section className="workspace-card"><div className="mb-4 flex items-center gap-2"><BookOpenCheck size={18} className="text-sky-500" /><h2 className="font-semibold">Log a practice set</h2></div><form onSubmit={logPractice} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><select name="section" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"><option value="math">Math</option><option value="reading_writing">Reading and Writing</option></select><input name="skill" required list="sat-skills" placeholder="Skill practiced" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><datalist id="sat-skills">{[...mathSkills, ...readingSkills].map((skill) => <option key={skill} value={skill} />)}</datalist><select name="mode" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"><option value="timed">Timed</option><option value="untimed">Untimed</option><option value="review">Mistake review</option></select><input name="minutes" required type="number" min={1} max={600} placeholder="Minutes" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><input name="questions" required type="number" min={1} max={200} placeholder="Questions" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><input name="correct" required type="number" min={0} max={200} placeholder="Correct" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><button disabled={isPending} className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white sm:col-span-2 lg:col-span-3">Save practice session</button></form></section>
+      <div className="sat-content-grid">
+        <div className="sat-primary-column">
+          <section className="neutral-panel">
+            <header className="neutral-panel-header">
+              <div className="neutral-panel-heading">
+                <span className="neutral-panel-label">Goals</span>
+              </div>
+            </header>
+            <div className="neutral-form-row sat-goals-grid">
+              <label>
+                Test date
+                <input
+                  type="date"
+                  value={profile.testDate ?? ""}
+                  onChange={(event) =>
+                    setProfile({
+                      ...profile,
+                      testDate: event.target.value || null,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Current score
+                <input
+                  type="number"
+                  min={400}
+                  max={1600}
+                  value={profile.currentScore ?? ""}
+                  onChange={(event) =>
+                    setProfile({
+                      ...profile,
+                      currentScore: event.target.value
+                        ? Number(event.target.value)
+                        : null,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Target score
+                <input
+                  type="number"
+                  min={400}
+                  max={1600}
+                  value={profile.targetScore}
+                  onChange={(event) =>
+                    setProfile({
+                      ...profile,
+                      targetScore: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Minutes per week
+                <input
+                  type="number"
+                  min={30}
+                  max={2100}
+                  value={profile.weeklyMinutes}
+                  onChange={(event) =>
+                    setProfile({
+                      ...profile,
+                      weeklyMinutes: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                onClick={saveGoals}
+                disabled={isPending}
+                className="neutral-primary-button sat-form-submit"
+              >
+                Save goals
+              </button>
+            </div>
+          </section>
 
-        <section className="workspace-card"><div className="mb-4 flex items-center gap-2"><Brain size={18} className="text-[var(--task-accent)]" /><h2 className="font-semibold">Add a mistake to review</h2></div><form onSubmit={logMistake} className="grid gap-3 sm:grid-cols-2"><select name="section" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"><option value="math">Math</option><option value="reading_writing">Reading and Writing</option></select><input name="skill" required list="sat-skills" placeholder="Skill" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><input name="reason" required placeholder="Why did you miss it?" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm sm:col-span-2" /><textarea name="takeaway" placeholder="Rule or takeaway for next time" className="min-h-24 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm sm:col-span-2" /><input name="sourceUrl" type="url" placeholder="Optional question link" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm" /><label className="text-xs text-[var(--muted)]">Confidence, 1 to 5<input name="confidence" type="number" min={1} max={5} defaultValue={2} className="mt-1 w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]" /></label><button disabled={isPending} className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white sm:col-span-2">Add to review queue</button></form></section>
-        {error ? <p className="rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-rose-600">{error}</p> : null}{message ? <p className="rounded-xl bg-[var(--success-soft)] p-3 text-sm text-emerald-700 dark:text-emerald-300">{message}</p> : null}
+          <section className="neutral-panel">
+            <header className="neutral-panel-header">
+              <div className="neutral-panel-heading">
+                <span className="neutral-panel-label">Practice</span>
+              </div>
+            </header>
+            <form onSubmit={logPractice} className="neutral-form-row sat-practice-grid">
+              <select name="section" aria-label="SAT section">
+                <option value="math">Math</option>
+                <option value="reading_writing">Reading and Writing</option>
+              </select>
+              <input name="skill" required list="sat-skills" placeholder="Skill practiced" />
+              <datalist id="sat-skills">{[...mathSkills, ...readingSkills].map((skill) => <option key={skill} value={skill} />)}</datalist>
+              <select name="mode" aria-label="Practice mode">
+                <option value="timed">Timed</option>
+                <option value="untimed">Untimed</option>
+                <option value="review">Mistake review</option>
+              </select>
+              <input name="minutes" required type="number" min={1} max={600} placeholder="Minutes" />
+              <input name="questions" required type="number" min={1} max={200} placeholder="Questions" />
+              <input name="correct" required type="number" min={0} max={200} placeholder="Correct" />
+              <button disabled={isPending} className="neutral-primary-button sat-form-submit">Save practice</button>
+            </form>
+          </section>
+
+          <section className="neutral-panel">
+            <header className="neutral-panel-header">
+              <div className="neutral-panel-heading">
+                <span className="neutral-panel-label">Mistake log</span>
+              </div>
+            </header>
+            <form onSubmit={logMistake} className="neutral-form-row sat-mistake-grid">
+              <select name="section" aria-label="SAT section">
+                <option value="math">Math</option>
+                <option value="reading_writing">Reading and Writing</option>
+              </select>
+              <input name="skill" required list="sat-skills" placeholder="Skill" />
+              <input name="reason" required placeholder="Why did you miss it?" className="sat-wide-field" />
+              <textarea name="takeaway" placeholder="Rule or takeaway for next time" className="sat-wide-field" />
+              <input name="sourceUrl" type="url" placeholder="Optional question link" />
+              <label>Confidence, 1 to 5<input name="confidence" type="number" min={1} max={5} defaultValue={2} /></label>
+              <button disabled={isPending} className="neutral-primary-button sat-form-submit">Add to review queue</button>
+            </form>
+          </section>
+        </div>
+
+        <aside className="sat-secondary-column">
+          <section className="neutral-panel">
+            <header className="neutral-panel-header">
+              <div className="neutral-panel-heading">
+                <span className="neutral-panel-label">Review queue</span>
+                <span className="neutral-panel-count">{mistakeRows.length}</span>
+              </div>
+            </header>
+            <div className="neutral-list">
+              {mistakeRows.map((mistake) => (
+                <article key={mistake.id} className="neutral-row sat-review-row">
+                  <div className="neutral-row-copy">
+                    <div className="sat-row-heading">
+                      <h3>{mistake.skill}</h3>
+                      <span>{sectionLabel(mistake.section)}</span>
+                    </div>
+                    <p>{mistake.reason}</p>
+                    {mistake.takeaway ? <small>Remember: {mistake.takeaway}</small> : null}
+                  </div>
+                  <div className="neutral-row-actions sat-review-actions">
+                    {mistake.sourceUrl ? (
+                      <a href={mistake.sourceUrl} target="_blank" rel="noreferrer">
+                        Source
+                      </a>
+                    ) : (
+                      <span>Confidence {mistake.confidence}/5</span>
+                    )}
+                    <button type="button" disabled={isPending} onClick={() => reviewMistake(mistake, "again")}>Again</button>
+                    <button type="button" disabled={isPending} onClick={() => reviewMistake(mistake, "resolved")}>Got it</button>
+                  </div>
+                </article>
+              ))}
+              {!mistakeRows.length ? <p className="neutral-empty-row">Your review queue is clear.</p> : null}
+            </div>
+          </section>
+
+          <section className="neutral-panel">
+            <header className="neutral-panel-header">
+              <div className="neutral-panel-heading">
+                <span className="neutral-panel-label">Recent practice</span>
+                <span className="neutral-panel-count">{sessionRows.length}</span>
+              </div>
+            </header>
+            <div className="neutral-list">
+              {sessionRows.slice(0, 8).map((session) => (
+                <article key={session.id} className="neutral-row sat-session-row">
+                  <strong>{Math.round((session.correct / session.questions) * 100)}%</strong>
+                  <div className="neutral-row-copy">
+                    <h3>{session.skill}</h3>
+                    <p>{session.questions} questions, {session.minutes} minutes</p>
+                  </div>
+                </article>
+              ))}
+              {!sessionRows.length ? <p className="neutral-empty-row">No practice logged yet.</p> : null}
+            </div>
+          </section>
+        </aside>
       </div>
-
-      <aside className="flex flex-col gap-5">
-        <section className="workspace-card"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><CalendarClock size={18} className="text-amber-500" /><h2 className="font-semibold">Review queue</h2></div><span className="rounded-full bg-[var(--warning-soft)] px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">{mistakes.length} due</span></div><div className="mt-4 flex flex-col gap-3">{mistakes.map((mistake) => <article key={mistake.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-subtle)] p-3"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">{mistake.skill}</h3><span className="text-[10px] uppercase tracking-wide text-[var(--muted)]">{mistake.section === "math" ? "Math" : "Reading and Writing"}</span></div><p className="mt-2 text-sm text-[var(--muted)]">{mistake.reason}</p>{mistake.takeaway ? <p className="mt-2 rounded-lg bg-[var(--primary-soft)] p-2 text-xs text-[var(--primary-deep)]">Remember: {mistake.takeaway}</p> : null}<div className="mt-3 flex items-center gap-2">{mistake.sourceUrl ? <a href={mistake.sourceUrl} target="_blank" rel="noreferrer" className="mr-auto text-xs text-[var(--primary)]">Open source</a> : <span className="mr-auto text-xs text-[var(--muted)]">Confidence {mistake.confidence}/5</span>}<button type="button" onClick={() => run(() => reviewSatMistake({ id: mistake.id, outcome: "again" }), "Scheduled for another review.")} className="rounded-lg px-2 py-1 text-xs text-[var(--muted)]">Again</button><button type="button" onClick={() => run(() => reviewSatMistake({ id: mistake.id, outcome: "resolved" }), "Review completed.")} className="inline-flex items-center gap-1 rounded-lg bg-[var(--success-soft)] px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"><CheckCircle2 size={12} />Got it</button></div></article>)}{!mistakes.length ? <p className="py-8 text-center text-sm text-[var(--muted)]">Your review queue is clear.</p> : null}</div></section>
-        <section className="workspace-card"><h2 className="font-semibold">Recent practice</h2><div className="mt-3 flex flex-col gap-2">{sessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center gap-3 rounded-xl bg-[var(--surface-subtle)] p-3"><div className="grid size-10 place-items-center rounded-xl bg-[var(--primary-soft)] text-sm font-bold text-[var(--primary-deep)]">{Math.round(session.correct / session.questions * 100)}%</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{session.skill}</p><p className="text-xs text-[var(--muted)]">{session.questions} questions, {session.minutes} minutes</p></div></div>)}{!sessions.length ? <p className="text-sm text-[var(--muted)]">No practice logged yet.</p> : null}</div></section>
-      </aside>
     </div>
   );
 }

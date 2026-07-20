@@ -107,14 +107,14 @@ export function HabitGrid({
 
   return (
     <div className="motion-habit-grid habit-workspace">
-      <section className="habit-today-section" aria-labelledby="habit-today-heading">
-        <div className="habit-section-heading">
-          <div>
-            <h2 id="habit-today-heading">Today</h2>
-            <p>{new Date(`${todayDate}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
+      <section className="neutral-panel habit-today-section" aria-labelledby="habit-today-heading">
+        <header className="neutral-panel-header habit-section-heading">
+          <div className="neutral-panel-heading">
+            <span className="neutral-panel-label" id="habit-today-heading">Today</span>
+            <span className="neutral-panel-count">{rows.filter((habit) => (completedByHabit[habit.id] ?? []).includes(todayDate)).length}/{rows.length}</span>
           </div>
-          <span>{rows.filter((habit) => (completedByHabit[habit.id] ?? []).includes(todayDate)).length}/{rows.length} done</span>
-        </div>
+          <span className="neutral-panel-note">{new Date(`${todayDate}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span>
+        </header>
 
         <div className="habit-today-list">
           {rows.map((habit) => {
@@ -163,7 +163,7 @@ export function HabitGrid({
       </section>
 
       {rows.length ? (
-        <details className="habit-history" open>
+        <details className="neutral-panel habit-history" open>
           <summary>Previous 29 days</summary>
           <div className="habit-history-scroll">
             <div className="habit-history-grid">

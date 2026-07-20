@@ -10,6 +10,13 @@ function requestDate(): Date {
   return new Date();
 }
 
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default async function HabitsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,10 +25,21 @@ export default async function HabitsPage() {
     supabase.from("habits").select("id, name, cadence, days_json, target_per_week, scheduled_time").eq("user_id", user.id).eq("archived", false).order("name"),
     supabase.from("habit_logs").select("habit_id, date, done").eq("user_id", user.id).eq("done", true).order("date"),
   ]);
-  const today = requestDate();
+  const requestNow = requestDate();
+  const today = new Date(
+    requestNow.getFullYear(),
+    requestNow.getMonth(),
+    requestNow.getDate(),
+    12,
+  );
   const dates = Array.from({ length: 30 }, (_, index) => {
-    const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - (29 - index), 12));
-    return date.toISOString().slice(0, 10);
+    const date = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - (29 - index),
+      12,
+    );
+    return localDateKey(date);
   });
   const rows = (habits ?? []).map((habit) => {
     const completedDates = (logs ?? []).filter((log) => log.habit_id === habit.id).map((log) => log.date);
@@ -33,7 +51,7 @@ export default async function HabitsPage() {
       cadence: habit.cadence,
       days,
       scheduledTime: habit.scheduled_time?.slice(0, 5) ?? null,
-      todayDue: habitIsDue(habit.cadence, days, today.getUTCDay()),
+      todayDue: habitIsDue(habit.cadence, days, today.getDay()),
       completedDates,
       ...calculateHabitStats(completedDates, today, habit.target_per_week),
     };
