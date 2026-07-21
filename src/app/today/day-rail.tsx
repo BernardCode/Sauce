@@ -82,6 +82,11 @@ type PlacedEvent = {
   height: number;
 };
 
+type PlacedHabit = {
+  habit: TodayScheduledHabit;
+  top: number;
+};
+
 const itemDragPayloadSchema = z.object({
   itemId: z.uuid(),
   durationMinutes: z.number().finite().positive().max(12 * 60),
@@ -107,6 +112,21 @@ function habitTimeLabel(value: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function habitMinute(value: string): number | null {
+  const [hours, minutes] = value.split(":").map(Number);
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+  return hours * 60 + minutes;
 }
 
 function parseItemDragPayload(raw: string): ItemDragPayload | null {
@@ -224,7 +244,19 @@ export function DayRail({
 
   const placed: PlacedBlock[] = [];
   const placedEvents: PlacedEvent[] = [];
+  const placedHabits: PlacedHabit[] = [];
   if (windowStartMs !== null && windowEndMs !== null) {
+    for (const habit of habits) {
+      const scheduledMinute = habitMinute(habit.scheduledTime);
+      if (scheduledMinute === null) continue;
+      const minuteFromWake = scheduledMinute - wakeHour * 60;
+      if (minuteFromWake < 0 || minuteFromWake >= windowMinutes) continue;
+      placedHabits.push({
+        habit,
+        top: minuteFromWake * PX_PER_MINUTE,
+      });
+    }
+
     for (const event of events) {
       if (event.allDay) continue;
       const startMs = Date.parse(event.startAt);
@@ -579,32 +611,6 @@ export function DayRail({
           ))}
         </div>
       ) : null}
-      {habits.length > 0 ? (
-        <div className="today-rail-habits" aria-label="Scheduled habits">
-          {habits.map((habit) => {
-            const done = habitDoneById[habit.habitId] ?? habit.done;
-            return (
-              <button
-                key={habit.id}
-                type="button"
-                data-done={done}
-                aria-pressed={done}
-                disabled={isPending}
-                onClick={() => handleToggleHabit(habit)}
-                className="today-rail-habit"
-              >
-                <span className="today-rail-habit-check" aria-hidden="true">
-                  {done ? "✓" : ""}
-                </span>
-                <span className="today-rail-habit-name">{habit.name}</span>
-                <span className="today-rail-habit-time">
-                  {habitTimeLabel(habit.scheduledTime)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
       <div
         ref={railRef}
         className="relative min-w-0"
@@ -635,17 +641,6 @@ export function DayRail({
           );
         })}
 
-        {now !== null &&
-        placed.length === 0 &&
-        placedEvents.length === 0 &&
-        allDayEvents.length === 0 &&
-        habits.length === 0 &&
-        pendingCreate === null ? (
-          <p className="motion-empty-state pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-zinc-500">
-            Nothing scheduled today. Drag a task here.
-          </p>
-        ) : null}
-
         {placedEvents.map((entry) => (
           <div
             key={entry.event.id}
@@ -659,6 +654,30 @@ export function DayRail({
             <p className="truncate font-medium">{entry.event.title}</p>
           </div>
         ))}
+
+        {placedHabits.map(({ habit, top }) => {
+          const done = habitDoneById[habit.habitId] ?? habit.done;
+          return (
+            <button
+              key={habit.id}
+              type="button"
+              data-done={done}
+              aria-pressed={done}
+              disabled={isPending}
+              onClick={() => handleToggleHabit(habit)}
+              className="today-rail-habit"
+              style={{ top }}
+            >
+              <span className="today-rail-habit-check" aria-hidden="true">
+                {done ? "✓" : ""}
+              </span>
+              <span className="today-rail-habit-name">{habit.name}</span>
+              <span className="today-rail-habit-time">
+                {habitTimeLabel(habit.scheduledTime)}
+              </span>
+            </button>
+          );
+        })}
 
         {placed.map((entry) => (
           <BlockCard
@@ -738,6 +757,16 @@ export function DayRail({
           </div>
         ) : null}
       </div>
+      {now !== null &&
+      placed.length === 0 &&
+      placedEvents.length === 0 &&
+      allDayEvents.length === 0 &&
+      placedHabits.length === 0 &&
+      pendingCreate === null ? (
+        <p className="motion-empty-state today-schedule-empty">
+          Nothing scheduled today. Drag a task here.
+        </p>
+      ) : null}
     </div>
   );
 }

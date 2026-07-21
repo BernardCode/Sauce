@@ -447,8 +447,9 @@ export type Database = {
           next_review_at: string
           reason: string
           resolved: boolean
-          section: string
-          skill: string
+          screenshot_path: string | null
+          section: string | null
+          skill: string | null
           source_url: string | null
           takeaway: string
           user_id: string
@@ -460,8 +461,9 @@ export type Database = {
           next_review_at?: string
           reason: string
           resolved?: boolean
-          section: string
-          skill: string
+          screenshot_path?: string | null
+          section?: string | null
+          skill?: string | null
           source_url?: string | null
           takeaway?: string
           user_id: string
@@ -473,8 +475,9 @@ export type Database = {
           next_review_at?: string
           reason?: string
           resolved?: boolean
-          section?: string
-          skill?: string
+          screenshot_path?: string | null
+          section?: string | null
+          skill?: string | null
           source_url?: string | null
           takeaway?: string
           user_id?: string
@@ -487,11 +490,48 @@ export type Database = {
           referencedColumns: ["id"]
         }]
       }
+      sat_practice_tests: {
+        Row: {
+          created_at: string
+          id: string
+          math_score: number
+          reading_writing_score: number
+          test_date: string
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          math_score: number
+          reading_writing_score: number
+          test_date: string
+          total_score: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          math_score?: number
+          reading_writing_score?: number
+          test_date?: string
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: [{
+          foreignKeyName: "sat_practice_tests_user_id_fkey"
+          columns: ["user_id"]
+          isOneToOne: false
+          referencedRelation: "users"
+          referencedColumns: ["id"]
+        }]
+      }
       sat_profiles: {
         Row: {
           current_score: number | null
           target_score: number
           test_date: string | null
+          test_dates: string[]
           updated_at: string
           user_id: string
           weekly_minutes: number
@@ -500,6 +540,7 @@ export type Database = {
           current_score?: number | null
           target_score?: number
           test_date?: string | null
+          test_dates?: string[]
           updated_at?: string
           user_id: string
           weekly_minutes?: number
@@ -508,6 +549,7 @@ export type Database = {
           current_score?: number | null
           target_score?: number
           test_date?: string | null
+          test_dates?: string[]
           updated_at?: string
           user_id?: string
           weekly_minutes?: number

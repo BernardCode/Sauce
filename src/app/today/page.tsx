@@ -261,14 +261,18 @@ export default async function TodayPage() {
       .filter((log) => log.done)
       .map((log) => log.habit_id),
   );
-  const scheduledHabits: TodayScheduledHabit[] = dueHabits.map((habit) => ({
-    id: `${habit.id}:${localToday.date}`,
-    habitId: habit.id,
-    name: habit.name,
-    date: localToday.date,
-    scheduledTime: habit.scheduled_time?.slice(0, 5) ?? "00:00",
-    done: doneHabitIds.has(habit.id),
-  }));
+  const scheduledHabits: TodayScheduledHabit[] = dueHabits.flatMap((habit) => {
+    const scheduledTime = habit.scheduled_time?.slice(0, 5);
+    if (!scheduledTime) return [];
+    return [{
+      id: `${habit.id}:${localToday.date}`,
+      habitId: habit.id,
+      name: habit.name,
+      date: localToday.date,
+      scheduledTime,
+      done: doneHabitIds.has(habit.id),
+    }];
+  });
   const itemDueDates = Object.fromEntries(
     openItems.map((item) => [item.id, item.dueAt]),
   );

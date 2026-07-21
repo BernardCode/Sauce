@@ -9,7 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 `dashboard-spec.md` at the repo root is the source of truth. If an instruction conflicts with it, follow the spec and flag the conflict. Build only the current milestone from the spec's build order, nothing ahead of it.
 
-Stack, fixed: Next.js App Router, TypeScript strict, React, TailwindCSS, Supabase (Postgres, Google OAuth auth, RLS on every table), Zod at every trust boundary, server actions for mutations, deployed on Vercel. No new dependencies without asking first.
+Stack, fixed: Next.js App Router, TypeScript strict, React, TailwindCSS, Supabase (Postgres, Google OAuth auth, RLS on every table), Zod at every trust boundary, server actions for mutations, deployed on Vercel. Add task-scoped dependencies when they are necessary, and document them in the handoff.
 
 Style:
 

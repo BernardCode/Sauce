@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import PulsingBorder from "@/components/ui/pulsing-border";
 
 export type MagicDustMood = "calm" | "urgent";
 
@@ -6,24 +6,14 @@ type MagicDustProps = {
   mood: MagicDustMood;
 };
 
-const particleOffsets = [
-  [3, 1, 0],
-  [9, 4, 1],
-  [15, 2, 2],
-  [22, 5, 3],
-  [28, 1, 4],
-  [36, 4, 5],
-  [43, 2, 6],
-  [51, 5, 7],
-  [59, 1, 8],
-  [66, 4, 9],
-  [73, 2, 10],
-  [81, 5, 11],
-  [88, 1, 12],
-  [95, 4, 13],
-] as const;
+const pastelGreenShades = [
+  "#9be8ad",
+  "#74dc95",
+  "#52d080",
+  "#36bd6e",
+  "#83e2a0",
+];
 
-/** A thin, decorative workload signal. The planner can provide the mood later. */
 export function MagicDust({ mood }: MagicDustProps) {
   return (
     <div
@@ -36,21 +26,25 @@ export function MagicDust({ mood }: MagicDustProps) {
           : "Today's workload is light."
       }
     >
-      <div className="magic-dust-line" />
-      <div className="magic-dust-particles" aria-hidden="true">
-        {particleOffsets.map(([left, top, delay]) => (
-          <span
-            key={left}
-            className="magic-dust-particle"
-            style={
-              {
-                "--dust-left": `${left}%`,
-                "--dust-top": `${top}px`,
-                "--dust-delay": `${delay * -0.37}s`,
-              } as CSSProperties
-            }
-          />
-        ))}
+      <div className="magic-dust-effect" aria-hidden="true">
+        <PulsingBorder
+          className="magic-dust-pulsing-border"
+          colorBack="#00000000"
+          colors={pastelGreenShades}
+          roundness={0}
+          thickness={0.28}
+          softness={0.77}
+          aspectRatio="auto"
+          intensity={0.1}
+          bloom={0.08}
+          spots={4}
+          spotSize={0.8}
+          pulse={0.4}
+          smoke={0.34}
+          smokeSize={0.74}
+          speed={0.52}
+          scale={0.6}
+        />
       </div>
     </div>
   );

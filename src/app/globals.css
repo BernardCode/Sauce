@@ -119,53 +119,48 @@ select:focus-visible {
 
 .magic-dust {
   position: relative;
+  z-index: 29;
   isolation: isolate;
   width: 100%;
-  height: 7px;
-  overflow: hidden;
+  height: 0;
+  overflow: visible;
   pointer-events: none;
 }
 
-.magic-dust-line {
+.magic-dust-effect {
   position: absolute;
-  top: 3px;
-  right: 0;
-  left: 0;
+  top: -20px;
+  right: 3%;
+  left: 3%;
+  height: 40px;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+}
+
+.magic-dust-effect::before {
+  position: absolute;
+  z-index: 1;
+  top: 19px;
+  right: 9%;
+  left: 9%;
   height: 1px;
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--dust-start) 76%, transparent) 10%,
-    var(--dust-center) 50%,
-    color-mix(in srgb, var(--dust-end) 76%, transparent) 90%,
+    rgb(239 255 244 / 12%) 12%,
+    rgb(239 255 244 / 38%) 50%,
+    rgb(239 255 244 / 12%) 88%,
     transparent
   );
-  box-shadow: 0 0 7px color-mix(in srgb, var(--dust-center) 55%, transparent);
+  content: "";
 }
 
-.magic-dust-particle {
+.magic-dust-pulsing-border {
   position: absolute;
-  top: var(--dust-top);
-  left: var(--dust-left);
-  width: 2px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--dust-center);
-  box-shadow: 0 0 5px var(--dust-center);
-  animation: magic-dust-drift 5.5s ease-in-out infinite;
-  animation-delay: var(--dust-delay);
-}
-
-.magic-dust[data-mood="calm"] {
-  --dust-start: #a7e9c0;
-  --dust-center: #64c993;
-  --dust-end: #c2f0d2;
-}
-
-.magic-dust[data-mood="urgent"] {
-  --dust-start: #ffc2c2;
-  --dust-center: #ef8e91;
-  --dust-end: #ffd5bd;
+  top: -54px;
+  left: -33.5%;
+  width: 167%;
+  height: 100px;
 }
 
 .app-sidebar {
@@ -457,6 +452,26 @@ select:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .magic-dust-pulsing-border {
+    display: none;
+  }
+
+  .magic-dust-effect::before {
+    display: none;
+  }
+
+  .magic-dust-effect::after {
+    position: absolute;
+    top: 50%;
+    right: 8%;
+    left: 8%;
+    height: 2px;
+    transform: translateY(-50%);
+    background: #4fc477;
+    box-shadow: 0 0 18px rgb(47 172 99 / 58%);
+    content: "";
+  }
+
   *,
   *::before,
   *::after {
@@ -999,92 +1014,6 @@ select:focus-visible {
   font-weight: 700;
 }
 
-.sat-plan {
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line));
-  border-radius: 0.9rem;
-  background: var(--surface);
-  padding: 1.1rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.sat-plan-label {
-  color: var(--primary-deep);
-  font-size: 0.65rem;
-  font-weight: 750;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sat-plan h2 {
-  margin-top: 0.35rem;
-  max-width: 42rem;
-  font-size: 1.35rem;
-  font-weight: 720;
-  letter-spacing: -0.025em;
-}
-
-.sat-plan-copy {
-  margin-top: 0.35rem;
-  max-width: 38rem;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.sat-plan-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.sat-plan-actions a,
-.sat-plan-actions button {
-  display: inline-flex;
-  min-height: 2.5rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  background: var(--surface-subtle);
-  padding: 0.55rem 0.75rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.sat-plan-actions button {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: white;
-}
-
-.sat-plan-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 1rem;
-  border-top: 1px solid var(--line);
-}
-
-.sat-plan-metrics > div {
-  padding: 0.8rem 0.75rem 0 0;
-}
-
-.sat-plan-metrics strong,
-.sat-plan-metrics span {
-  display: block;
-}
-
-.sat-plan-metrics strong {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 1.2rem;
-}
-
-.sat-plan-metrics span {
-  margin-top: 0.1rem;
-  color: var(--muted);
-  font-size: 0.65rem;
-}
-
 .focus-card,
 .project-summary {
   border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--line));
@@ -1317,13 +1246,6 @@ select:focus-visible {
     display: none;
   }
 
-  .sat-plan-metrics {
-    gap: 0.5rem;
-  }
-
-  .sat-plan-metrics span {
-    font-size: 0.58rem;
-  }
 }
 
 .today-grid {
@@ -1490,11 +1412,6 @@ select:focus-visible {
 @keyframes motion-route-in {
   from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes magic-dust-drift {
-  0%, 100% { opacity: 0.28; transform: translate3d(0, 0, 0) scale(0.75); }
-  50% { opacity: 0.9; transform: translate3d(5px, -2px, 0) scale(1.2); }
 }
 
 @keyframes motion-rise-in {

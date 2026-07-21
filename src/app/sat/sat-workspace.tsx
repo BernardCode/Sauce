@@ -1,183 +1,125 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
-import { addItem } from "@/app/today/actions";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type DragEvent as ReactDragEvent,
+  type FormEvent,
+} from "react";
+import { SAT_TEST_DATES } from "@/lib/sat/test-dates";
 import {
   addSatMistake,
-  logSatSession,
-  reviewSatMistake,
-  saveSatProfile,
+  logSatPracticeTest,
+  saveSatTestDates,
 } from "./actions";
 
-type Profile = {
-  testDate: string | null;
-  targetScore: number;
-  currentScore: number | null;
-  weeklyMinutes: number;
-};
+const allowedScreenshotTypes = ["image/png", "image/jpeg", "image/webp"];
+const maxScreenshotBytes = 5 * 1024 * 1024;
 
-type Session = {
-  id: string;
-  section: string;
-  skill: string;
-  mode: string;
-  minutes: number;
-  questions: number;
-  correct: number;
-  completedAt: string;
-};
+function todayDate(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
-type Mistake = {
-  id: string;
-  section: string;
-  skill: string;
-  reason: string;
-  takeaway: string;
-  confidence: number;
-  sourceUrl: string | null;
-  nextReviewAt: string;
-};
+function testDateLabel(value: string): string {
+  return new Date(`${value}T12:00:00`).toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
-const mathSkills = [
-  "Algebra",
-  "Advanced Math",
-  "Problem Solving",
-  "Geometry and Trigonometry",
-];
-
-const readingSkills = [
-  "Information and Ideas",
-  "Craft and Structure",
-  "Expression of Ideas",
-  "Standard English Conventions",
-];
-
-function sectionLabel(section: string): string {
-  return section === "math" ? "Math" : "Reading and Writing";
+function screenshotError(file: File): string | null {
+  if (!allowedScreenshotTypes.includes(file.type)) {
+    return "Use a PNG, JPEG, or WebP screenshot.";
+  }
+  if (file.size > maxScreenshotBytes) {
+    return "The screenshot must be 5 MB or smaller.";
+  }
+  return null;
 }
 
 export function SatWorkspace({
-  initialProfile,
-  sessions,
-  mistakes,
+  initialTestDates,
 }: {
-  initialProfile: Profile;
-  sessions: Session[];
-  mistakes: Mistake[];
+  initialTestDates: string[];
 }) {
-  const [profile, setProfile] = useState(initialProfile);
-  const [sessionRows, setSessionRows] = useState(sessions);
-  const [mistakeRows, setMistakeRows] = useState(mistakes);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedTestDates, setSelectedTestDates] = useState(initialTestDates);
+  const [datesSaved, setDatesSaved] = useState(initialTestDates.length > 0);
+  const [showScoreForm, setShowScoreForm] = useState(false);
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - 6);
 
-  const weekMinutes = sessionRows
-    .filter((session) => new Date(session.completedAt) >= weekStart)
-    .reduce((sum, session) => sum + session.minutes, 0);
-  const reviewedQuestions = sessionRows.reduce(
-    (sum, session) => sum + session.questions,
-    0,
-  );
-  const correctQuestions = sessionRows.reduce(
-    (sum, session) => sum + session.correct,
-    0,
-  );
-  const accuracy = reviewedQuestions
-    ? Math.round((correctQuestions / reviewedQuestions) * 100)
-    : 0;
-  const daysUntil = profile.testDate
-    ? Math.ceil(
-        (new Date(`${profile.testDate}T12:00:00`).getTime() - now.getTime()) /
-          86_400_000,
-      )
-    : null;
-  const skillStats = new Map<string, { correct: number; questions: number }>();
-
-  for (const session of sessionRows) {
-    const entry = skillStats.get(session.skill) ?? { correct: 0, questions: 0 };
-    entry.correct += session.correct;
-    entry.questions += session.questions;
-    skillStats.set(session.skill, entry);
+  function selectScreenshot(file: File) {
+    const validationError = screenshotError(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    setMessage(null);
+    setScreenshot(file);
+    setPreviewUrl(URL.createObjectURL(file));
   }
 
-  const weakest = [...skillStats.entries()]
-    .filter(([, value]) => value.questions >= 3)
-    .sort(
-      (a, b) =>
-        a[1].correct / a[1].questions - b[1].correct / b[1].questions,
-    )[0];
+  useEffect(() => {
+    function handlePaste(event: ClipboardEvent) {
+      const image = Array.from(event.clipboardData?.files ?? []).find((file) =>
+        file.type.startsWith("image/"),
+      );
+      if (!image) return;
+      event.preventDefault();
+      const validationError = screenshotError(image);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setError(null);
+      setMessage("Screenshot pasted.");
+      setScreenshot(image);
+      setPreviewUrl(URL.createObjectURL(image));
+    }
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   function showResult(errorText: string | null, success: string) {
     setError(errorText);
     setMessage(errorText ? null : success);
   }
 
-  function saveGoals() {
+  function toggleTestDate(testDate: string) {
+    setSelectedTestDates((current) =>
+      current.includes(testDate)
+        ? current.filter((date) => date !== testDate)
+        : [...current, testDate].sort(),
+    );
+  }
+
+  function saveDates() {
     setError(null);
     setMessage(null);
     startTransition(async () => {
-      const result = await saveSatProfile(profile);
-      showResult(result.error, "Goals saved.");
-    });
-  }
-
-  function planPractice() {
-    const due = new Date();
-    due.setDate(due.getDate() + 1);
-    due.setHours(20, 0, 0, 0);
-    setError(null);
-    setMessage(null);
-    startTransition(async () => {
-      const result = await addItem({
-        title: `SAT ${weakest?.[0] ?? "mixed practice"}`,
-        dueAtIso: due.toISOString(),
-        estMinutes: 45,
-        isProject: false,
-        course: "SAT",
-        energy: "high",
-      });
-      showResult(result.error, "Added 45 minutes of SAT practice for tomorrow.");
-    });
-  }
-
-  function logPractice(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const session: Session = {
-      id: crypto.randomUUID(),
-      section: String(data.get("section")),
-      skill: String(data.get("skill")),
-      mode: String(data.get("mode")),
-      minutes: Number(data.get("minutes")),
-      questions: Number(data.get("questions")),
-      correct: Number(data.get("correct")),
-      completedAt: new Date().toISOString(),
-    };
-
-    setSessionRows((current) => [session, ...current]);
-    setError(null);
-    setMessage("Practice logged.");
-    form.reset();
-    startTransition(async () => {
-      const result = await logSatSession({
-        section: session.section,
-        skill: session.skill,
-        mode: session.mode,
-        minutes: session.minutes,
-        questions: session.questions,
-        correct: session.correct,
-      });
-      if (result.error) {
-        setSessionRows((current) =>
-          current.filter((entry) => entry.id !== session.id),
-        );
-        showResult(result.error, "");
-      }
+      const result = await saveSatTestDates({ testDates: selectedTestDates });
+      showResult(result.error, "SAT test dates saved.");
+      if (!result.error) setDatesSaved(true);
     });
   }
 
@@ -185,280 +127,192 @@ export function SatWorkspace({
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const mistake = {
-      section: String(data.get("section")),
-      skill: String(data.get("skill")),
-      reason: String(data.get("reason")),
-      takeaway: String(data.get("takeaway")),
-      confidence: Number(data.get("confidence")),
-      sourceUrl: String(data.get("sourceUrl") ?? ""),
-    };
-
+    if (screenshot) data.set("screenshot", screenshot);
     setError(null);
     setMessage(null);
     startTransition(async () => {
-      const result = await addSatMistake(mistake);
-      showResult(result.error, "Added to spaced review.");
-      if (!result.error) form.reset();
+      const result = await addSatMistake(data);
+      showResult(result.error, "Mistake saved for review.");
+      if (result.error) return;
+      form.reset();
+      setScreenshot(null);
+      setPreviewUrl(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     });
   }
 
-  function reviewMistake(mistake: Mistake, outcome: "again" | "resolved") {
-    const previous = mistakeRows;
-    setMistakeRows((current) =>
-      current.filter((entry) => entry.id !== mistake.id),
-    );
+  function logPracticeTest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
     setError(null);
-    setMessage(outcome === "resolved" ? "Review completed." : "Review rescheduled.");
+    setMessage(null);
     startTransition(async () => {
-      const result = await reviewSatMistake({ id: mistake.id, outcome });
-      if (result.error) {
-        setMistakeRows(previous);
-        showResult(result.error, "");
+      const result = await logSatPracticeTest({
+        testDate: String(data.get("testDate")),
+        totalScore: Number(data.get("totalScore")),
+        mathScore: Number(data.get("mathScore")),
+        readingWritingScore: Number(data.get("readingWritingScore")),
+      });
+      showResult(result.error, "Practice test score saved.");
+      if (!result.error) {
+        form.reset();
+        setShowScoreForm(false);
       }
     });
   }
 
+  function handleDrop(event: ReactDragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    const image = Array.from(event.dataTransfer.files).find((file) =>
+      file.type.startsWith("image/"),
+    );
+    if (image) selectScreenshot(image);
+  }
+
   return (
-    <div className="sat-workspace">
-      <section className="neutral-panel sat-plan-panel">
-        <header className="neutral-panel-header">
-          <div className="neutral-panel-heading">
-            <span className="neutral-panel-label">This week</span>
-            <span className="neutral-panel-count">{weekMinutes}m</span>
+    <div className="sat-workspace sat-capture-workspace">
+      <div className="sat-page-controls">
+        {!datesSaved ? (
+          <div className="sat-date-control">
+            <details className="sat-date-picker">
+              <summary>
+                {selectedTestDates.length
+                  ? `${selectedTestDates.length} test ${selectedTestDates.length === 1 ? "date" : "dates"} selected`
+                  : "Choose SAT test dates"}
+              </summary>
+              <fieldset>
+                <legend>Official 2026 to 2027 SAT dates</legend>
+                {SAT_TEST_DATES.map((testDate) => (
+                  <label key={testDate}>
+                    <input
+                      type="checkbox"
+                      checked={selectedTestDates.includes(testDate)}
+                      onChange={() => toggleTestDate(testDate)}
+                    />
+                    <span>{testDateLabel(testDate)}</span>
+                  </label>
+                ))}
+              </fieldset>
+            </details>
+            <button
+              type="button"
+              onClick={saveDates}
+              disabled={isPending || selectedTestDates.length === 0}
+              className="neutral-secondary-button"
+            >
+              Save dates
+            </button>
           </div>
-          <span className="neutral-panel-note">
-            {daysUntil === null ? "Set test date" : `${Math.max(0, daysUntil)} days to test`}
-          </span>
-        </header>
-        <div className="neutral-list">
-          <article className="neutral-row sat-next-row">
-            <div className="neutral-row-copy">
-              <h2>
-                {weakest
-                  ? `Strengthen ${weakest[0]}`
-                  : "Log a practice set to personalize your plan"}
-              </h2>
-              <p>
-                {daysUntil === null
-                  ? "Add your test date, then log one practice set."
-                  : `${Math.max(0, profile.weeklyMinutes - weekMinutes)} minutes remain in your weekly target.`}
-              </p>
-            </div>
-            <div className="neutral-row-actions">
-              <a
-                href="https://satsuitequestionbank.collegeboard.org/"
-                target="_blank"
-                rel="noreferrer"
-                className="neutral-secondary-button"
-              >
-                Question bank
-              </a>
-              <button
-                type="button"
-                onClick={planPractice}
-                disabled={isPending}
-                className="neutral-primary-button"
-              >
-                Plan 45 minutes
-              </button>
-            </div>
-          </article>
-          <div className="sat-metric-row" aria-label="SAT progress">
-            <div><strong>{weekMinutes}</strong><span>minutes this week</span></div>
-            <div><strong>{accuracy}%</strong><span>practice accuracy</span></div>
-            <div><strong>{mistakeRows.length}</strong><span>reviews due</span></div>
-          </div>
+        ) : null}
+        <div className="sat-page-actions">
+          <button
+            type="button"
+            onClick={() => setShowScoreForm((current) => !current)}
+            className="neutral-secondary-button"
+            aria-expanded={showScoreForm}
+          >
+            Log practice test score
+          </button>
+          <Link href="/sat/review" className="neutral-primary-button">
+            Review mistakes and data
+          </Link>
         </div>
-      </section>
+      </div>
+
+      {showScoreForm ? (
+        <form onSubmit={logPracticeTest} className="sat-score-form">
+          <label>
+            Practice date
+            <input name="testDate" type="date" defaultValue={todayDate()} required />
+          </label>
+          <label>
+            Total score
+            <input name="totalScore" type="number" min={400} max={1600} required />
+          </label>
+          <label>
+            Math
+            <input name="mathScore" type="number" min={200} max={800} required />
+          </label>
+          <label>
+            Reading and Writing
+            <input name="readingWritingScore" type="number" min={200} max={800} required />
+          </label>
+          <button disabled={isPending} className="neutral-primary-button">
+            Save score
+          </button>
+        </form>
+      ) : null}
 
       {error ? <p className="neutral-feedback" role="alert">{error}</p> : null}
       {message ? <p className="neutral-feedback" role="status">{message}</p> : null}
 
-      <div className="sat-content-grid">
-        <div className="sat-primary-column">
-          <section className="neutral-panel">
-            <header className="neutral-panel-header">
-              <div className="neutral-panel-heading">
-                <span className="neutral-panel-label">Goals</span>
-              </div>
-            </header>
-            <div className="neutral-form-row sat-goals-grid">
-              <label>
-                Test date
-                <input
-                  type="date"
-                  value={profile.testDate ?? ""}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      testDate: event.target.value || null,
-                    })
-                  }
-                />
-              </label>
-              <label>
-                Current score
-                <input
-                  type="number"
-                  min={400}
-                  max={1600}
-                  value={profile.currentScore ?? ""}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      currentScore: event.target.value
-                        ? Number(event.target.value)
-                        : null,
-                    })
-                  }
-                />
-              </label>
-              <label>
-                Target score
-                <input
-                  type="number"
-                  min={400}
-                  max={1600}
-                  value={profile.targetScore}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      targetScore: Number(event.target.value),
-                    })
-                  }
-                />
-              </label>
-              <label>
-                Minutes per week
-                <input
-                  type="number"
-                  min={30}
-                  max={2100}
-                  value={profile.weeklyMinutes}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      weeklyMinutes: Number(event.target.value),
-                    })
-                  }
-                />
-              </label>
-              <button
-                type="button"
-                onClick={saveGoals}
-                disabled={isPending}
-                className="neutral-primary-button sat-form-submit"
+      <section className="sat-log-panel" aria-labelledby="sat-log-heading">
+        <header>
+          <h2 id="sat-log-heading">Mistake log</h2>
+        </header>
+        <form onSubmit={logMistake} className="sat-log-form">
+          <div className="sat-log-capture">
+            <textarea
+              className="sat-reflection-input"
+              name="reflection"
+              required
+              maxLength={2000}
+              aria-label="Mistake explanation"
+              placeholder="Explain the mistake and what to do next time."
+            />
+            <div className="sat-screenshot-column">
+              <label
+                className="sat-screenshot-field"
+                data-has-image={Boolean(previewUrl)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleDrop}
               >
-                Save goals
-              </button>
+                <input
+                  ref={fileInputRef}
+                  name="screenshot"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) selectScreenshot(file);
+                  }}
+                />
+                {previewUrl ? (
+                  <Image
+                    src={previewUrl}
+                    alt="Selected SAT question screenshot"
+                    width={600}
+                    height={600}
+                    unoptimized
+                  />
+                ) : (
+                  <span>
+                    <strong>Add screenshot</strong>
+                    <small>Paste anywhere or choose a file.</small>
+                  </span>
+                )}
+              </label>
+              {screenshot ? (
+                <button
+                  type="button"
+                  className="sat-remove-screenshot"
+                  onClick={() => {
+                    setScreenshot(null);
+                    setPreviewUrl(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                >
+                  Remove screenshot
+                </button>
+              ) : null}
             </div>
-          </section>
-
-          <section className="neutral-panel">
-            <header className="neutral-panel-header">
-              <div className="neutral-panel-heading">
-                <span className="neutral-panel-label">Practice</span>
-              </div>
-            </header>
-            <form onSubmit={logPractice} className="neutral-form-row sat-practice-grid">
-              <select name="section" aria-label="SAT section">
-                <option value="math">Math</option>
-                <option value="reading_writing">Reading and Writing</option>
-              </select>
-              <input name="skill" required list="sat-skills" placeholder="Skill practiced" />
-              <datalist id="sat-skills">{[...mathSkills, ...readingSkills].map((skill) => <option key={skill} value={skill} />)}</datalist>
-              <select name="mode" aria-label="Practice mode">
-                <option value="timed">Timed</option>
-                <option value="untimed">Untimed</option>
-                <option value="review">Mistake review</option>
-              </select>
-              <input name="minutes" required type="number" min={1} max={600} placeholder="Minutes" />
-              <input name="questions" required type="number" min={1} max={200} placeholder="Questions" />
-              <input name="correct" required type="number" min={0} max={200} placeholder="Correct" />
-              <button disabled={isPending} className="neutral-primary-button sat-form-submit">Save practice</button>
-            </form>
-          </section>
-
-          <section className="neutral-panel">
-            <header className="neutral-panel-header">
-              <div className="neutral-panel-heading">
-                <span className="neutral-panel-label">Mistake log</span>
-              </div>
-            </header>
-            <form onSubmit={logMistake} className="neutral-form-row sat-mistake-grid">
-              <select name="section" aria-label="SAT section">
-                <option value="math">Math</option>
-                <option value="reading_writing">Reading and Writing</option>
-              </select>
-              <input name="skill" required list="sat-skills" placeholder="Skill" />
-              <input name="reason" required placeholder="Why did you miss it?" className="sat-wide-field" />
-              <textarea name="takeaway" placeholder="Rule or takeaway for next time" className="sat-wide-field" />
-              <input name="sourceUrl" type="url" placeholder="Optional question link" />
-              <label>Confidence, 1 to 5<input name="confidence" type="number" min={1} max={5} defaultValue={2} /></label>
-              <button disabled={isPending} className="neutral-primary-button sat-form-submit">Add to review queue</button>
-            </form>
-          </section>
-        </div>
-
-        <aside className="sat-secondary-column">
-          <section className="neutral-panel">
-            <header className="neutral-panel-header">
-              <div className="neutral-panel-heading">
-                <span className="neutral-panel-label">Review queue</span>
-                <span className="neutral-panel-count">{mistakeRows.length}</span>
-              </div>
-            </header>
-            <div className="neutral-list">
-              {mistakeRows.map((mistake) => (
-                <article key={mistake.id} className="neutral-row sat-review-row">
-                  <div className="neutral-row-copy">
-                    <div className="sat-row-heading">
-                      <h3>{mistake.skill}</h3>
-                      <span>{sectionLabel(mistake.section)}</span>
-                    </div>
-                    <p>{mistake.reason}</p>
-                    {mistake.takeaway ? <small>Remember: {mistake.takeaway}</small> : null}
-                  </div>
-                  <div className="neutral-row-actions sat-review-actions">
-                    {mistake.sourceUrl ? (
-                      <a href={mistake.sourceUrl} target="_blank" rel="noreferrer">
-                        Source
-                      </a>
-                    ) : (
-                      <span>Confidence {mistake.confidence}/5</span>
-                    )}
-                    <button type="button" disabled={isPending} onClick={() => reviewMistake(mistake, "again")}>Again</button>
-                    <button type="button" disabled={isPending} onClick={() => reviewMistake(mistake, "resolved")}>Got it</button>
-                  </div>
-                </article>
-              ))}
-              {!mistakeRows.length ? <p className="neutral-empty-row">Your review queue is clear.</p> : null}
-            </div>
-          </section>
-
-          <section className="neutral-panel">
-            <header className="neutral-panel-header">
-              <div className="neutral-panel-heading">
-                <span className="neutral-panel-label">Recent practice</span>
-                <span className="neutral-panel-count">{sessionRows.length}</span>
-              </div>
-            </header>
-            <div className="neutral-list">
-              {sessionRows.slice(0, 8).map((session) => (
-                <article key={session.id} className="neutral-row sat-session-row">
-                  <strong>{Math.round((session.correct / session.questions) * 100)}%</strong>
-                  <div className="neutral-row-copy">
-                    <h3>{session.skill}</h3>
-                    <p>{session.questions} questions, {session.minutes} minutes</p>
-                  </div>
-                </article>
-              ))}
-              {!sessionRows.length ? <p className="neutral-empty-row">No practice logged yet.</p> : null}
-            </div>
-          </section>
-        </aside>
-      </div>
+          </div>
+          <button disabled={isPending} className="neutral-primary-button sat-save-mistake">
+            Save mistake
+          </button>
+        </form>
+      </section>
     </div>
   );
 }
