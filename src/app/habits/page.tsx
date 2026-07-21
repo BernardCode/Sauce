@@ -2,12 +2,9 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/components/app-header";
 import { calculateHabitStats } from "@/lib/habits/stats";
 import { habitDaysSchema } from "@/lib/planner/schemas";
+import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 import { HabitGrid } from "./habit-grid";
-
-function requestDate(): Date {
-  return new Date();
-}
 
 function localDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -20,22 +17,33 @@ export default async function HabitsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/");
-  const [{ data: habits }, { data: logs }] = await Promise.all([
+  const [{ data: habits }, { data: logs }, { data: profile }] = await Promise.all([
     supabase.from("habits").select("id, name, cadence, days_json, target_per_week, color, scheduled_time").eq("user_id", user.id).eq("archived", false).order("name"),
     supabase.from("habit_logs").select("habit_id, date, done").eq("user_id", user.id).eq("done", true).order("date"),
+    supabase.from("users").select("timezone").eq("id", user.id).maybeSingle(),
   ]);
-  const requestNow = requestDate();
+  const todayKey = localParts(
+    new Date(),
+    safeTimeZone(profile?.timezone ?? "UTC"),
+  ).date;
+  const [todayYear, todayMonth, todayDay] = todayKey.split("-").map(Number);
   const today = new Date(
-    requestNow.getFullYear(),
-    requestNow.getMonth(),
-    requestNow.getDate(),
+    todayYear,
+    todayMonth - 1,
+    todayDay,
     12,
   );
-  const dates = Array.from({ length: 30 }, (_, index) => {
+  const daysInMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+    12,
+  ).getDate();
+  const monthDates = Array.from({ length: daysInMonth }, (_, index) => {
     const date = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate() - (29 - index),
+      index + 1,
       12,
     );
     return localDateKey(date);
@@ -63,7 +71,11 @@ export default async function HabitsPage() {
         <div className="page-intro">
           <h1 className="page-title">Habits</h1>
         </div>
-        <HabitGrid rows={rows} dates={dates} todayDate={dates[dates.length - 1]} />
+        <HabitGrid
+          rows={rows}
+          monthDates={monthDates}
+          todayDate={todayKey}
+        />
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { habitContributionLevel } from "@/lib/habits/heatmap";
 import {
   archiveHabit,
   createHabit,
@@ -100,11 +101,11 @@ function HabitFormFields({ habit }: { habit?: HabitGridRow }) {
 
 export function HabitGrid({
   rows,
-  dates,
+  monthDates,
   todayDate,
 }: {
   rows: HabitGridRow[];
-  dates: string[];
+  monthDates: string[];
   todayDate: string;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +115,24 @@ export function HabitGrid({
     () => Object.fromEntries(rows.map((habit) => [habit.id, habit.completedDates])),
   );
   const [isPending, startTransition] = useTransition();
-  const historyDates = dates.filter((date) => date !== todayDate);
+  const completedCountByDate = new Map(
+    monthDates.map((date) => [
+      date,
+      rows.reduce(
+        (count, habit) =>
+          count + ((completedByHabit[habit.id] ?? []).includes(date) ? 1 : 0),
+        0,
+      ),
+    ]),
+  );
+  const busiestDay = Math.max(0, ...completedCountByDate.values());
+  const monthStartOffset = monthDates[0]
+    ? new Date(`${monthDates[0]}T12:00:00`).getDay()
+    : 0;
+  const monthLabel = new Date(`${todayDate}T12:00:00`).toLocaleDateString(
+    undefined,
+    { month: "long", year: "numeric" },
+  );
 
   function toggleDate(habitId: string, date: string) {
     const wasDone = (completedByHabit[habitId] ?? []).includes(date);
@@ -190,117 +208,126 @@ export function HabitGrid({
 
   return (
     <div className="motion-habit-grid habit-workspace">
-      <section className="habit-today-section" aria-labelledby="habit-today-heading">
-        <h2 className="habit-period-heading" id="habit-today-heading">Today</h2>
+      <div className="habit-overview-grid">
+        <section className="habit-today-section" aria-labelledby="habit-today-heading">
+          <h2 className="habit-period-heading" id="habit-today-heading">Today</h2>
 
-        <div className="habit-today-list">
-          {rows.map((habit) => {
-            const doneToday = (completedByHabit[habit.id] ?? []).includes(todayDate);
-            return (
-              <div key={habit.id} className="habit-today-entry">
-                <article className="habit-today-row" data-done={doneToday}>
-                  <button
-                    type="button"
-                    aria-label={`Toggle ${habit.name} for today`}
-                    aria-pressed={doneToday}
-                    onClick={() => toggleDate(habit.id, todayDate)}
-                    className="habit-today-check"
-                  >
-                    <span aria-hidden="true">{doneToday ? "✓" : ""}</span>
-                  </button>
-                  <div className="habit-today-copy">
-                    <h3>{habit.name}</h3>
-                  </div>
-                  <details className="habit-options">
-                    <summary aria-label={`Options for ${habit.name}`}>
-                      <span aria-hidden="true">•••</span>
-                    </summary>
-                    <div className="habit-options-menu">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          setEditingHabitId(habit.id);
-                          event.currentTarget.closest("details")?.removeAttribute("open");
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => archive(habit.id)}
-                        className="habit-archive-option"
-                      >
-                        Archive
-                      </button>
-                    </div>
-                  </details>
-                </article>
-                {editingHabitId === habit.id ? (
-                  <form
-                    onSubmit={(event) => edit(event, habit)}
-                    className="habit-add-form habit-edit-form"
-                  >
-                    <div className="habit-add-form-heading">
-                      <h2>Edit habit</h2>
-                      <button type="button" onClick={() => setEditingHabitId(null)}>
-                        Cancel
-                      </button>
-                    </div>
-                    <HabitFormFields habit={habit} />
-                    <button disabled={isPending} className="habit-create-button">
-                      Save changes
+          <div className="habit-today-list">
+            {rows.map((habit) => {
+              const doneToday = (completedByHabit[habit.id] ?? []).includes(todayDate);
+              return (
+                <div key={habit.id} className="habit-today-entry">
+                  <article className="habit-today-row" data-done={doneToday}>
+                    <button
+                      type="button"
+                      aria-label={`Toggle ${habit.name} for today`}
+                      aria-pressed={doneToday}
+                      onClick={() => toggleDate(habit.id, todayDate)}
+                      className="habit-today-toggle"
+                    >
+                      <span className="habit-today-name">{habit.name}</span>
                     </button>
-                  </form>
-                ) : null}
-              </div>
-            );
-          })}
-          {!rows.length ? <p className="habit-empty">No habits yet.</p> : null}
-        </div>
-      </section>
-
-      {rows.length ? (
-        <section className="habit-history" aria-labelledby="habit-history-heading">
-          <h2 className="habit-period-heading" id="habit-history-heading">
-            Previous 29 days
-          </h2>
-          <div className="habit-history-scroll">
-            <div className="habit-history-grid">
-              <span />
-              {historyDates.map((date) => <span key={date}>{date.slice(8)}</span>)}
-              {rows.map((habit) => {
-                const completed = new Set(completedByHabit[habit.id] ?? []);
-                return (
-                  <div key={habit.id} className="contents">
-                    <div className="habit-history-name">
-                      <strong>{habit.name}</strong>
-                      <small>
-                        {cadenceLabel(habit)}, {habit.currentStreak} day streak, {habit.longestStreak} best, {habit.completionRate}%
-                      </small>
-                    </div>
-                    {historyDates.map((date) => {
-                      const done = completed.has(date);
-                      return (
+                    <details className="habit-options">
+                      <summary aria-label={`Options for ${habit.name}`}>
+                        <span aria-hidden="true">•••</span>
+                      </summary>
+                      <div className="habit-options-menu">
                         <button
-                          key={date}
                           type="button"
-                          aria-label={`${habit.name}, ${date}, ${done ? "done" : "not done"}`}
-                          data-done={done}
-                          onClick={() => toggleDate(habit.id, date)}
-                          className="motion-habit-cell habit-history-cell"
-                          title={`${habit.name}, ${date}`}
+                          onClick={(event) => {
+                            setEditingHabitId(habit.id);
+                            event.currentTarget.closest("details")?.removeAttribute("open");
+                          }}
                         >
-                          <span className="sr-only">{done ? "Done" : "Not done"}</span>
+                          Edit
                         </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+                        <button
+                          type="button"
+                          onClick={() => archive(habit.id)}
+                          className="habit-archive-option"
+                        >
+                          Archive
+                        </button>
+                      </div>
+                    </details>
+                  </article>
+                  {editingHabitId === habit.id ? (
+                    <form
+                      onSubmit={(event) => edit(event, habit)}
+                      className="habit-add-form habit-edit-form"
+                    >
+                      <div className="habit-add-form-heading">
+                        <h2>Edit habit</h2>
+                        <button type="button" onClick={() => setEditingHabitId(null)}>
+                          Cancel
+                        </button>
+                      </div>
+                      <HabitFormFields habit={habit} />
+                      <button disabled={isPending} className="habit-create-button">
+                        Save changes
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              );
+            })}
+            {!rows.length ? <p className="habit-empty">No habits yet.</p> : null}
           </div>
         </section>
-      ) : null}
+
+        <section className="habit-month-section" aria-labelledby="habit-month-heading">
+          <h2 className="habit-period-heading" id="habit-month-heading">
+            {monthLabel}
+          </h2>
+          <div className="habit-month-calendar" role="list" aria-label={`${monthLabel} habit completions`}>
+            {dayLabels.map((day) => (
+              <span key={day} className="habit-month-weekday" aria-hidden="true">
+                {day.slice(0, 1)}
+              </span>
+            ))}
+            {Array.from({ length: monthStartOffset }, (_, index) => (
+              <span key={`empty-${index}`} className="habit-month-empty" aria-hidden="true" />
+            ))}
+            {monthDates.map((date) => {
+              const completed = completedCountByDate.get(date) ?? 0;
+              const isFuture = date > todayDate;
+              const level = isFuture
+                ? 0
+                : habitContributionLevel(completed, busiestDay);
+              const label = new Date(`${date}T12:00:00`).toLocaleDateString(
+                undefined,
+                { month: "long", day: "numeric" },
+              );
+              return (
+                <div
+                  key={date}
+                  className="habit-month-day"
+                  data-level={level}
+                  data-today={date === todayDate}
+                  data-future={isFuture}
+                  role="listitem"
+                  aria-label={`${label}, ${completed} of ${rows.length} habits completed`}
+                  title={`${label}: ${completed} of ${rows.length}`}
+                >
+                  <span>{Number(date.slice(8))}</span>
+                </div>
+              );
+            })}
+          </div>
+          {rows.length ? (
+            <div className="habit-month-stats" aria-label="Habit statistics">
+              {rows.map((habit) => (
+                <div key={habit.id}>
+                  <strong>{habit.name}</strong>
+                  <span>
+                    {cadenceLabel(habit)}, {habit.currentStreak} day streak, {habit.longestStreak} best, {habit.completionRate}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </div>
 
       <div className="habit-add-area">
         {addOpen ? (
