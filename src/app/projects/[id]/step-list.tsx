@@ -39,6 +39,7 @@ export function StepList({
 }) {
   const [steps, setSteps] = useState(initialSteps);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [completingStepId, setCompletingStepId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -75,15 +76,17 @@ export function StepList({
     <div className="motion-step-list flex flex-col gap-4">
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <ul className="flex flex-col gap-2" aria-label="Project steps">
-        {steps.map((step) => (
-          <li
-            key={step.id}
-            draggable={!isPending}
-            onDragStart={() => setDraggedId(step.id)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => drop(event, step.id)}
-            className="motion-step-row rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-          >
+        {steps.map((step) => {
+          const checked = step.status === "done" || completingStepId === step.id;
+          return (
+            <li
+              key={step.id}
+              draggable={!isPending}
+              onDragStart={() => setDraggedId(step.id)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => drop(event, step.id)}
+              className="motion-step-row rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+            >
             <form
               className="grid gap-2 sm:grid-cols-[auto_1fr_6rem_12rem_auto_auto] sm:items-center"
               action={(formData) => {
@@ -98,21 +101,36 @@ export function StepList({
                 });
               }}
             >
-              {step.status === "open" ? (
-                <button
-                  type="button"
-                  aria-label={`Mark ${step.title} done`}
-                  onClick={() =>
-                    startTransition(async () => {
-                      const result = await setItemDone({ id: step.id });
-                      setError(result.error);
-                    })
-                  }
-                  className="size-4 rounded border border-zinc-400"
-                />
-              ) : (
-                <span className="text-sm text-emerald-600">Done</span>
-              )}
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={checked}
+                aria-label={`Toggle completion for ${step.title}`}
+                data-checked={checked}
+                disabled={step.status === "done" || isPending}
+                onClick={() => {
+                  setCompletingStepId(step.id);
+                  startTransition(async () => {
+                    const result = await setItemDone({ id: step.id });
+                    setError(result.error);
+                    if (result.error) {
+                      setCompletingStepId(null);
+                      return;
+                    }
+                    setSteps((current) =>
+                      current.map((entry) =>
+                        entry.id === step.id
+                          ? { ...entry, status: "done" }
+                          : entry,
+                      ),
+                    );
+                    setCompletingStepId(null);
+                  });
+                }}
+                className="completion-check"
+              >
+                <span aria-hidden="true">✓</span>
+              </button>
               <input
                 name="title"
                 defaultValue={step.title}
@@ -162,8 +180,9 @@ export function StepList({
                 : "Not yet placed"}
               {step.origin === "manual" ? " · protected from re-break-down" : ""}
             </p>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       <form

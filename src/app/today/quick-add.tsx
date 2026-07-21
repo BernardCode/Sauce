@@ -8,9 +8,10 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { parseQuickAdd } from "@/lib/quick-add/parse";
 import { addItem } from "./actions";
 import type { TodayItem } from "./task-types";
+
+type DraftOption = "time" | "duration" | "due";
 
 function todayAtTime(value: string): string | null {
   const match = /^(\d{2}):(\d{2})$/.exec(value);
@@ -54,6 +55,7 @@ export function QuickAdd({
   const [scheduledTime, setScheduledTime] = useState("");
   const [duration, setDuration] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [expandedOption, setExpandedOption] = useState<DraftOption | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingCount, setSavingCount] = useState(0);
@@ -75,6 +77,7 @@ export function QuickAdd({
     setScheduledTime("");
     setDuration("");
     setDueDate("");
+    setExpandedOption(null);
     setError(null);
     setIsComposing(false);
   }
@@ -94,13 +97,6 @@ export function QuickAdd({
       return;
     }
 
-    // Parsing happens here, not in the action, because only the browser
-    // knows the user's timezone.
-    const parsed = parseQuickAdd(trimmed);
-    if (parsed.title === "") {
-      setError("A task needs a title.");
-      return;
-    }
     const explicitMinutes = duration === "" ? null : Number(duration);
     if (
       explicitMinutes !== null &&
@@ -111,7 +107,7 @@ export function QuickAdd({
       setError("Duration must be between 1 and 600 minutes.");
       return;
     }
-    const estMinutes = explicitMinutes ?? parsed.estMinutes;
+    const estMinutes = explicitMinutes;
     const scheduledStartIso =
       scheduledTime === "" ? null : todayAtTime(scheduledTime);
     if (scheduledTime !== "" && scheduledStartIso === null) {
@@ -128,8 +124,7 @@ export function QuickAdd({
       return;
     }
 
-    const dueAtIso =
-      explicitDueAtIso ?? (parsed.dueAt ? parsed.dueAt.toISOString() : null);
+    const dueAtIso = explicitDueAtIso;
     const temporaryId = crypto.randomUUID();
     const submittedDraft = {
       value,
@@ -145,19 +140,19 @@ export function QuickAdd({
     startTransition(async () => {
       onOptimisticAdd({
         id: temporaryId,
-        title: parsed.title,
+        title: trimmed,
         course: null,
         dueAt: dueAtIso,
         estMinutes,
-        isProject: parsed.isProject === true,
+        isProject: false,
         origin: "manual",
         optimistic: true,
       });
       const result = await addItem({
-        title: parsed.title,
+        title: trimmed,
         dueAtIso,
         estMinutes,
-        isProject: parsed.isProject === true,
+        isProject: false,
         scheduledStartIso,
       });
       if (result.error) {
@@ -185,7 +180,6 @@ export function QuickAdd({
             className="today-task-draft-form"
             aria-busy={savingCount > 0}
           >
-            <span className="today-task-draft-checkbox" aria-hidden="true" />
             <div className="min-w-0">
               <input
                 ref={titleInputRef}
@@ -199,18 +193,50 @@ export function QuickAdd({
                 maxLength={500}
                 required
               />
-              <div className="today-task-draft-options">
+              <div className="today-task-draft-option-buttons" aria-label="Optional task details">
+                <button
+                  type="button"
+                  aria-expanded={expandedOption === "time"}
+                  onClick={() => setExpandedOption((current) => current === "time" ? null : "time")}
+                  data-filled={scheduledTime !== ""}
+                >
+                  {scheduledTime ? `Time ${scheduledTime}` : "Time"}
+                </button>
+                <button
+                  type="button"
+                  aria-expanded={expandedOption === "duration"}
+                  onClick={() => setExpandedOption((current) => current === "duration" ? null : "duration")}
+                  data-filled={duration !== ""}
+                >
+                  {duration ? `${duration} min` : "Duration"}
+                </button>
+                <button
+                  type="button"
+                  aria-expanded={expandedOption === "due"}
+                  onClick={() => setExpandedOption((current) => current === "due" ? null : "due")}
+                  data-filled={dueDate !== ""}
+                >
+                  {dueDate ? `Due ${dueDate}` : "Due date"}
+                </button>
+              </div>
+              {expandedOption ? (
                 <label className="today-task-draft-option">
-                  <span>Time</span>
+                  <span>
+                    {expandedOption === "time"
+                      ? "Time"
+                      : expandedOption === "duration"
+                        ? "Duration in minutes"
+                        : "Due date"}
+                  </span>
+                  {expandedOption === "time" ? (
                   <input
                     type="time"
                     value={scheduledTime}
                     onChange={(event) => setScheduledTime(event.target.value)}
                     aria-label="Schedule time"
+                    autoFocus
                   />
-                </label>
-                <label className="today-task-draft-option">
-                  <span>Duration</span>
+                  ) : expandedOption === "duration" ? (
                   <input
                     type="number"
                     min={1}
@@ -221,18 +247,19 @@ export function QuickAdd({
                     onChange={(event) => setDuration(event.target.value)}
                     placeholder="Minutes"
                     aria-label="Duration in minutes"
+                    autoFocus
                   />
-                </label>
-                <label className="today-task-draft-option">
-                  <span>Due</span>
+                  ) : (
                   <input
                     type="date"
                     value={dueDate}
                     onChange={(event) => setDueDate(event.target.value)}
                     aria-label="Due date"
+                    autoFocus
                   />
+                  )}
                 </label>
-              </div>
+              ) : null}
               {error ? (
                 <p className="today-task-entry-error" role="alert">
                   {error}
@@ -245,23 +272,25 @@ export function QuickAdd({
           </form>
         </li>
       ) : null}
-      <li className="today-task-add-row">
-        <button
-          type="button"
-          onClick={openComposer}
-          aria-label="Start a new task"
-          aria-expanded={isComposing}
-          aria-controls="today-task-composer"
-          className="today-task-entry-input"
-        >
-          New task
-        </button>
-        {message ? (
-          <p className="today-task-trigger-message" role="status">
-            {message}
-          </p>
-        ) : null}
-      </li>
+      {!isComposing ? (
+        <li className="today-task-add-row">
+          <button
+            type="button"
+            onClick={openComposer}
+            aria-label="Start a new task"
+            aria-expanded="false"
+            aria-controls="today-task-composer"
+            className="today-task-entry-input"
+          >
+            New task
+          </button>
+          {message ? (
+            <p className="today-task-trigger-message" role="status">
+              {message}
+            </p>
+          ) : null}
+        </li>
+      ) : null}
     </>
   );
 }

@@ -1,6 +1,11 @@
 "use client";
 
-import { useRef, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import {
   TaskContextMenu,
   type TaskContextMenuHandle,
@@ -16,6 +21,9 @@ type Props = {
 
 export function ItemCard({ item, now, onDone }: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
   const contextDetails = [
     item.course ?? (item.origin === "feed" ? "School feed" : null),
@@ -44,24 +52,45 @@ export function ItemCard({ item, now, onDone }: Props) {
     contextMenuRef.current?.openAt(event.clientX, event.clientY);
   }
 
+  function completeTask() {
+    if (item.optimistic || isCompleting) return;
+    setIsCompleting(true);
+    completionTimerRef.current = setTimeout(() => {
+      onDone(item.id);
+      resetTimerRef.current = setTimeout(() => setIsCompleting(false), 1200);
+    }, 240);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (completionTimerRef.current) clearTimeout(completionTimerRef.current);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
+
   return (
     <li
       onContextMenu={handleContextMenu}
       data-saving={item.optimistic === true}
+      data-completing={isCompleting}
       className="today-task-row"
     >
-      <input
-        type="checkbox"
-        checked={false}
-        disabled={item.optimistic}
-        onChange={() => onDone(item.id)}
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={isCompleting}
+        disabled={item.optimistic || isCompleting}
+        onClick={completeTask}
         aria-label={
           item.optimistic
             ? `Saving "${item.title}"`
-            : `Mark "${item.title}" done`
+            : `Toggle completion for "${item.title}"`
         }
-        className="today-task-checkbox"
-      />
+        data-checked={isCompleting}
+        className="completion-check today-task-checkbox"
+      >
+        <span aria-hidden="true">✓</span>
+      </button>
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
           <span className="today-task-title min-w-0 flex-1">{item.title}</span>
@@ -72,7 +101,7 @@ export function ItemCard({ item, now, onDone }: Props) {
               details={contextDetails}
               dueAt={item.dueAt}
               scheduled={false}
-              onComplete={() => onDone(item.id)}
+              onComplete={completeTask}
             />
           )}
         </div>

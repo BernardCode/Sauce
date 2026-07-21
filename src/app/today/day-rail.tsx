@@ -668,7 +668,11 @@ export function DayRail({
               className="today-rail-habit"
               style={{ top }}
             >
-              <span className="today-rail-habit-check" aria-hidden="true">
+              <span
+                className="completion-check today-rail-habit-check"
+                data-checked={done}
+                aria-hidden="true"
+              >
                 {done ? "✓" : ""}
               </span>
               <span className="today-rail-habit-name">{habit.name}</span>
@@ -737,8 +741,8 @@ export function DayRail({
             className="motion-now-line pointer-events-none absolute right-0 z-20"
             style={{ top: nowTop, left: LABEL_GUTTER_PX }}
           >
-            <div className="relative border-t-2 border-red-500">
-              <div className="motion-now-dot absolute -top-[3px] -left-1 size-2 rounded-full bg-red-500" />
+            <div className="today-now-line relative border-t-2">
+              <div className="motion-now-dot today-now-dot absolute -top-[3px] -left-1 size-2 rounded-full" />
             </div>
           </div>
         ) : null}

@@ -402,8 +402,12 @@ body {
   box-shadow: none !important;
 }
 
-.today-schedule-panel .motion-now-line {
-  border-color: var(--foreground) !important;
+.today-schedule-panel .today-now-line {
+  border-color: #e5484d !important;
+}
+
+.today-schedule-panel .today-now-dot {
+  background: #e5484d !important;
 }
 
 .today-rail-habit {
@@ -458,9 +462,9 @@ body {
 }
 
 .today-rail-habit[data-done="true"] .today-rail-habit-check {
-  border-color: var(--foreground);
-  background: var(--foreground);
-  color: var(--background);
+  border-color: #2f9e5b;
+  background: #2f9e5b;
+  color: white;
 }
 
 .today-rail-habit[data-done="true"] .today-rail-habit-name {
@@ -545,24 +549,68 @@ body {
   opacity: 0.72;
 }
 
+.today-task-row[data-completing="true"] {
+  pointer-events: none;
+  animation: today-task-complete 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.completion-check {
+  display: grid;
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.2rem;
+  background: var(--surface);
+  color: white;
+  font-size: 0.62rem;
+  line-height: 1;
+  transition: background-color 160ms ease, border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.completion-check > span {
+  opacity: 0;
+  transform: scale(0.45) rotate(-18deg);
+}
+
+.completion-check[data-checked="true"] {
+  border-color: #2f9e5b;
+  background: #2f9e5b;
+}
+
+.completion-check[data-checked="true"] > span {
+  animation: motion-check-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  opacity: 1;
+  transform: none;
+}
+
+.app-page input[type="checkbox"] {
+  accent-color: #2f9e5b;
+}
+
+:root[data-theme="dark"] .completion-check[data-checked="true"] {
+  border-color: #39d353;
+  background: #2f9e5b;
+}
+
 .today-task-checkbox,
+.today-project-checkbox {
+  margin-top: 0.18rem;
+}
+
 .today-project-checkbox {
   width: 1rem;
   height: 1rem;
   flex: none;
-  margin-top: 0.18rem;
-  border: 1px solid var(--line-strong);
+  border: 1px dashed var(--line-strong);
   border-radius: 0.2rem;
   background: var(--surface);
 }
 
 .today-task-checkbox {
   cursor: pointer;
-  accent-color: var(--foreground);
-}
-
-.today-project-checkbox {
-  border-style: dashed;
 }
 
 .today-task-title {
@@ -628,19 +676,7 @@ body {
 }
 
 .today-task-draft-form {
-  display: grid;
-  grid-template-columns: 1rem minmax(0, 1fr);
-  align-items: start;
-  gap: 0.65rem;
-}
-
-.today-task-draft-checkbox {
-  width: 1rem;
-  height: 1rem;
-  margin-top: 0.12rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 0.2rem;
-  background: var(--surface);
+  display: block;
 }
 
 .app-page .today-task-draft-title {
@@ -657,16 +693,36 @@ body {
   outline: 0;
 }
 
-.today-task-draft-options {
-  display: grid;
-  grid-template-columns: minmax(8rem, 1fr) 7.5rem minmax(8rem, 1fr);
-  gap: 0.5rem;
+.today-task-draft-option-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   margin-top: 0.6rem;
+}
+
+.today-task-draft-option-buttons button {
+  min-height: 1.7rem;
+  border: 1px solid var(--today-panel-line);
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+  padding: 0.22rem 0.48rem;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 650;
+}
+
+.today-task-draft-option-buttons button:hover,
+.today-task-draft-option-buttons button[aria-expanded="true"],
+.today-task-draft-option-buttons button[data-filled="true"] {
+  border-color: color-mix(in srgb, var(--today-accent) 45%, var(--today-panel-line));
+  color: var(--foreground);
 }
 
 .today-task-draft-option {
   display: grid;
+  width: min(100%, 13rem);
   gap: 0.25rem;
+  margin-top: 0.5rem;
   color: var(--muted);
   font-size: 0.65rem;
   font-weight: 600;
@@ -700,6 +756,23 @@ body {
   margin: 0.4rem 0.25rem 0;
   color: var(--muted);
   font-size: 0.7rem;
+}
+
+@keyframes today-task-complete {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  45% {
+    border-color: color-mix(in srgb, #2f9e5b 42%, var(--today-panel-line));
+    background: color-mix(in srgb, #2f9e5b 8%, var(--today-row));
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(0.5rem);
+  }
 }
 
 .today-empty-state {
@@ -1280,9 +1353,9 @@ body {
 }
 
 .motion-calendar-habit[data-done="true"] .calendar-habit-check {
-  border-color: var(--foreground);
-  background: var(--foreground);
-  color: var(--background);
+  border-color: #2f9e5b;
+  background: #2f9e5b;
+  color: white;
 }
 
 .motion-calendar-habit[data-done="true"] .calendar-habit-title {
@@ -1526,14 +1599,6 @@ body {
 
   .today-schedule-panel {
     padding: 0.55rem;
-  }
-
-  .today-task-draft-options {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .today-task-draft-option:last-child {
-    grid-column: 1 / -1;
   }
 
   .task-menu-trigger {

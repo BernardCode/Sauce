@@ -403,11 +403,17 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
                     type="button"
                     data-done={habit.done}
                     aria-pressed={habit.done}
-                    aria-label={`Mark ${habit.name} ${habit.done ? "not done" : "done"} for ${habit.date}`}
+                    aria-label={`Toggle completion for ${habit.name} on ${habit.date}`}
                     onClick={() => toggleHabit(habit)}
                     className="motion-calendar-habit"
                   >
-                    <span className="calendar-habit-check" aria-hidden="true">{habit.done ? "✓" : ""}</span>
+                    <span
+                      className="completion-check calendar-habit-check"
+                      data-checked={habit.done}
+                      aria-hidden="true"
+                    >
+                      {habit.done ? "✓" : ""}
+                    </span>
                     <span className="calendar-habit-copy">
                       <span className="calendar-habit-title">{habit.name}</span>
                       <span className="calendar-habit-time">{habitTimeLabel(habit.scheduledTime)}, habit</span>
