@@ -111,6 +111,9 @@ export function HabitGrid({
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(
+    null,
+  );
   const [completedByHabit, setCompletedByHabit] = useState<Record<string, string[]>>(
     () => Object.fromEntries(rows.map((habit) => [habit.id, habit.completedDates])),
   );
@@ -279,18 +282,19 @@ export function HabitGrid({
           <h2 className="habit-period-heading" id="habit-month-heading">
             {monthLabel}
           </h2>
-          <div className="habit-month-calendar" role="list" aria-label={`${monthLabel} habit completions`}>
-            {dayLabels.map((day) => (
-              <span key={day} className="habit-month-weekday" aria-hidden="true">
-                {day.slice(0, 1)}
-              </span>
-            ))}
+          <div
+            className="habit-month-calendar"
+            role="group"
+            aria-label={`${monthLabel} habit completions`}
+          >
             {Array.from({ length: monthStartOffset }, (_, index) => (
               <span key={`empty-${index}`} className="habit-month-empty" aria-hidden="true" />
             ))}
             {monthDates.map((date) => {
               const completed = completedCountByDate.get(date) ?? 0;
               const isFuture = date > todayDate;
+              const isPrevious = date < todayDate;
+              const isSelected = selectedHistoryDate === date;
               const level = isFuture
                 ? 0
                 : habitContributionLevel(completed, busiestDay);
@@ -299,21 +303,75 @@ export function HabitGrid({
                 { month: "long", day: "numeric" },
               );
               return (
-                <div
+                <button
+                  type="button"
                   key={date}
                   className="habit-month-day"
                   data-level={level}
                   data-today={date === todayDate}
                   data-future={isFuture}
-                  role="listitem"
-                  aria-label={`${label}, ${completed} of ${rows.length} habits completed`}
+                  data-selected={isSelected}
+                  disabled={!isPrevious || !rows.length}
+                  aria-pressed={isPrevious ? isSelected : undefined}
+                  aria-label={`${label}, ${completed} of ${rows.length} habits completed${isPrevious && rows.length ? ", edit this day" : ""}`}
                   title={`${label}: ${completed} of ${rows.length}`}
-                >
-                  <span>{Number(date.slice(8))}</span>
-                </div>
+                  onClick={() =>
+                    setSelectedHistoryDate((current) =>
+                      current === date ? null : date,
+                    )
+                  }
+                />
               );
             })}
           </div>
+          {selectedHistoryDate ? (
+            <section
+              className="habit-day-editor"
+              aria-labelledby="habit-day-editor-heading"
+            >
+              <header>
+                <strong id="habit-day-editor-heading">
+                  {new Date(`${selectedHistoryDate}T12:00:00`).toLocaleDateString(
+                    undefined,
+                    { weekday: "long", month: "long", day: "numeric" },
+                  )}
+                </strong>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHistoryDate(null)}
+                >
+                  Close
+                </button>
+              </header>
+              <div>
+                {rows.map((habit) => {
+                  const done = (completedByHabit[habit.id] ?? []).includes(
+                    selectedHistoryDate,
+                  );
+                  return (
+                    <button
+                      type="button"
+                      key={habit.id}
+                      className="habit-day-editor-row"
+                      data-done={done}
+                      aria-pressed={done}
+                      disabled={isPending}
+                      onClick={() => toggleDate(habit.id, selectedHistoryDate)}
+                    >
+                      <span
+                        className="completion-check"
+                        data-checked={done}
+                        aria-hidden="true"
+                      >
+                        <span>✓</span>
+                      </span>
+                      <span>{habit.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
           {rows.length ? (
             <div className="habit-month-stats" aria-label="Habit statistics">
               {rows.map((habit) => (
