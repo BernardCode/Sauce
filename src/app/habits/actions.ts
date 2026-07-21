@@ -19,18 +19,29 @@ const habitSchema = z
     message: "Custom habits need at least one day.",
   });
 
+const habitUpdateSchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string().trim().min(1).max(120),
+    cadence: z.enum(["daily", "weekdays", "custom"]),
+    days: z.array(z.number().int().min(0).max(6)).max(7),
+    targetPerWeek: z.number().int().min(1).max(7),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    scheduledTime: z.union([
+      z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      z.null(),
+    ]),
+  })
+  .refine((value) => value.cadence !== "custom" || value.days.length > 0, {
+    message: "Custom habits need at least one day.",
+  });
+
 const logSchema = z.object({
   habitId: z.uuid(),
   date: z.iso.date(),
   done: z.boolean(),
 });
 const idSchema = z.object({ id: z.uuid() });
-const scheduleSchema = idSchema.extend({
-  scheduledTime: z.union([
-    z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-    z.null(),
-  ]),
-});
 type ActionResult = { error: string | null };
 
 function refreshHabits() {
@@ -61,21 +72,32 @@ export async function createHabit(input: unknown): Promise<ActionResult> {
   return { error: null };
 }
 
-export async function setHabitScheduleTime(input: unknown): Promise<ActionResult> {
-  const parsed = scheduleSchema.safeParse(input);
-  if (!parsed.success) return { error: "That habit time is not valid." };
+export async function updateHabit(input: unknown): Promise<ActionResult> {
+  const parsed = habitUpdateSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message ?? "That habit is not valid.",
+    };
+  }
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "You are signed out. Refresh and sign in again." };
   const { data, error } = await supabase
     .from("habits")
-    .update({ scheduled_time: parsed.data.scheduledTime })
+    .update({
+      name: parsed.data.name,
+      cadence: parsed.data.cadence,
+      days_json: parsed.data.days,
+      target_per_week: parsed.data.targetPerWeek,
+      color: parsed.data.color,
+      scheduled_time: parsed.data.scheduledTime,
+    })
     .eq("id", parsed.data.id)
     .eq("user_id", user.id)
     .eq("archived", false)
     .select("id")
     .maybeSingle();
-  if (error || !data) return { error: "Could not update that habit time." };
+  if (error || !data) return { error: "Could not update that habit." };
   refreshHabits();
   return { error: null };
 }

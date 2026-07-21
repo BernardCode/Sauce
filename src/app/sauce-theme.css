@@ -832,44 +832,38 @@ body {
 .habit-workspace {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.75rem;
 }
 
-.habit-today-section {
-  border-top: 1px solid var(--line);
-}
-
-.habit-section-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 0;
-}
-
-.habit-section-heading h2 {
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.habit-section-heading p,
-.habit-section-heading > span {
-  color: var(--muted);
-  font-size: 0.7rem;
+.habit-period-heading {
+  margin-bottom: 0.85rem;
+  color: var(--foreground);
+  font-size: 1.12rem;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  text-align: center;
 }
 
 .habit-today-list {
-  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+}
+
+.habit-today-entry {
+  position: relative;
 }
 
 .habit-today-row {
   display: grid;
-  min-height: 4.25rem;
-  grid-template-columns: 2.5rem minmax(10rem, 1fr) 8rem auto;
+  min-height: 4.4rem;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.85rem;
-  border-top: 1px solid var(--line);
-  padding: 0.65rem 0;
+  gap: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--surface);
+  padding: 0.65rem 0.7rem;
 }
 
 .habit-today-row[data-done="true"] .habit-today-copy h3 {
@@ -888,6 +882,10 @@ body {
   color: var(--background);
   font-size: 0.8rem;
   transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.habit-today-check::after {
+  content: none !important;
 }
 
 .habit-today-check[aria-pressed="true"] {
@@ -909,51 +907,84 @@ body {
 .habit-today-copy h3 {
   overflow: hidden;
   color: var(--foreground);
-  font-size: 0.86rem;
-  font-weight: 650;
+  font-size: 1.02rem;
+  font-weight: 720;
+  letter-spacing: -0.015em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.habit-today-copy p,
-.habit-row-actions {
-  margin-top: 0.2rem;
+.habit-options {
+  position: relative;
+  z-index: 5;
+}
+
+.habit-options > summary {
+  display: grid;
+  width: 2.25rem;
+  min-height: 2.25rem;
+  place-items: center;
+  border-radius: 0.35rem;
   color: var(--muted);
-  font-size: 0.68rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  list-style: none;
 }
 
-.habit-time-control {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
+.habit-options > summary::-webkit-details-marker {
+  display: none;
+}
+
+.habit-options > summary:hover,
+.habit-options[open] > summary {
+  background: var(--surface-subtle);
+  color: var(--foreground);
+}
+
+.habit-options > summary:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.habit-options-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  display: grid;
+  min-width: 8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  padding: 0.25rem;
+  box-shadow: 0 0.75rem 1.8rem rgb(0 0 0 / 10%);
+}
+
+.habit-options-menu button {
+  min-height: 2.25rem;
+  border-radius: 0.3rem;
+  padding: 0.45rem 0.55rem;
+  color: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.habit-options-menu button:hover {
+  background: var(--surface-subtle);
+}
+
+.habit-options-menu .habit-archive-option {
   color: var(--muted);
-  font-size: 0.68rem;
 }
 
-.app-page .habit-time-control input {
-  width: 6.25rem;
-  min-height: 2rem;
-  padding: 0.3rem 0.45rem !important;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.7rem;
-}
-
-.habit-row-actions {
-  display: flex;
-  min-width: 7.5rem;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.habit-row-actions button,
 .habit-add-form-heading button {
   color: var(--muted);
   font-size: 0.68rem;
 }
 
-.habit-row-actions button:hover,
 .habit-add-form-heading button:hover {
   color: var(--foreground);
 }
@@ -969,16 +1000,6 @@ body {
   max-width: 100%;
   contain: paint;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 0.75rem;
-}
-
-.habit-history > summary {
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 650;
-  list-style-position: inside;
 }
 
 .habit-history-scroll {
@@ -993,7 +1014,7 @@ body {
 .habit-history-grid {
   display: grid;
   width: max-content;
-  grid-template-columns: 10rem repeat(29, 1.45rem);
+  grid-template-columns: 14rem repeat(29, 1.45rem);
   align-items: center;
   gap: 0.35rem;
   color: var(--muted);
@@ -1012,9 +1033,11 @@ body {
   text-align: left;
 }
 
-.habit-history-name span {
+.habit-history-name strong {
   max-width: 100%;
   overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 720;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1023,6 +1046,11 @@ body {
   margin-top: 0.15rem;
   color: var(--muted);
   font-size: 0.58rem;
+}
+
+.habit-edit-form {
+  width: calc(100% - 3.4rem);
+  margin: 0.45rem 0 0 3.4rem;
 }
 
 .habit-history-cell {
@@ -1432,19 +1460,9 @@ body {
   }
 
   .habit-today-row {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
-    gap: 0.6rem 0.75rem;
-    padding: 0.75rem 0;
-  }
-
-  .habit-time-control,
-  .habit-row-actions {
-    grid-column: 2;
-    justify-content: flex-start;
-  }
-
-  .habit-row-actions {
-    min-width: 0;
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    padding: 0.7rem;
   }
 
   .habit-add-form {
@@ -1456,6 +1474,11 @@ body {
   .habit-add-form fieldset,
   .habit-create-button {
     grid-column: 1;
+  }
+
+  .habit-edit-form {
+    width: 100%;
+    margin-left: 0;
   }
 }
 
@@ -2381,30 +2404,6 @@ body {
 
 /* Remaining route alignment */
 
-.habit-today-section,
-.habit-history {
-  border: 0 !important;
-}
-
-.habit-section-heading {
-  padding: 0;
-}
-
-.habit-today-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
-  border: 0;
-}
-
-.habit-today-row {
-  min-height: 3.75rem;
-  border: 1px solid var(--line) !important;
-  border-radius: 0.55rem;
-  background: var(--surface);
-  padding: 0.6rem 0.65rem;
-}
-
 .habit-empty {
   border: 1px solid var(--line);
   border-radius: 0.55rem;
@@ -2413,11 +2412,7 @@ body {
 }
 
 .habit-history {
-  padding: 0.65rem !important;
-}
-
-.habit-history > summary {
-  margin: 0 0.25rem;
+  border: 0 !important;
 }
 
 .habit-history-scroll {

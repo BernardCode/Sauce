@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/components/app-header";
-import { habitIsDue } from "@/lib/habits/due";
 import { calculateHabitStats } from "@/lib/habits/stats";
 import { habitDaysSchema } from "@/lib/planner/schemas";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +21,7 @@ export default async function HabitsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/");
   const [{ data: habits }, { data: logs }] = await Promise.all([
-    supabase.from("habits").select("id, name, cadence, days_json, target_per_week, scheduled_time").eq("user_id", user.id).eq("archived", false).order("name"),
+    supabase.from("habits").select("id, name, cadence, days_json, target_per_week, color, scheduled_time").eq("user_id", user.id).eq("archived", false).order("name"),
     supabase.from("habit_logs").select("habit_id, date, done").eq("user_id", user.id).eq("done", true).order("date"),
   ]);
   const requestNow = requestDate();
@@ -50,8 +49,9 @@ export default async function HabitsPage() {
       name: habit.name,
       cadence: habit.cadence,
       days,
+      targetPerWeek: habit.target_per_week,
+      color: habit.color,
       scheduledTime: habit.scheduled_time?.slice(0, 5) ?? null,
-      todayDue: habitIsDue(habit.cadence, days, today.getDay()),
       completedDates,
       ...calculateHabitStats(completedDates, today, habit.target_per_week),
     };
