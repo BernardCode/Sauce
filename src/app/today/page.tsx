@@ -9,6 +9,7 @@ import {
 } from "@/lib/planner/schemas";
 import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
+import { MagicDust, type MagicDustMood } from "@/components/ui/magic-dust";
 import { ItemList } from "./item-list";
 import type { TodayItem } from "./task-types";
 import { TodaySchedulePanel } from "./today-schedule-panel";
@@ -24,8 +25,10 @@ type ItemRow = {
   course: string | null;
   due_at: string | null;
   est_minutes: number | null;
+  remaining_minutes: number | null;
   is_project: boolean;
   origin: string;
+  priority: string;
 };
 
 type BlockRow = {
@@ -50,7 +53,7 @@ type EventRow = {
 };
 
 const itemColumns =
-  "id, title, course, due_at, est_minutes, is_project, origin";
+  "id, title, course, due_at, est_minutes, remaining_minutes, is_project, origin, priority";
 const blockColumns =
   "id, item_id, title, start_at, end_at, origin, locked, done, reason, actual_minutes";
 const eventColumns = "id, title, start_at, end_at, all_day";
@@ -115,6 +118,25 @@ function toTodayEvent(row: EventRow): TodayEvent {
     endAt: row.end_at,
     allDay: row.all_day,
   };
+}
+
+function workloadMood(
+  items: ItemRow[],
+  today: string,
+  timeZone: string,
+): MagicDustMood {
+  const remainingMinutes = items.reduce(
+    (total, item) => total + (item.remaining_minutes ?? item.est_minutes ?? 0),
+    0,
+  );
+  const hasUrgentItem = items.some(
+    (item) =>
+      item.priority === "high" ||
+      (item.due_at !== null &&
+        localParts(new Date(item.due_at), timeZone).date <= today),
+  );
+
+  return hasUrgentItem || remainingMinutes >= 240 ? "urgent" : "calm";
 }
 
 export default async function TodayPage() {
@@ -196,6 +218,11 @@ export default async function TodayPage() {
   const openItems = ((openResult.data ?? []) as ItemRow[]).map(toTodayItem);
   const timeZone = safeTimeZone(profileResult.data?.timezone ?? "UTC");
   const localToday = localParts(new Date(), timeZone);
+  const dustMood = workloadMood(
+    (openResult.data ?? []) as ItemRow[],
+    localToday.date,
+    timeZone,
+  );
   const parsedHours = workingHoursSchema.safeParse(
     profileResult.data?.working_hours_json ?? {},
   );
@@ -265,6 +292,7 @@ export default async function TodayPage() {
   return (
     <div className="app-page" data-page="today">
       <AppHeader />
+      <MagicDust mood={dustMood} />
       <main className="flex flex-1 flex-col">
         <div className="today-daily-page">
           <header className="today-simple-header">
