@@ -6,11 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { readItemContext, writeItemContext } from "./item-context";
 import {
   addItemInputSchema,
-  applyPlanInputSchema,
+  applyPlanServiceInputSchema,
   blockProposalSchema,
   createNoteInputSchema,
   dateRangeSchema,
-  decomposeProjectInputSchema,
+  decomposeProjectServiceInputSchema,
   habitDaysSchema,
   logHabitInputSchema,
   plannerPreferencesSchema,
@@ -206,7 +206,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
 
 export async function applyPlan(userId: string, input: unknown) {
   const parsedUserId = z.uuid().safeParse(userId);
-  const parsed = applyPlanInputSchema.safeParse(input);
+  const parsed = applyPlanServiceInputSchema.safeParse(input);
   if (!parsedUserId.success || !parsed.success) {
     return { written: 0, rejected: [{ block: input, why: "invalid plan input" }] };
   }
@@ -588,7 +588,7 @@ export async function updatePlannerNote(userId: string, input: unknown) {
 
 export async function decomposeProject(userId: string, input: unknown) {
   const parsedUserId = z.uuid().safeParse(userId);
-  const parsed = decomposeProjectInputSchema.safeParse(input);
+  const parsed = decomposeProjectServiceInputSchema.safeParse(input);
   if (!parsedUserId.success || !parsed.success) {
     return { written: 0, rejected: [{ step: input, why: "invalid project input" }] };
   }

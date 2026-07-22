@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   addItemInputSchema,
   applyPlanInputSchema,
+  applyPlanServiceInputSchema,
   blockProposalSchema,
   createNoteInputSchema,
+  decomposeProjectInputSchema,
+  decomposeProjectServiceInputSchema,
   projectStepSchema,
   updateItemInputSchema,
   updateNoteInputSchema,
@@ -49,6 +52,26 @@ describe("planner schemas", () => {
         blocks: [],
       }).success,
     ).toBe(false);
+  });
+
+  it("advertises and validates complete nested plan blocks", () => {
+    const malformedPlan = {
+      from_date: "2026-07-22",
+      to_date: "2026-07-29",
+      blocks: [{}],
+    };
+    expect(applyPlanInputSchema.safeParse(malformedPlan).success).toBe(false);
+    expect(applyPlanServiceInputSchema.safeParse(malformedPlan).success).toBe(
+      true,
+    );
+
+    const malformedProject = { project_id: validBlock.item_id, steps: [{}] };
+    expect(
+      decomposeProjectInputSchema.safeParse(malformedProject).success,
+    ).toBe(false);
+    expect(
+      decomposeProjectServiceInputSchema.safeParse(malformedProject).success,
+    ).toBe(true);
   });
 
   it("rejects inverted working hours and blocked windows", () => {

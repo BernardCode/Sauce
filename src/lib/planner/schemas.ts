@@ -11,11 +11,20 @@ export const dateRangeSchema = z
 
 export const blockProposalSchema = z
   .object({
-    item_id: z.uuid(),
-    title: z.string().trim().min(1).max(500),
-    start_at: z.iso.datetime({ offset: true }),
-    end_at: z.iso.datetime({ offset: true }),
-    reason: z.string().trim().min(10).max(500),
+    item_id: z.uuid().describe("Sauce item id for a task or project step"),
+    title: z.string().trim().min(1).max(500).describe("Schedule block title"),
+    start_at: z
+      .iso.datetime({ offset: true })
+      .describe("Block start as an ISO 8601 timestamp with an offset"),
+    end_at: z
+      .iso.datetime({ offset: true })
+      .describe("Block end as an ISO 8601 timestamp with an offset"),
+    reason: z
+      .string()
+      .trim()
+      .min(10)
+      .max(500)
+      .describe("One sentence explaining why this time was chosen"),
   })
   .refine((block) => new Date(block.end_at) > new Date(block.start_at), {
     message: "end before start",
@@ -29,6 +38,19 @@ export const blockProposalSchema = z
   );
 
 export const applyPlanInputSchema = z
+  .object({
+    from_date: z.iso.date(),
+    to_date: z.iso.date(),
+    blocks: z.array(blockProposalSchema).max(500),
+    scheduled_pass: z.boolean().default(false),
+  })
+  .refine((value) => value.to_date >= value.from_date, {
+    message: "to_date must be on or after from_date",
+  });
+
+// The MCP schema above must expose every nested field to clients. This service
+// envelope stays permissive so malformed blocks can be rejected individually.
+export const applyPlanServiceInputSchema = z
   .object({
     from_date: z.iso.date(),
     to_date: z.iso.date(),
@@ -101,13 +123,31 @@ export const logHabitInputSchema = z.object({
 });
 
 export const projectStepSchema = z.object({
-  title: z.string().trim().min(1).max(500),
-  est_minutes: z.number().int().positive().max(10_000),
-  step_order: z.number().int().nonnegative().max(1_000),
-  suggested_due: z.iso.datetime({ offset: true }),
+  title: z.string().trim().min(1).max(500).describe("Concrete step title"),
+  est_minutes: z
+    .number()
+    .int()
+    .positive()
+    .max(10_000)
+    .describe("Estimated whole minutes for this step"),
+  step_order: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(1_000)
+    .describe("Zero-based step order"),
+  suggested_due: z
+    .iso.datetime({ offset: true })
+    .describe("Target completion as an ISO 8601 timestamp with an offset"),
 });
 
 export const decomposeProjectInputSchema = z.object({
+  project_id: z.uuid(),
+  steps: z.array(projectStepSchema).min(1).max(100),
+});
+
+// Keep per-step rejection behavior after the MCP transport validates shape.
+export const decomposeProjectServiceInputSchema = z.object({
   project_id: z.uuid(),
   steps: z.array(z.unknown()).min(1).max(100),
 });
