@@ -1,28 +1,89 @@
 # Claude scheduled planner
 
-The dashboard never sends work to a metered model API. A Claude scheduled task calls the deployed MCP connector every morning.
+The dashboard does not send work to a metered model API. A Claude scheduled task calls the deployed MCP connector every morning. Supabase Auth provides the OAuth 2.1 flow Claude requires.
 
-## Connector
+## What is already in the app
 
-Set `MCP_SECRET` to at least 32 random characters and `MCP_USER_ID` to the UUID of the single dashboard user in Vercel. Add this remote connector in Claude:
+The app provides:
+
+* The OAuth-protected MCP endpoint at `https://<your-vercel-domain>/api/mcp`
+* OAuth discovery metadata at `https://<your-vercel-domain>/.well-known/oauth-protected-resource`
+* A consent screen at `https://<your-vercel-domain>/oauth/consent`
+* A Google sign-in flow that returns to the consent screen
+* A user restriction through `MCP_USER_ID`
+* A legacy secret route for emergency testing only
+
+Claude should use `/api/mcp`. Do not put `MCP_SECRET` in the Claude connector URL.
+
+## 1. Confirm Vercel variables
+
+Set these variables for both Production and Preview:
 
 ```text
-https://<your-vercel-domain>/api/mcp/<MCP_SECRET>
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SERVICE_ROLE_KEY
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+SOURCE_SECRET_KEY
+CRON_SECRET
+MCP_USER_ID
+MCP_SECRET
 ```
 
-Confirm that Claude can list these tools before scheduling the task:
+`MCP_USER_ID` is the UUID of the one Supabase user Claude may access. `MCP_SECRET` is only for the legacy fallback route and must be at least 32 random characters.
+
+Redeploy after changing a Vercel variable. Existing deployments do not receive new values automatically.
+
+## 2. Enable the Supabase OAuth server
+
+In the Supabase dashboard:
+
+1. Open the dashboard project.
+2. Go to **Authentication**, then **URL Configuration**.
+3. Set **Site URL** to the production Vercel origin, with no path.
+4. Add `https://<your-vercel-domain>/auth/callback` to the allowed redirect URLs if it is not already present.
+5. Go to **Authentication**, then **OAuth Server**.
+6. Enable the OAuth 2.1 server.
+7. Set **Authorization Path** to `/oauth/consent`.
+8. Enable **Dynamic client registration** so Claude can register itself.
+9. Save the settings.
+
+Supabase recommends an asymmetric JWT signing key for OAuth. In **Authentication**, then **Signing Keys**, confirm the active key uses RS256 or ES256. Rotate from HS256 if needed before requesting the `openid` scope.
+
+You do not create a separate Claude client ID when dynamic client registration is enabled.
+
+## 3. Add the Claude connector
+
+For an individual Claude Pro or Max account:
+
+1. Open Claude.
+2. Go to **Customize**, then **Connectors**.
+3. Choose **Add custom connector**.
+4. Name it `sauce`.
+5. Enter `https://<your-vercel-domain>/api/mcp` as the remote MCP URL.
+6. Choose **Connect**.
+7. Sign in with the Google account that owns the dashboard if asked.
+8. On the sauce consent screen, review the access and choose **Allow**.
+
+Confirm that Claude lists these tools:
 
 * `get_planning_context`
 * `apply_plan`
 * `add_item`
 * `log_habit`
-* `decompose_project`, after the projects migration is deployed
+* `decompose_project`
 
-The URL is a credential. Do not paste it into screenshots, logs, issues, or committed files. Rotate `MCP_SECRET` if the URL is exposed.
+## 4. Create the scheduled task
 
-## Schedule
-
-Create one task in Claude that runs every day at 5:00am local time. Give it access only to the personal dashboard connector and use this prompt:
+1. Open **Scheduled** in Claude's left sidebar.
+2. Choose **New task**.
+3. Choose **Set up manually**.
+4. Name the task `Plan sauce`.
+5. Set it to run every day at `5:00 AM` in the local timezone.
+6. Give the task access to only the `sauce` connector.
+7. Use the approval mode that permits the trusted sauce tools to run without asking each morning.
+8. Paste this prompt:
 
 ```text
 Plan my week.
@@ -36,9 +97,9 @@ Plan my week.
 Never invent an item id, habit id, date, or time. If a tool rejects data, report the rejection. Do not work around the tool's validation.
 ```
 
-## Verification
+## 5. Test it once
 
-After the first run:
+Run `Plan sauce` manually before waiting for the first scheduled run. Then:
 
 1. Open Today and confirm AI blocks have a one-line reason.
 2. Confirm calendar events and manual or locked blocks were not moved.
@@ -46,3 +107,15 @@ After the first run:
 4. Confirm the next scheduled pass can replace only future, unlocked AI blocks.
 
 If a run fails, the existing plan remains in place. Re-run the task in Claude or plan manually by dragging tasks onto the calendar.
+
+## Troubleshooting
+
+If Claude says it cannot register with the sign-in service:
+
+* Confirm the connector URL ends in `/api/mcp`, with no secret after it.
+* Confirm the Supabase OAuth server and dynamic client registration are enabled.
+* Confirm the authorization path is exactly `/oauth/consent`.
+* Open the deployed protected-resource metadata URL and confirm it returns JSON.
+* Redeploy after any Vercel environment change.
+
+If authorization returns to the wrong page, confirm the Supabase Site URL is the production Vercel origin and the production `/auth/callback` URL is allowed.

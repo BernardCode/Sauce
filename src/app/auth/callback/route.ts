@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { saveGoogleCalendarSource } from "@/lib/calendar/google";
+import { parseSafeNextPath } from "@/lib/safe-next-path";
 import { createClient } from "@/lib/supabase/server";
 
 const callbackQuerySchema = z.object({
   code: z.string().trim().min(1).max(4096),
+  next: z.string().max(2_048).nullable(),
 });
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const parsedQuery = callbackQuerySchema.safeParse({
     code: searchParams.get("code"),
+    next: searchParams.get("next"),
   });
 
   if (parsedQuery.success) {
@@ -28,7 +31,8 @@ export async function GET(request: Request) {
       } catch {
         return NextResponse.redirect(`${origin}/?error=calendar`);
       }
-      return NextResponse.redirect(`${origin}/today`);
+      const nextPath = parseSafeNextPath(parsedQuery.data.next) ?? "/today";
+      return NextResponse.redirect(new URL(nextPath, origin));
     }
   }
   return NextResponse.redirect(`${origin}/?error=signin`);

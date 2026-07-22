@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { parseSafeNextPath } from "@/lib/safe-next-path";
 import { createClient } from "@/lib/supabase/server";
 
 const requestOriginSchema = z.url().refine((value) => {
@@ -10,7 +11,7 @@ const requestOriginSchema = z.url().refine((value) => {
   return protocol === "http:" || protocol === "https:";
 });
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData: FormData) {
   const supabase = await createClient();
   const parsedOrigin = requestOriginSchema.safeParse(
     (await headers()).get("origin"),
@@ -19,10 +20,14 @@ export async function signInWithGoogle() {
     redirect("/?error=signin");
   }
 
+  const nextPath = parseSafeNextPath(formData.get("next"));
+  const callbackUrl = new URL("/auth/callback", parsedOrigin.data);
+  if (nextPath) callbackUrl.searchParams.set("next", nextPath);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${parsedOrigin.data}/auth/callback`,
+      redirectTo: callbackUrl.toString(),
       scopes: "https://www.googleapis.com/auth/calendar.readonly",
       queryParams: {
         access_type: "offline",
