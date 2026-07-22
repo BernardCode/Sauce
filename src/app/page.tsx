@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -34,19 +35,28 @@ export default async function Home({
         <ThemeToggle />
       </div>
       <section className="motion-auth-shell w-full max-w-md border-t border-[var(--line-strong)] pt-8">
-          <h1 className="motion-auth-title text-5xl font-semibold tracking-[-0.06em] sm:text-7xl">sauce</h1>
-          <form action={signInWithGoogle} className="mt-10">
-            <button type="submit" className="bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-[var(--background)] hover:opacity-80">Continue with Google</button>
-          </form>
-      </section>
-      {showSignInError && (
-        <p className="absolute bottom-5 border border-[var(--line-strong)] px-3 py-1.5 text-sm">Sign-in failed. Try again.</p>
-      )}
-      {showCalendarError && (
-        <p className="absolute bottom-5 border border-[var(--line-strong)] px-3 py-1.5 text-sm">
-          Signed in, but Calendar access could not be saved. Try again.
+        <h1 className="motion-auth-title text-5xl font-semibold tracking-[-0.06em] sm:text-7xl">sauce</h1>
+        <p className="auth-product-copy">
+          A private workspace for tasks, schedules, habits, and SAT study.
         </p>
-      )}
+        <form action={signInWithGoogle} className="mt-10">
+          <button type="submit" className="bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-[var(--background)] hover:opacity-80">Continue with Google</button>
+        </form>
+      </section>
+      <div className="auth-footer">
+        {showSignInError && (
+          <p className="auth-error-message">Sign-in failed. Try again.</p>
+        )}
+        {showCalendarError && (
+          <p className="auth-error-message">
+            Signed in, but Calendar access could not be saved. Try again.
+          </p>
+        )}
+        <nav className="auth-legal-links" aria-label="Legal">
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
+      </div>
     </main>
   );
 }

@@ -38,6 +38,8 @@ export async function proxy(request: NextRequest) {
   // Redirecting them to the sign-in page would break cron and MCP clients.
   const isPublic =
     pathname === "/" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/");
 

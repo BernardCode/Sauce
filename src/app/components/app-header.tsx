@@ -48,6 +48,10 @@ export function AppHeader() {
               Sign out
             </button>
           </form>
+          <nav className="app-legal-links" aria-label="Legal">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </nav>
         </div>
       </aside>
 
