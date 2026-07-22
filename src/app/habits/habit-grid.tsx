@@ -111,9 +111,7 @@ export function HabitGrid({
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
-  const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(
-    null,
-  );
+  const [selectedDate, setSelectedDate] = useState(todayDate);
   const [completedByHabit, setCompletedByHabit] = useState<Record<string, string[]>>(
     () => Object.fromEntries(rows.map((habit) => [habit.id, habit.completedDates])),
   );
@@ -136,6 +134,14 @@ export function HabitGrid({
     undefined,
     { month: "long", year: "numeric" },
   );
+  const selectedDateLabel =
+    selectedDate === todayDate
+      ? "Today"
+      : new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        });
 
   function toggleDate(habitId: string, date: string) {
     const wasDone = (completedByHabit[habitId] ?? []).includes(date);
@@ -212,20 +218,30 @@ export function HabitGrid({
   return (
     <div className="motion-habit-grid habit-workspace">
       <div className="habit-overview-grid">
-        <section className="habit-today-section" aria-labelledby="habit-today-heading">
-          <h2 className="habit-period-heading" id="habit-today-heading">Today</h2>
+        <section
+          className="habit-today-section"
+          aria-labelledby="habit-checklist-heading"
+        >
+          <h2 className="habit-period-heading" id="habit-checklist-heading">
+            {selectedDateLabel}
+          </h2>
 
           <div className="habit-today-list">
             {rows.map((habit) => {
-              const doneToday = (completedByHabit[habit.id] ?? []).includes(todayDate);
+              const doneOnSelectedDate = (
+                completedByHabit[habit.id] ?? []
+              ).includes(selectedDate);
               return (
                 <div key={habit.id} className="habit-today-entry">
-                  <article className="habit-today-row" data-done={doneToday}>
+                  <article
+                    className="habit-today-row"
+                    data-done={doneOnSelectedDate}
+                  >
                     <button
                       type="button"
-                      aria-label={`Toggle ${habit.name} for today`}
-                      aria-pressed={doneToday}
-                      onClick={() => toggleDate(habit.id, todayDate)}
+                      aria-label={`Toggle ${habit.name} for ${selectedDateLabel.toLowerCase()}`}
+                      aria-pressed={doneOnSelectedDate}
+                      onClick={() => toggleDate(habit.id, selectedDate)}
                       className="habit-today-toggle"
                     >
                       <span className="habit-today-name">{habit.name}</span>
@@ -293,8 +309,7 @@ export function HabitGrid({
             {monthDates.map((date) => {
               const completed = completedCountByDate.get(date) ?? 0;
               const isFuture = date > todayDate;
-              const isPrevious = date < todayDate;
-              const isSelected = selectedHistoryDate === date;
+              const isSelected = selectedDate === date;
               const level = isFuture
                 ? 0
                 : habitContributionLevel(completed, busiestDay);
@@ -311,67 +326,15 @@ export function HabitGrid({
                   data-today={date === todayDate}
                   data-future={isFuture}
                   data-selected={isSelected}
-                  disabled={!isPrevious || !rows.length}
-                  aria-pressed={isPrevious ? isSelected : undefined}
-                  aria-label={`${label}, ${completed} of ${rows.length} habits completed${isPrevious && rows.length ? ", edit this day" : ""}`}
+                  disabled={isFuture || !rows.length}
+                  aria-pressed={!isFuture ? isSelected : undefined}
+                  aria-label={`${label}, ${completed} of ${rows.length} habits completed${!isFuture && rows.length ? ", view this day" : ""}`}
                   title={`${label}: ${completed} of ${rows.length}`}
-                  onClick={() =>
-                    setSelectedHistoryDate((current) =>
-                      current === date ? null : date,
-                    )
-                  }
+                  onClick={() => setSelectedDate(date)}
                 />
               );
             })}
           </div>
-          {selectedHistoryDate ? (
-            <section
-              className="habit-day-editor"
-              aria-labelledby="habit-day-editor-heading"
-            >
-              <header>
-                <strong id="habit-day-editor-heading">
-                  {new Date(`${selectedHistoryDate}T12:00:00`).toLocaleDateString(
-                    undefined,
-                    { weekday: "long", month: "long", day: "numeric" },
-                  )}
-                </strong>
-                <button
-                  type="button"
-                  onClick={() => setSelectedHistoryDate(null)}
-                >
-                  Close
-                </button>
-              </header>
-              <div>
-                {rows.map((habit) => {
-                  const done = (completedByHabit[habit.id] ?? []).includes(
-                    selectedHistoryDate,
-                  );
-                  return (
-                    <button
-                      type="button"
-                      key={habit.id}
-                      className="habit-day-editor-row"
-                      data-done={done}
-                      aria-pressed={done}
-                      disabled={isPending}
-                      onClick={() => toggleDate(habit.id, selectedHistoryDate)}
-                    >
-                      <span
-                        className="completion-check"
-                        data-checked={done}
-                        aria-hidden="true"
-                      >
-                        <span>✓</span>
-                      </span>
-                      <span>{habit.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
           {rows.length ? (
             <div className="habit-month-stats" aria-label="Habit statistics">
               {rows.map((habit) => (

@@ -5,6 +5,23 @@ body {
   color: var(--foreground);
 }
 
+button:not(:disabled),
+a[href],
+summary,
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="color"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
 ::selection {
   background: var(--primary-soft);
   color: var(--foreground);
@@ -1163,66 +1180,6 @@ body {
 
 .habit-month-day[data-future="true"] {
   opacity: 0.42;
-}
-
-.habit-day-editor {
-  width: min(100%, 24rem);
-  margin: 0.9rem auto 0;
-  border: 1px solid var(--line);
-  border-radius: 0.55rem;
-  background: var(--surface);
-  padding: 0.65rem;
-}
-
-.habit-day-editor > header {
-  display: flex;
-  min-height: 1.75rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.habit-day-editor > header strong {
-  color: var(--foreground);
-  font-size: 0.78rem;
-  font-weight: 750;
-}
-
-.habit-day-editor > header button {
-  color: var(--muted);
-  font-size: 0.66rem;
-}
-
-.habit-day-editor > header button:hover {
-  color: var(--foreground);
-}
-
-.habit-day-editor > div {
-  display: flex;
-  margin-top: 0.45rem;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.habit-day-editor-row {
-  display: flex;
-  width: 100%;
-  min-height: 2.45rem;
-  align-items: center;
-  gap: 0.55rem;
-  border-radius: 0.4rem;
-  padding: 0.4rem 0.5rem;
-  color: var(--foreground);
-  text-align: left;
-}
-
-.habit-day-editor-row:hover {
-  background: var(--surface-subtle);
-}
-
-.habit-day-editor-row > span:last-child {
-  font-size: 0.74rem;
-  font-weight: 650;
 }
 
 .habit-month-stats {
