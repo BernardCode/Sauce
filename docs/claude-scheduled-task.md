@@ -53,6 +53,16 @@ Supabase recommends an asymmetric JWT signing key for OAuth. In **Authentication
 
 You do not create a separate Claude client ID when dynamic client registration is enabled.
 
+If the dynamic registration toggle does not remain enabled, use a manual public OAuth app instead:
+
+1. Go to **Authentication**, then **OAuth Apps**.
+2. Create an app named `Claude`.
+3. Choose a public client with no client secret.
+4. Add both callback URLs:
+   * `https://claude.ai/api/mcp/auth_callback`
+   * `https://claude.com/api/mcp/auth_callback`
+5. Copy the generated client ID. Claude will ask for it in the connector's advanced settings.
+
 ## 3. Add the Claude connector
 
 For an individual Claude Pro or Max account:
@@ -62,9 +72,10 @@ For an individual Claude Pro or Max account:
 3. Choose **Add custom connector**.
 4. Name it `sauce`.
 5. Enter `https://<your-vercel-domain>/api/mcp` as the remote MCP URL.
-6. Choose **Connect**.
-7. Sign in with the Google account that owns the dashboard if asked.
-8. On the sauce consent screen, review the access and choose **Allow**.
+6. If you used a manual public OAuth app, open **Advanced settings** and enter its client ID. Leave the client secret empty.
+7. Choose **Connect**.
+8. Sign in with the Google account that owns the dashboard if asked.
+9. On the sauce consent screen, review the access and choose **Allow**.
 
 Confirm that Claude lists these tools:
 
@@ -113,9 +124,12 @@ If a run fails, the existing plan remains in place. Re-run the task in Claude or
 If Claude says it cannot register with the sign-in service:
 
 * Confirm the connector URL ends in `/api/mcp`, with no secret after it.
-* Confirm the Supabase OAuth server and dynamic client registration are enabled.
+* Confirm the Supabase OAuth server is enabled.
+* Confirm dynamic client registration is enabled, or enter the manual public OAuth app's client ID in Claude.
 * Confirm the authorization path is exactly `/oauth/consent`.
 * Open the deployed protected-resource metadata URL and confirm it returns JSON.
 * Redeploy after any Vercel environment change.
 
-If authorization returns to the wrong page, confirm the Supabase Site URL is the production Vercel origin and the production `/auth/callback` URL is allowed.
+If authorization returns to the wrong page, confirm the Supabase Site URL is the production Vercel origin and the production `/auth/callback` URL is allowed. The app also stores the intended consent return path in a short-lived, HTTP-only cookie because some OAuth providers omit nested callback query parameters.
+
+Google can show the Supabase project hostname on its authorization screens. Set the Google OAuth consent branding to `sauce` and complete Google's verification to remove the unverified-app warning. Showing a custom dashboard hostname throughout Google's flow requires a custom Supabase Auth domain.

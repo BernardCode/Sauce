@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { saveGoogleCalendarSource } from "@/lib/calendar/google";
+import { AUTH_NEXT_PATH_COOKIE } from "@/lib/auth-next";
 import { parseSafeNextPath } from "@/lib/safe-next-path";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,7 +33,12 @@ export async function GET(request: Request) {
       } catch {
         return NextResponse.redirect(`${origin}/?error=calendar`);
       }
-      const nextPath = parseSafeNextPath(parsedQuery.data.next) ?? "/today";
+      const cookieStore = await cookies();
+      const nextPath =
+        parseSafeNextPath(parsedQuery.data.next) ??
+        parseSafeNextPath(cookieStore.get(AUTH_NEXT_PATH_COOKIE)?.value) ??
+        "/today";
+      cookieStore.delete(AUTH_NEXT_PATH_COOKIE);
       return NextResponse.redirect(new URL(nextPath, origin));
     }
   }
