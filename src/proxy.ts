@@ -41,6 +41,7 @@ export async function proxy(request: NextRequest) {
     pathname === "/privacy" ||
     pathname === "/terms" ||
     pathname === "/oauth/consent" ||
+    pathname.startsWith("/.well-known/") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/");
 
