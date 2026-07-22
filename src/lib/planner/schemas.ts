@@ -41,12 +41,59 @@ export const applyPlanInputSchema = z
 
 export const addItemInputSchema = z.object({
   title: z.string().trim().min(1).max(500),
+  description: z.string().trim().max(20_000).optional(),
+  source_url: z
+    .string()
+    .trim()
+    .max(2_048)
+    .refine(isHttpUrl, "source_url must use http or https")
+    .optional(),
   due_at: z.iso.datetime({ offset: true }).optional(),
   est_minutes: z.number().int().positive().max(10_000).optional(),
   course: z.string().trim().min(1).max(100).optional(),
   energy: z.enum(["low", "medium", "high"]).default("medium"),
   is_project: z.boolean().default(false),
 });
+
+export const updateItemInputSchema = z
+  .object({
+    item_id: z.uuid(),
+    title: z.string().trim().min(1).max(500).optional(),
+    description: z.string().trim().max(20_000).nullable().optional(),
+    source_url: z
+      .string()
+      .trim()
+      .max(2_048)
+      .refine(isHttpUrl, "source_url must use http or https")
+      .nullable()
+      .optional(),
+    due_at: z.iso.datetime({ offset: true }).nullable().optional(),
+    est_minutes: z.number().int().positive().max(10_000).nullable().optional(),
+    course: z.string().trim().min(1).max(100).nullable().optional(),
+    energy: z.enum(["low", "medium", "high"]).optional(),
+  })
+  .refine(
+    (value) => Object.keys(value).some((key) => key !== "item_id"),
+    "at least one item field is required",
+  );
+
+export const createNoteInputSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  body: z.string().max(200_000).default(""),
+  pinned: z.boolean().default(false),
+});
+
+export const updateNoteInputSchema = z
+  .object({
+    note_id: z.uuid(),
+    title: z.string().trim().min(1).max(200).optional(),
+    body: z.string().max(200_000).optional(),
+    pinned: z.boolean().optional(),
+  })
+  .refine(
+    (value) => Object.keys(value).some((key) => key !== "note_id"),
+    "at least one note field is required",
+  );
 
 export const logHabitInputSchema = z.object({
   habit_id: z.uuid(),
@@ -93,6 +140,15 @@ export const workingHoursSchema = z
 function clockValue(value: string): number {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export const plannerPreferencesSchema = z.object({

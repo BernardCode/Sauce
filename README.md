@@ -77,7 +77,7 @@ Next.js App Router, React, TypeScript strict, Tailwind CSS, Supabase Postgres an
 The deployed connector URL is:
 
 ```text
-https://<your-domain>/api/mcp/<MCP_SECRET>
+https://<your-domain>/api/mcp
 ```
 
 It exposes only these tools:
@@ -86,9 +86,12 @@ It exposes only these tools:
 * `decompose_project`
 * `apply_plan`
 * `add_item`
+* `update_item`
+* `create_note`
+* `update_note`
 * `log_habit`
 
-There is no SQL tool and no general data API. The path secret is checked on every request and all tool calls are scoped to `MCP_USER_ID`.
+There is no SQL tool and no general data API. Supabase OAuth authenticates the connector, and every tool call is restricted to `MCP_USER_ID`. The secret path remains available only as a legacy testing fallback.
 
 Use [docs/claude-scheduled-task.md](docs/claude-scheduled-task.md) to connect Claude and create the daily 5:00am planning task. The task itself lives in Claude, not Vercel Cron. Vercel Cron is used only for source sync.
 

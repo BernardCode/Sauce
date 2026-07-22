@@ -192,9 +192,13 @@ A block that fails any check is rejected, not thrown. The tool returns `{ writte
 
 Before writing, `apply_plan` deletes blocks in the horizon where `origin = 'ai'` and `locked` is false and `done` is false. Manual blocks, locked blocks, and anything already completed survive untouched. The planner owns its own future proposals and nothing else.
 
-**`add_item(title, due_at?, est_minutes?, course?, is_project?)` and `log_habit(habit_id, date)`**
+**`add_item(title, description?, source_url?, due_at?, est_minutes?, course?, is_project?)`, `update_item(...)`, and `log_habit(habit_id, date)`**
 
-So the dashboard is addressable from any chat, not just at 5am. "Add a history essay due next Friday, mark it a project." "Mark my ride done for today."
+So the dashboard is addressable from any chat, not just at 5am. Claude can retain concise supporting context and its original web source when it captures work. The narrow MCP layer stores the validated source URL with the item description and returns it to Claude as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Mark my ride done for today."
+
+**`create_note(title, body?, pinned?)` and `update_note(note_id, ...)`**
+
+Claude can save longer research or reference information in Notes when it would not fit cleanly in a task description. Both writes are owner-scoped and validated. Updating requires the real note id returned by Sauce. These tools do not expose note deletion or unrestricted database access.
 
 ### Idempotency
 
@@ -202,17 +206,9 @@ A `planner_runs` table with a unique constraint on `plan_date`, one row per day 
 
 ### The scheduled task
 
-One task in Claude, daily at 5:00am. Scheduled tasks run in local time, so daylight saving is somebody else's problem. The prompt:
+One task in Claude runs daily at 5:00am. Scheduled tasks run in local time. The exact prompt is maintained in `docs/claude-scheduled-task.md`. It loads Sauce first, then checks available Claude context, Gmail, Google Drive, and Google Calendar for concrete unfinished obligations. It reconciles those sources against existing items, saves concise context and source links on new or matching items, creates Notes only for useful longer reference material, decomposes projects, reloads the planning context, and then applies a validated seven-day schedule.
 
-> Plan my week.
->
-> 1. Call `get_planning_context` for today through 7 days out.
-> 2. For any project with no steps yet, break it into ordered steps sized to fit real work sessions, each with an estimate and a target date before the project's deadline, and call `decompose_project`.
-> 3. Build a schedule across the horizon honoring due dates, `remaining_minutes`, my preferences, and every existing event and locked block. Spread project steps across days so nothing waits for the night before. Give each block a one-sentence `reason`.
-> 4. Call `apply_plan` for the horizon with your blocks.
-> 5. Report back: how many blocks and steps were written, anything rejected and why, and any project whose steps don't fit before its deadline so I can decide what to cut.
-
-Steps 2 and 5 are the ones that matter. Decomposition is what makes big work start early, and the "doesn't fit" report is the honest signal that you're over-committed while there's still time to do something about it.
+The import, decomposition, and risk report are the parts that matter. Importing makes external obligations visible in Sauce. Decomposition makes big work start early. The risk report is the honest signal that you are overcommitted while there is still time to do something about it.
 
 ### Auth on the MCP server
 
@@ -231,7 +227,7 @@ Things the API-key version would have given you, deliberately given up:
 
 ### What Claude does not do
 
-It doesn't write your notes. It doesn't summarize your day back to you inside the UI. The one thing it surfaces unprompted is a project that won't fit before its deadline, because that's information you can't get by looking at today and can still act on. Beyond that it doesn't nag. It has two jobs, breaking projects into steps and placing blocks on a timeline, and turning it off should mean deleting one scheduled task and losing nothing else.
+It does not delete notes, overwrite feed-owned items, or write back to Google Calendar. It saves a note only when useful source context is too long for an item description. The one thing it surfaces unprompted is a project that will not fit before its deadline, because that is information you cannot get by looking at today and can still act on. Beyond that it does not nag. Turning off the scheduled task stops automatic planning without deleting anything already saved.
 
 ### Cross-client note
 
@@ -272,7 +268,7 @@ Each of these should be independently shippable and useful.
 1. **Skeleton.** Auth, empty Today page with sensible first-run empty states, items table, manual quick-add. You can add a task and check it off. No AI, no sync, no projects.
 2. **Time.** Blocks table, the day rail, drag to schedule, the "do this now" counter writing `actual_minutes` and `remaining_minutes`. Now it's a usable manual planner that already measures how long things take.
 3. **Calendar in.** Google Calendar OAuth, events mirror, calendar page, the sync-and-archive loop. Now it knows when you're busy and cleans up after deletions.
-4. **The MCP server.** The route, `get_planning_context`, `apply_plan` with full Zod validation, `add_item`, `log_habit`, `planner_runs`. Test it by connecting Claude and planning a few days by hand, in chat. Get the prompt right here, before automating anything.
+4. **The MCP server.** The route, `get_planning_context`, `apply_plan` with full Zod validation, item and note tools, `log_habit`, and `planner_runs`. Test it by connecting Claude and planning a few days by hand, in chat. Get the prompt right here, before automating anything.
 5. **The scheduled task.** Turn the working hand-prompt into a 5am daily pass over the horizon. Now the schedule fills itself.
 6. **Projects.** `parent_id`, project cards, the project view with its timeline, `decompose_project`, the at-risk widget, course-default estimate learning. This is the ambitious part; everything before it works without it.
 7. **Habits.** Small table, grid UI, sidebar row. An afternoon of work.

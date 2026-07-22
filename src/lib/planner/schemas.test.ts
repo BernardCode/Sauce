@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addItemInputSchema,
   applyPlanInputSchema,
   blockProposalSchema,
+  createNoteInputSchema,
   projectStepSchema,
+  updateItemInputSchema,
+  updateNoteInputSchema,
   workingHoursSchema,
 } from "./schemas";
 
@@ -76,6 +80,58 @@ describe("planner schemas", () => {
         step_order: -1,
         suggested_due: "later",
       }).success,
+    ).toBe(false);
+  });
+
+  it("accepts task context and only permits web source links", () => {
+    expect(
+      addItemInputSchema.safeParse({
+        title: "Draft Common App essay",
+        description: "Revise the opening using the counselor feedback.",
+        source_url: "https://docs.google.com/document/d/example",
+      }).success,
+    ).toBe(true);
+    expect(
+      addItemInputSchema.safeParse({
+        title: "Unsafe source",
+        source_url: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires update tools to change at least one field", () => {
+    const itemId = "00000000-0000-4000-8000-000000000001";
+    expect(
+      updateItemInputSchema.safeParse({
+        item_id: itemId,
+        description: "Bring the latest transcript.",
+      }).success,
+    ).toBe(true);
+    expect(updateItemInputSchema.safeParse({ item_id: itemId }).success).toBe(
+      false,
+    );
+
+    expect(
+      updateNoteInputSchema.safeParse({
+        note_id: itemId,
+        body: "Updated details",
+      }).success,
+    ).toBe(true);
+    expect(updateNoteInputSchema.safeParse({ note_id: itemId }).success).toBe(
+      false,
+    );
+  });
+
+  it("validates note size and defaults", () => {
+    expect(
+      createNoteInputSchema.parse({ title: "College essay research" }),
+    ).toEqual({
+      title: "College essay research",
+      body: "",
+      pinned: false,
+    });
+    expect(
+      createNoteInputSchema.safeParse({ title: "", body: "Details" }).success,
     ).toBe(false);
   });
 });

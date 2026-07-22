@@ -82,6 +82,9 @@ Confirm that Claude lists these tools:
 * `get_planning_context`
 * `apply_plan`
 * `add_item`
+* `update_item`
+* `create_note`
+* `update_note`
 * `log_habit`
 * `decompose_project`
 
@@ -92,20 +95,29 @@ Confirm that Claude lists these tools:
 3. Choose **Set up manually**.
 4. Name the task `Plan sauce`.
 5. Set it to run every day at `5:00 AM` in the local timezone.
-6. Give the task access to only the `sauce` connector.
+6. Give the task access to `sauce`, Gmail, Google Drive, and Google Calendar. Allow Claude chat memory or search if the scheduled-task interface offers it.
 7. Use the approval mode that permits the trusted sauce tools to run without asking each morning.
 8. Paste this prompt:
 
 ```text
-Plan my week.
+Plan my next 7 days. Sauce is the system of record, but do not assume that an empty Sauce dashboard means I have no work.
+
+Use every available source: Sauce, Gmail, Google Drive, Google Calendar, and Claude chat history or memory when available.
 
 1. Call get_planning_context for today through 7 days out.
-2. For any project with no steps yet, break it into ordered steps sized to fit real work sessions. Give each step an estimate and a target date on or before the project's deadline, then call decompose_project.
-3. Build a schedule across the horizon. Honor due dates, remaining_minutes, planner preferences, working hours, blocked windows, calendar events, and every existing manual or locked block. Spread project steps across days so nothing waits for the night before. Give each proposed block a one-sentence reason.
-4. Call apply_plan with scheduled_pass set to true for the full horizon.
-5. Report how many blocks and steps were written, every rejected block and its reason, and any project whose remaining work does not fit before its deadline.
+2. Search available Claude chats and memory for active college applications and essays, SAT study and test dates, dual enrollment coursework, school assignments, exams, projects, appointments, and personal commitments. If chat search is unavailable, report that and continue.
+3. Search Gmail for actionable messages received in the last 30 days and future deadlines in the next 60 days. Search Google Drive for relevant documents updated in the last 60 days. Read Google Calendar for the full planning horizon and treat its events as unavailable time.
+4. Reconcile the sources with existing Sauce items. Do not create duplicates or turn informational material into tasks. Never infer a deadline that is not explicit.
+5. Add each high-confidence action that is not already in Sauce with add_item. Save concise supporting context in description and the original web link in source_url. Use is_project for work that needs multiple sessions.
+6. Use update_item only to add newly discovered context to the matching open Sauce item. Do not overwrite useful existing details. Feed items are read-only.
+7. Use create_note for useful research or reference information that is too long for a task description. Use update_note only when you have the real note id and are intentionally revising that note. Do not create a note merely to repeat a task.
+8. For any project with no steps, call decompose_project with ordered steps sized for real work sessions. Give every step an estimate and a target date on or before an explicit project deadline.
+9. Call get_planning_context again after all imports and updates.
+10. Build the schedule across the horizon. Honor due dates, remaining_minutes, planner preferences, working hours, blocked windows, Google Calendar events, Sauce calendar events, and every manual or locked block. Spread project steps across days and give each proposed block a one-sentence reason.
+11. Call apply_plan with scheduled_pass set to true for the full horizon.
+12. Report the sources searched, unavailable sources, items and notes written, blocks and steps written, every rejected write and its reason, deadlines, and projects whose remaining work does not fit.
 
-Never invent an item id, habit id, date, or time. If a tool rejects data, report the rejection. Do not work around the tool's validation.
+Never invent an item id, note id, habit id, deadline, date, event, or commitment. Never claim that an unavailable source was searched. If a tool rejects data, report the rejection and do not work around its validation.
 ```
 
 ## 5. Test it once

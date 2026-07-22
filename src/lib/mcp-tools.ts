@@ -5,16 +5,22 @@ import { z } from "zod";
 import {
   addPlannerItem,
   applyPlan,
+  createPlannerNote,
   decomposeProject,
   getPlanningContext,
   logPlannerHabit,
+  updatePlannerItem,
+  updatePlannerNote,
 } from "@/lib/planner/service";
 import {
   addItemInputSchema,
   applyPlanInputSchema,
+  createNoteInputSchema,
   dateRangeSchema,
   decomposeProjectInputSchema,
   logHabitInputSchema,
+  updateItemInputSchema,
+  updateNoteInputSchema,
 } from "@/lib/planner/schemas";
 import { defaultPlanningRange } from "@/lib/mcp-tools-core";
 
@@ -77,10 +83,42 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     "add_item",
     {
       title: "Add item",
-      description: "Add one task or project to the dashboard.",
+      description:
+        "Add one task or project with optional supporting details and a source link.",
       inputSchema: addItemInputSchema.shape,
     },
     async (input) => asTextResult(await addPlannerItem(userId, input)),
+  );
+
+  server.registerTool(
+    "update_item",
+    {
+      title: "Update item",
+      description:
+        "Update an open task or project owned by the user. Feed items remain read-only.",
+      inputSchema: updateItemInputSchema.shape,
+    },
+    async (input) => asTextResult(await updatePlannerItem(userId, input)),
+  );
+
+  server.registerTool(
+    "create_note",
+    {
+      title: "Create note",
+      description: "Create a note with a title, Markdown body, and optional pinned state.",
+      inputSchema: createNoteInputSchema.shape,
+    },
+    async (input) => asTextResult(await createPlannerNote(userId, input)),
+  );
+
+  server.registerTool(
+    "update_note",
+    {
+      title: "Update note",
+      description: "Update a note by its Sauce note id.",
+      inputSchema: updateNoteInputSchema.shape,
+    },
+    async (input) => asTextResult(await updatePlannerNote(userId, input)),
   );
 
   server.registerTool(

@@ -3,16 +3,20 @@ import "server-only";
 import { z } from "zod";
 import type { Json } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readItemContext, writeItemContext } from "./item-context";
 import {
   addItemInputSchema,
   applyPlanInputSchema,
   blockProposalSchema,
+  createNoteInputSchema,
   dateRangeSchema,
   decomposeProjectInputSchema,
   habitDaysSchema,
   logHabitInputSchema,
   plannerPreferencesSchema,
   projectStepSchema,
+  updateItemInputSchema,
+  updateNoteInputSchema,
   workingHoursSchema,
   type BlockProposal,
 } from "./schemas";
@@ -79,7 +83,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
     admin
       .from("items")
       .select(
-        "id, parent_id, title, course, due_at, priority, energy, est_minutes, remaining_minutes, actual_minutes, is_project, step_order, origin",
+        "id, parent_id, title, description, course, due_at, priority, energy, est_minutes, remaining_minutes, actual_minutes, is_project, step_order, origin",
       )
       .eq("user_id", parsedUserId.data)
       .eq("status", "open"),
@@ -136,6 +140,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
   const visibleItems = items.filter(
     (item) =>
       item.is_project ||
+      item.due_at === null ||
       (item.due_at !== null && new Date(item.due_at) <= lookahead),
   );
   const completedLogs = new Set(
@@ -169,17 +174,29 @@ export async function getPlanningContext(userId: string, input: unknown) {
       ? workingHours.data
       : workingHoursSchema.parse({}),
     planner_preferences: preferences.success ? preferences.data.text : "",
-    items: visibleItems.map((item) => ({
-      ...item,
-      kind: item.is_project
-        ? "project"
-        : item.parent_id
-          ? "project_step"
-          : "task",
-    })),
-    projects_without_steps: items.filter(
-      (item) => item.is_project && !childParents.has(item.id),
-    ),
+    items: visibleItems.map((item) => {
+      const context = readItemContext(item.description);
+      return {
+        ...item,
+        description: context.description,
+        source_url: context.sourceUrl,
+        kind: item.is_project
+          ? "project"
+          : item.parent_id
+            ? "project_step"
+            : "task",
+      };
+    }),
+    projects_without_steps: items
+      .filter((item) => item.is_project && !childParents.has(item.id))
+      .map((item) => {
+        const context = readItemContext(item.description);
+        return {
+          ...item,
+          description: context.description,
+          source_url: context.sourceUrl,
+        };
+      }),
     events: eventsResult.data ?? [],
     protected_blocks: blocksResult.data ?? [],
     habits: dueHabits,
@@ -416,6 +433,7 @@ export async function addPlannerItem(userId: string, input: unknown) {
     .insert({
       user_id: parsedUserId.data,
       title: parsed.data.title,
+      description: writeItemContext(parsed.data.description, parsed.data.source_url),
       due_at: parsed.data.due_at ?? null,
       course: parsed.data.course ?? null,
       energy: parsed.data.energy,
@@ -425,9 +443,147 @@ export async function addPlannerItem(userId: string, input: unknown) {
       origin: "manual",
       status: "open",
     })
-    .select("id, title, due_at, est_minutes, course, is_project")
+    .select(
+      "id, title, description, due_at, est_minutes, course, energy, is_project",
+    )
     .single();
-  return error || !data ? { error: "The item could not be added." } : { item: data };
+  if (error || !data) return { error: "The item could not be added." };
+  const context = readItemContext(data.description);
+  return {
+    item: {
+      ...data,
+      description: context.description,
+      source_url: context.sourceUrl,
+    },
+  };
+}
+
+export async function updatePlannerItem(userId: string, input: unknown) {
+  const parsedUserId = z.uuid().safeParse(userId);
+  const parsed = updateItemInputSchema.safeParse(input);
+  if (!parsedUserId.success || !parsed.success) {
+    return { error: "The item update is not valid." };
+  }
+  const admin = createAdminClient();
+  const { data: existing, error: existingError } = await admin
+    .from("items")
+    .select("id, origin, actual_minutes, description")
+    .eq("id", parsed.data.item_id)
+    .eq("user_id", parsedUserId.data)
+    .eq("status", "open")
+    .maybeSingle();
+  if (existingError || !existing) {
+    return { error: "The open item was not found." };
+  }
+  if (existing.origin === "feed") {
+    return { error: "Feed items are read-only and cannot be updated." };
+  }
+
+  const updates: {
+    title?: string;
+    description?: string | null;
+    due_at?: string | null;
+    est_minutes?: number | null;
+    remaining_minutes?: number | null;
+    course?: string | null;
+    energy?: "low" | "medium" | "high";
+  } = {};
+  if (parsed.data.title !== undefined) updates.title = parsed.data.title;
+  if (
+    parsed.data.description !== undefined ||
+    parsed.data.source_url !== undefined
+  ) {
+    const currentContext = readItemContext(existing.description);
+    updates.description = writeItemContext(
+      parsed.data.description !== undefined
+        ? parsed.data.description
+        : currentContext.description,
+      parsed.data.source_url !== undefined
+        ? parsed.data.source_url
+        : currentContext.sourceUrl,
+    );
+  }
+  if (parsed.data.due_at !== undefined) updates.due_at = parsed.data.due_at;
+  if (parsed.data.course !== undefined) updates.course = parsed.data.course;
+  if (parsed.data.energy !== undefined) updates.energy = parsed.data.energy;
+  if (parsed.data.est_minutes !== undefined) {
+    updates.est_minutes = parsed.data.est_minutes;
+    updates.remaining_minutes =
+      parsed.data.est_minutes === null
+        ? null
+        : Math.max(0, parsed.data.est_minutes - (existing.actual_minutes ?? 0));
+  }
+
+  const { data, error } = await admin
+    .from("items")
+    .update(updates)
+    .eq("id", existing.id)
+    .eq("user_id", parsedUserId.data)
+    .eq("status", "open")
+    .select(
+      "id, title, description, due_at, est_minutes, remaining_minutes, course, energy, is_project",
+    )
+    .maybeSingle();
+  if (error || !data) return { error: "The item could not be updated." };
+  const context = readItemContext(data.description);
+  return {
+    item: {
+      ...data,
+      description: context.description,
+      source_url: context.sourceUrl,
+    },
+  };
+}
+
+export async function createPlannerNote(userId: string, input: unknown) {
+  const parsedUserId = z.uuid().safeParse(userId);
+  const parsed = createNoteInputSchema.safeParse(input);
+  if (!parsedUserId.success || !parsed.success) {
+    return { error: "The note is not valid." };
+  }
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notes")
+    .insert({
+      user_id: parsedUserId.data,
+      title: parsed.data.title,
+      body_md: parsed.data.body,
+      pinned: parsed.data.pinned,
+    })
+    .select("id, title, pinned, updated_at")
+    .single();
+  return error || !data
+    ? { error: "The note could not be created." }
+    : { note: data };
+}
+
+export async function updatePlannerNote(userId: string, input: unknown) {
+  const parsedUserId = z.uuid().safeParse(userId);
+  const parsed = updateNoteInputSchema.safeParse(input);
+  if (!parsedUserId.success || !parsed.success) {
+    return { error: "The note update is not valid." };
+  }
+  const updates: {
+    title?: string;
+    body_md?: string;
+    pinned?: boolean;
+    updated_at: string;
+  } = { updated_at: new Date().toISOString() };
+  if (parsed.data.title !== undefined) updates.title = parsed.data.title;
+  if (parsed.data.body !== undefined) updates.body_md = parsed.data.body;
+  if (parsed.data.pinned !== undefined) updates.pinned = parsed.data.pinned;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notes")
+    .update(updates)
+    .eq("id", parsed.data.note_id)
+    .eq("user_id", parsedUserId.data)
+    .select("id, title, pinned, updated_at")
+    .maybeSingle();
+  return error || !data
+    ? { error: "The note could not be updated." }
+    : { note: data };
 }
 
 export async function decomposeProject(userId: string, input: unknown) {
