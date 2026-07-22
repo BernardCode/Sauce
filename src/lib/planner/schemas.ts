@@ -99,6 +99,10 @@ export const updateItemInputSchema = z
     "at least one item field is required",
   );
 
+export const itemLifecycleInputSchema = z.object({
+  item_id: z.uuid().describe("Sauce item id"),
+});
+
 export const createNoteInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
   body: z.string().max(200_000).default(""),

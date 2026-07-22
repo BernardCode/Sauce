@@ -87,6 +87,8 @@ It exposes only these tools:
 * `apply_plan`
 * `add_item`
 * `update_item`
+* `complete_item`
+* `archive_item`
 * `create_note`
 * `update_note`
 * `log_habit`

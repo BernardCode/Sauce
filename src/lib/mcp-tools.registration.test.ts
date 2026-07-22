@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const serviceMocks = vi.hoisted(() => ({
   addPlannerItem: vi.fn(),
   applyPlan: vi.fn(async () => ({ written: 1, rejected: [] })),
+  archivePlannerItem: vi.fn(async () => ({ archived: true })),
+  completePlannerItem: vi.fn(async () => ({ completed: true })),
   createPlannerNote: vi.fn(),
   decomposeProject: vi.fn(async () => ({ written: 1, rejected: [] })),
   getPlanningContext: vi.fn(),
@@ -42,6 +44,8 @@ async function connectPlanner() {
 
 afterEach(async () => {
   serviceMocks.applyPlan.mockClear();
+  serviceMocks.archivePlannerItem.mockClear();
+  serviceMocks.completePlannerItem.mockClear();
   serviceMocks.decomposeProject.mockClear();
   await Promise.all(clients.splice(0).map((client) => client.close()));
   await Promise.all(servers.splice(0).map((server) => server.close()));
@@ -141,5 +145,46 @@ describe("MCP planner tool registration", () => {
 
     expect(result.isError).not.toBe(true);
     expect(serviceMocks.decomposeProject).toHaveBeenCalledWith(userId, input);
+  });
+
+  it("exposes item completion and soft archiving", async () => {
+    const client = await connectPlanner();
+    const listed = await client.listTools();
+    const completeTool = listed.tools.find(
+      (candidate) => candidate.name === "complete_item",
+    );
+    const archiveTool = listed.tools.find(
+      (candidate) => candidate.name === "archive_item",
+    );
+
+    for (const tool of [completeTool, archiveTool]) {
+      expect(tool?.inputSchema).toMatchObject({
+        properties: {
+          item_id: { type: "string", format: "uuid" },
+        },
+        required: ["item_id"],
+      });
+      expect(tool?.annotations).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      });
+    }
+
+    const input = { item_id: itemId };
+    const completeResult = await client.callTool({
+      name: "complete_item",
+      arguments: input,
+    });
+    const archiveResult = await client.callTool({
+      name: "archive_item",
+      arguments: input,
+    });
+
+    expect(completeResult.isError).not.toBe(true);
+    expect(archiveResult.isError).not.toBe(true);
+    expect(serviceMocks.completePlannerItem).toHaveBeenCalledWith(userId, input);
+    expect(serviceMocks.archivePlannerItem).toHaveBeenCalledWith(userId, input);
   });
 });

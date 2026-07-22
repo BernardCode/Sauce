@@ -7,6 +7,7 @@ import {
   createNoteInputSchema,
   decomposeProjectInputSchema,
   decomposeProjectServiceInputSchema,
+  itemLifecycleInputSchema,
   projectStepSchema,
   updateItemInputSchema,
   updateNoteInputSchema,
@@ -143,6 +144,17 @@ describe("planner schemas", () => {
     expect(updateNoteInputSchema.safeParse({ note_id: itemId }).success).toBe(
       false,
     );
+  });
+
+  it("requires a real Sauce item id for lifecycle changes", () => {
+    expect(
+      itemLifecycleInputSchema.safeParse({
+        item_id: "00000000-0000-4000-8000-000000000001",
+      }).success,
+    ).toBe(true);
+    expect(
+      itemLifecycleInputSchema.safeParse({ item_id: "FBLA DM" }).success,
+    ).toBe(false);
   });
 
   it("validates note size and defaults", () => {

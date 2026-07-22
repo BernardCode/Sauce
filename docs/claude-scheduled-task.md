@@ -83,6 +83,8 @@ Confirm that Claude lists these tools:
 * `apply_plan`
 * `add_item`
 * `update_item`
+* `complete_item`
+* `archive_item`
 * `create_note`
 * `update_note`
 * `log_habit`
@@ -117,7 +119,7 @@ Use every available source: Sauce, Gmail, Google Drive, Google Calendar, and Cla
 11. Call apply_plan with scheduled_pass set to true for the full horizon.
 12. Report the sources searched, unavailable sources, items and notes written, blocks and steps written, every rejected write and its reason, deadlines, and projects whose remaining work does not fit.
 
-Never invent an item id, note id, habit id, deadline, date, event, or commitment. Never claim that an unavailable source was searched. If a tool rejects data, report the rejection and do not work around its validation.
+Never invent an item id, note id, habit id, deadline, date, event, or commitment. Never claim that an unavailable source was searched. Use complete_item only when I explicitly say the work is complete or a reliable connected source clearly confirms completion. Use archive_item only when I explicitly ask to remove or cancel work, or a reliable connected source clearly says it was cancelled. Never infer completion or cancellation from silence. If a tool rejects data, report the rejection and do not work around its validation.
 ```
 
 ## 5. Test it once

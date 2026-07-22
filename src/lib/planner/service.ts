@@ -12,6 +12,7 @@ import {
   dateRangeSchema,
   decomposeProjectServiceInputSchema,
   habitDaysSchema,
+  itemLifecycleInputSchema,
   logHabitInputSchema,
   plannerPreferencesSchema,
   projectStepSchema,
@@ -532,6 +533,169 @@ export async function updatePlannerItem(userId: string, input: unknown) {
       description: context.description,
       source_url: context.sourceUrl,
     },
+  };
+}
+
+export async function completePlannerItem(userId: string, input: unknown) {
+  const parsedUserId = z.uuid().safeParse(userId);
+  const parsed = itemLifecycleInputSchema.safeParse(input);
+  if (!parsedUserId.success || !parsed.success) {
+    return { error: "The item completion request is not valid." };
+  }
+  const admin = createAdminClient();
+  const { data: item, error: itemError } = await admin
+    .from("items")
+    .select("id, title, parent_id, is_project, status")
+    .eq("id", parsed.data.item_id)
+    .eq("user_id", parsedUserId.data)
+    .maybeSingle();
+  if (itemError || !item) return { error: "The item was not found." };
+  if (item.status === "done") {
+    return {
+      completed: true,
+      already_completed: true,
+      item: { id: item.id, title: item.title },
+      parent_completed: false,
+      warnings: [],
+    };
+  }
+  if (item.status !== "open") {
+    return { error: "Archived items cannot be completed." };
+  }
+  if (item.is_project) {
+    return { error: "Complete the project's open steps instead of the project." };
+  }
+
+  const completedAt = new Date().toISOString();
+  const { data: completed, error: completeError } = await admin
+    .from("items")
+    .update({ status: "done", completed_at: completedAt })
+    .eq("id", item.id)
+    .eq("user_id", parsedUserId.data)
+    .eq("status", "open")
+    .select("id, title, parent_id")
+    .maybeSingle();
+  if (completeError || !completed) {
+    return { error: "The item could not be completed." };
+  }
+
+  const warnings: string[] = [];
+  const { error: blocksError } = await admin
+    .from("blocks")
+    .update({ done: true })
+    .eq("item_id", completed.id)
+    .eq("user_id", parsedUserId.data);
+  if (blocksError) warnings.push("Its linked schedule blocks could not be completed.");
+
+  let parentCompleted = false;
+  if (completed.parent_id) {
+    const { count, error: countError } = await admin
+      .from("items")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_id", completed.parent_id)
+      .eq("user_id", parsedUserId.data)
+      .eq("status", "open");
+    if (countError) {
+      warnings.push("The parent project's remaining steps could not be checked.");
+    } else if (count === 0) {
+      const { data: parent, error: parentError } = await admin
+        .from("items")
+        .update({ status: "done", completed_at: completedAt })
+        .eq("id", completed.parent_id)
+        .eq("user_id", parsedUserId.data)
+        .eq("is_project", true)
+        .eq("status", "open")
+        .select("id")
+        .maybeSingle();
+      if (parentError) {
+        warnings.push("The parent project could not be completed.");
+      } else {
+        parentCompleted = parent !== null;
+      }
+    }
+  }
+
+  return {
+    completed: true,
+    item: { id: completed.id, title: completed.title },
+    parent_completed: parentCompleted,
+    warnings,
+  };
+}
+
+export async function archivePlannerItem(userId: string, input: unknown) {
+  const parsedUserId = z.uuid().safeParse(userId);
+  const parsed = itemLifecycleInputSchema.safeParse(input);
+  if (!parsedUserId.success || !parsed.success) {
+    return { error: "The item archive request is not valid." };
+  }
+  const admin = createAdminClient();
+  const { data: item, error: itemError } = await admin
+    .from("items")
+    .select("id, title, is_project, origin, status")
+    .eq("id", parsed.data.item_id)
+    .eq("user_id", parsedUserId.data)
+    .maybeSingle();
+  if (itemError || !item) return { error: "The item was not found." };
+  if (item.status === "archived") {
+    return {
+      archived: true,
+      already_archived: true,
+      item: { id: item.id, title: item.title },
+      items_archived: 0,
+      ai_blocks_removed: 0,
+      warnings: [],
+    };
+  }
+  if (item.status !== "open") {
+    return { error: "Completed items cannot be archived." };
+  }
+  if (item.origin === "feed") {
+    return { error: "Feed items are read-only and cannot be archived." };
+  }
+
+  let itemIds = [item.id];
+  if (item.is_project) {
+    const { data: steps, error: stepsError } = await admin
+      .from("items")
+      .select("id")
+      .eq("parent_id", item.id)
+      .eq("user_id", parsedUserId.data)
+      .eq("status", "open");
+    if (stepsError) return { error: "The project's open steps could not be loaded." };
+    itemIds = [item.id, ...(steps ?? []).map((step) => step.id)];
+  }
+
+  const { data: archived, error: archiveError } = await admin
+    .from("items")
+    .update({ status: "archived", completed_at: null })
+    .in("id", itemIds)
+    .eq("user_id", parsedUserId.data)
+    .eq("status", "open")
+    .select("id");
+  if (archiveError || !archived || archived.length !== itemIds.length) {
+    return { error: "The item could not be fully archived." };
+  }
+
+  const { data: removedBlocks, error: blocksError } = await admin
+    .from("blocks")
+    .delete()
+    .in("item_id", itemIds)
+    .eq("user_id", parsedUserId.data)
+    .eq("origin", "ai")
+    .eq("locked", false)
+    .eq("done", false)
+    .gt("end_at", new Date().toISOString())
+    .select("id");
+
+  return {
+    archived: true,
+    item: { id: item.id, title: item.title },
+    items_archived: archived.length,
+    ai_blocks_removed: removedBlocks?.length ?? 0,
+    warnings: blocksError
+      ? ["Future unlocked AI blocks could not be removed."]
+      : [],
   };
 }
 

@@ -192,9 +192,9 @@ A block that fails any check is rejected, not thrown. The tool returns `{ writte
 
 Before writing, `apply_plan` deletes blocks in the horizon where `origin = 'ai'` and `locked` is false and `done` is false. Manual blocks, locked blocks, and anything already completed survive untouched. The planner owns its own future proposals and nothing else.
 
-**`add_item(title, description?, source_url?, due_at?, est_minutes?, course?, is_project?)`, `update_item(...)`, and `log_habit(habit_id, date)`**
+**`add_item(title, description?, source_url?, due_at?, est_minutes?, course?, is_project?)`, `update_item(...)`, `complete_item(item_id)`, `archive_item(item_id)`, and `log_habit(habit_id, date)`**
 
-So the dashboard is addressable from any chat, not just at 5am. Claude can retain concise supporting context and its original web source when it captures work. The narrow MCP layer stores the validated source URL with the item description and returns it to Claude as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Mark my ride done for today."
+So the dashboard is addressable from any chat, not just at 5am. Claude can retain concise supporting context and its original web source when it captures work. The narrow MCP layer stores the validated source URL with the item description and returns it to Claude as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. `complete_item` mirrors the Today checkbox for tasks and project steps. `archive_item` is a soft removal for non-feed work that preserves completed steps and manual or locked schedule blocks. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Mark my ride done for today." "Archive that cancelled FBLA task."
 
 **`create_note(title, body?, pinned?)` and `update_note(note_id, ...)`**
 
@@ -227,7 +227,7 @@ Things the API-key version would have given you, deliberately given up:
 
 ### What Claude does not do
 
-It does not delete notes, overwrite feed-owned items, or write back to Google Calendar. It saves a note only when useful source context is too long for an item description. The one thing it surfaces unprompted is a project that will not fit before its deadline, because that is information you cannot get by looking at today and can still act on. Beyond that it does not nag. Turning off the scheduled task stops automatic planning without deleting anything already saved.
+It does not hard-delete items or notes, overwrite feed-owned items, or write back to Google Calendar. Archiving preserves the item record and every manual or locked schedule block. It saves a note only when useful source context is too long for an item description. The one thing it surfaces unprompted is a project that will not fit before its deadline, because that is information you cannot get by looking at today and can still act on. Beyond that it does not nag. Turning off the scheduled task stops automatic planning without deleting anything already saved.
 
 ### Cross-client note
 

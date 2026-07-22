@@ -5,6 +5,8 @@ import { z } from "zod";
 import {
   addPlannerItem,
   applyPlan,
+  archivePlannerItem,
+  completePlannerItem,
   createPlannerNote,
   decomposeProject,
   getPlanningContext,
@@ -18,6 +20,7 @@ import {
   createNoteInputSchema,
   dateRangeSchema,
   decomposeProjectInputSchema,
+  itemLifecycleInputSchema,
   logHabitInputSchema,
   updateItemInputSchema,
   updateNoteInputSchema,
@@ -99,6 +102,40 @@ export function registerPlannerTools(server: McpServer, userId: string) {
       inputSchema: updateItemInputSchema.shape,
     },
     async (input) => asTextResult(await updatePlannerItem(userId, input)),
+  );
+
+  server.registerTool(
+    "complete_item",
+    {
+      title: "Complete item",
+      description:
+        "Mark an open task or project step complete. Projects complete automatically after their open steps are complete.",
+      inputSchema: itemLifecycleInputSchema.shape,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => asTextResult(await completePlannerItem(userId, input)),
+  );
+
+  server.registerTool(
+    "archive_item",
+    {
+      title: "Archive item",
+      description:
+        "Soft-archive an open non-feed item. Open project steps are archived with their project, while completed steps and manual or locked blocks are preserved.",
+      inputSchema: itemLifecycleInputSchema.shape,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) => asTextResult(await archivePlannerItem(userId, input)),
   );
 
   server.registerTool(
