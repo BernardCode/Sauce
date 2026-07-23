@@ -61,21 +61,42 @@ export const applyPlanServiceInputSchema = z
     message: "to_date must be on or after from_date",
   });
 
-export const addItemInputSchema = z.object({
-  title: z.string().trim().min(1).max(500),
-  description: z.string().trim().max(20_000).optional(),
-  source_url: z
-    .string()
-    .trim()
-    .max(2_048)
-    .refine(isHttpUrl, "source_url must use http or https")
-    .optional(),
-  due_at: z.iso.datetime({ offset: true }).optional(),
-  est_minutes: z.number().int().positive().max(10_000).optional(),
-  course: z.string().trim().min(1).max(100).optional(),
-  energy: z.enum(["low", "medium", "high"]).default("medium"),
-  is_project: z.boolean().default(false),
-});
+const categorySchema = z.string().trim().min(1).max(100);
+
+export const addItemInputSchema = z
+  .object({
+    title: z.string().trim().min(1).max(500),
+    description: z.string().trim().max(20_000).optional(),
+    source_url: z
+      .string()
+      .trim()
+      .max(2_048)
+      .refine(isHttpUrl, "source_url must use http or https")
+      .optional(),
+    due_at: z.iso.datetime({ offset: true }).optional(),
+    planned_date: z.iso.date().optional(),
+    est_minutes: z.number().int().positive().max(10_000).optional(),
+    category: categorySchema.optional(),
+    course: categorySchema.optional(),
+    energy: z.enum(["low", "medium", "high"]).default("medium"),
+    is_project: z.boolean().default(false),
+  })
+  .superRefine((value, context) => {
+    if (value.category && value.course && value.category !== value.course) {
+      context.addIssue({
+        code: "custom",
+        path: ["category"],
+        message: "category and course must match when both are provided",
+      });
+    }
+    if (value.is_project && value.planned_date) {
+      context.addIssue({
+        code: "custom",
+        path: ["planned_date"],
+        message: "projects belong in Projects, not on one Today list",
+      });
+    }
+  });
 
 export const updateItemInputSchema = z
   .object({
@@ -90,9 +111,24 @@ export const updateItemInputSchema = z
       .nullable()
       .optional(),
     due_at: z.iso.datetime({ offset: true }).nullable().optional(),
+    planned_date: z.iso.date().nullable().optional(),
     est_minutes: z.number().int().positive().max(10_000).nullable().optional(),
-    course: z.string().trim().min(1).max(100).nullable().optional(),
+    category: categorySchema.nullable().optional(),
+    course: categorySchema.nullable().optional(),
     energy: z.enum(["low", "medium", "high"]).optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.category !== undefined &&
+      value.course !== undefined &&
+      value.category !== value.course
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["category"],
+        message: "category and course must match when both are provided",
+      });
+    }
   })
   .refine(
     (value) => Object.keys(value).some((key) => key !== "item_id"),

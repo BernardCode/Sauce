@@ -87,7 +87,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Add item",
       description:
-        "Add one task or project with optional supporting details and a source link.",
+        "Add one task or long-term project. Use is_project for multi-session outcomes, category for a class or workstream, and planned_date only for a small task intentionally assigned to that day's Today list.",
       inputSchema: addItemInputSchema.shape,
     },
     async (input) => asTextResult(await addPlannerItem(userId, input)),
@@ -98,7 +98,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Update item",
       description:
-        "Update an open task or project owned by the user. Feed items remain read-only.",
+        "Edit an open task or project, including its title, details, deadline, planned Today date, estimate, category, and energy. Feed items remain read-only, and projects never receive a planned_date.",
       inputSchema: updateItemInputSchema.shape,
     },
     async (input) => asTextResult(await updatePlannerItem(userId, input)),

@@ -84,7 +84,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
     admin
       .from("items")
       .select(
-        "id, parent_id, title, description, course, due_at, priority, energy, est_minutes, remaining_minutes, actual_minutes, is_project, step_order, origin",
+        "id, parent_id, title, description, course, due_at, planned_date, priority, energy, est_minutes, remaining_minutes, actual_minutes, is_project, step_order, origin",
       )
       .eq("user_id", parsedUserId.data)
       .eq("status", "open"),
@@ -179,6 +179,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
       const context = readItemContext(item.description);
       return {
         ...item,
+        category: item.course,
         description: context.description,
         source_url: context.sourceUrl,
         kind: item.is_project
@@ -194,6 +195,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
         const context = readItemContext(item.description);
         return {
           ...item,
+          category: item.course,
           description: context.description,
           source_url: context.sourceUrl,
         };
@@ -419,13 +421,14 @@ export async function addPlannerItem(userId: string, input: unknown) {
     return { error: "The item is not valid." };
   }
   const admin = createAdminClient();
+  const category = parsed.data.category ?? parsed.data.course ?? null;
   let learnedEstimate = parsed.data.est_minutes ?? null;
-  if (learnedEstimate === null && parsed.data.course) {
+  if (learnedEstimate === null && category) {
     const { data: courseDefault } = await admin
       .from("course_defaults")
       .select("default_minutes")
       .eq("user_id", parsedUserId.data)
-      .eq("course", parsed.data.course)
+      .eq("course", category)
       .maybeSingle();
     learnedEstimate = courseDefault?.default_minutes ?? null;
   }
@@ -436,7 +439,8 @@ export async function addPlannerItem(userId: string, input: unknown) {
       title: parsed.data.title,
       description: writeItemContext(parsed.data.description, parsed.data.source_url),
       due_at: parsed.data.due_at ?? null,
-      course: parsed.data.course ?? null,
+      planned_date: parsed.data.planned_date ?? null,
+      course: category,
       energy: parsed.data.energy,
       est_minutes: learnedEstimate,
       remaining_minutes: learnedEstimate,
@@ -445,7 +449,7 @@ export async function addPlannerItem(userId: string, input: unknown) {
       status: "open",
     })
     .select(
-      "id, title, description, due_at, est_minutes, course, energy, is_project",
+      "id, title, description, due_at, planned_date, est_minutes, course, energy, is_project",
     )
     .single();
   if (error || !data) return { error: "The item could not be added." };
@@ -453,6 +457,7 @@ export async function addPlannerItem(userId: string, input: unknown) {
   return {
     item: {
       ...data,
+      category: data.course,
       description: context.description,
       source_url: context.sourceUrl,
     },
@@ -468,7 +473,7 @@ export async function updatePlannerItem(userId: string, input: unknown) {
   const admin = createAdminClient();
   const { data: existing, error: existingError } = await admin
     .from("items")
-    .select("id, origin, actual_minutes, description")
+    .select("id, origin, actual_minutes, description, is_project")
     .eq("id", parsed.data.item_id)
     .eq("user_id", parsedUserId.data)
     .eq("status", "open")
@@ -479,11 +484,15 @@ export async function updatePlannerItem(userId: string, input: unknown) {
   if (existing.origin === "feed") {
     return { error: "Feed items are read-only and cannot be updated." };
   }
+  if (existing.is_project && parsed.data.planned_date) {
+    return { error: "Projects belong in Projects, not on one Today list." };
+  }
 
   const updates: {
     title?: string;
     description?: string | null;
     due_at?: string | null;
+    planned_date?: string | null;
     est_minutes?: number | null;
     remaining_minutes?: number | null;
     course?: string | null;
@@ -505,7 +514,11 @@ export async function updatePlannerItem(userId: string, input: unknown) {
     );
   }
   if (parsed.data.due_at !== undefined) updates.due_at = parsed.data.due_at;
-  if (parsed.data.course !== undefined) updates.course = parsed.data.course;
+  if (parsed.data.planned_date !== undefined) {
+    updates.planned_date = parsed.data.planned_date;
+  }
+  if (parsed.data.category !== undefined) updates.course = parsed.data.category;
+  else if (parsed.data.course !== undefined) updates.course = parsed.data.course;
   if (parsed.data.energy !== undefined) updates.energy = parsed.data.energy;
   if (parsed.data.est_minutes !== undefined) {
     updates.est_minutes = parsed.data.est_minutes;
@@ -522,7 +535,7 @@ export async function updatePlannerItem(userId: string, input: unknown) {
     .eq("user_id", parsedUserId.data)
     .eq("status", "open")
     .select(
-      "id, title, description, due_at, est_minutes, remaining_minutes, course, energy, is_project",
+      "id, title, description, due_at, planned_date, est_minutes, remaining_minutes, course, energy, is_project",
     )
     .maybeSingle();
   if (error || !data) return { error: "The item could not be updated." };
@@ -530,6 +543,7 @@ export async function updatePlannerItem(userId: string, input: unknown) {
   return {
     item: {
       ...data,
+      category: data.course,
       description: context.description,
       source_url: context.sourceUrl,
     },

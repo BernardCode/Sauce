@@ -187,4 +187,27 @@ describe("MCP planner tool registration", () => {
     expect(serviceMocks.completePlannerItem).toHaveBeenCalledWith(userId, input);
     expect(serviceMocks.archivePlannerItem).toHaveBeenCalledWith(userId, input);
   });
+
+  it("exposes project, category, planned date, and task editing fields", async () => {
+    const client = await connectPlanner();
+    const listed = await client.listTools();
+    const addTool = listed.tools.find((tool) => tool.name === "add_item");
+    const updateTool = listed.tools.find((tool) => tool.name === "update_item");
+
+    expect(addTool?.inputSchema).toMatchObject({
+      properties: {
+        category: { type: "string" },
+        planned_date: { type: "string", format: "date" },
+        is_project: { type: "boolean" },
+      },
+    });
+    expect(updateTool?.inputSchema).toMatchObject({
+      properties: {
+        item_id: { type: "string", format: "uuid" },
+        title: { type: "string" },
+        category: { anyOf: expect.any(Array) },
+        planned_date: { anyOf: expect.any(Array) },
+      },
+    });
+  });
 });

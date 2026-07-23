@@ -24,7 +24,7 @@ sources      id, kind ('gcal' | 'ics' | 'manual'), label, url_secret,
              last_synced_at, last_error, enabled
 
 items        id, source_id, external_id, parent_id, title, description,
-             course, due_at, priority ('low'|'normal'|'high'),
+             course, due_at, planned_date, priority ('low'|'normal'|'high'),
              est_minutes, remaining_minutes, actual_minutes,
              is_project, step_order,
              status ('open'|'done'|'archived'), origin ('ai'|'manual'|'feed'),
@@ -65,14 +65,15 @@ The load-bearing decisions in this schema:
 * `remaining_minutes` tracks partial progress. It starts equal to `est_minutes` and drops as you complete blocks against the item. The planner schedules against what's left, not the original total, so a half-done project doesn't get re-planned from scratch.
 * `actual_minutes` and `course_defaults` are the learning loop. Completing a block records how long it really took; that rolls into a per-course running average that seeds `est_minutes` on the next item from that course.
 * `last_seen_at` catches deletions. Every sync stamps it on items still present in the feed. Items whose `external_id` stops appearing get soft-archived (see Sync below), so a deleted assignment doesn't haunt your list forever.
+* `planned_date` is an intentional daily commitment, not a deadline. Today shows a leaf item only when its `planned_date` is today or it has a work block today. Projects never get a `planned_date`; their scheduled steps do the daily work.
 
 ## Pages
 
 ### 1. Today (the main page)
 
-The default route is a two-part daily workspace. The task and assignment inbox remains the primary surface on the left, sorted by deadline. A narrower schedule on the right shows today's calendar events, work blocks, all-day commitments, and scheduled habits. It contains no planner warnings, metrics, notes, focus widgets, recovery controls, or dashboard statistics.
+The default route is a two-part daily workspace. The daily task list remains the primary surface on the left. It contains only leaf items intentionally planned for today or backed by a work block today. A narrower schedule on the right shows today's calendar events, work blocks, all-day commitments, and scheduled habits. It contains no planner warnings, metrics, notes, focus widgets, recovery controls, or dashboard statistics.
 
-A task row shows only what is needed to act: a completion checkbox, title, optional course or project label, relative due date, and estimate. The row keeps its context menu for secondary actions. Project rows link to the project view and are not directly completable.
+A task row shows only what is needed to act: a completion checkbox, title, optional category, relative due date, and estimate. The row keeps its context menu for secondary actions. Project records never appear in Today.
 
 The task list sits inside one soft blush panel. Its final row is always a quick-add text box, including when the list is empty. Manual tasks and assignments synchronized from Canvas, Schoology, or another school feed use the same `items` table and appear in this list without a separate Assignments page. The Today schedule is limited to the current day and supports the existing block interactions. Planning ahead and missed-work recovery live in Calendar, active work lives in Do Now, full habit management lives in Habits, notes live in Notes, and risk information lives in Weekly Review.
 
@@ -86,9 +87,9 @@ A source filter in the corner lets you toggle each feed on and off.
 
 Clicking any empty slot creates a manual block with no item behind it. Clicking an existing block opens a side panel with the full item, the reason Claude gave, and the option to reschedule or unschedule.
 
-### 3. Project view
+### 3. Projects and project view
 
-Opened by clicking a project card. Not a top-level nav item, it's a detail panel or route for one project.
+Projects has a compact index under More for long-term outcomes. It is not a top-level navigation item. Opening a project card leads to the detail route for one project.
 
 At the top: the project title, its real deadline, and an overall progress bar (minutes done over estimated, and steps done over total).
 
@@ -192,9 +193,9 @@ A block that fails any check is rejected, not thrown. The tool returns `{ writte
 
 Before writing, `apply_plan` deletes blocks in the horizon where `origin = 'ai'` and `locked` is false and `done` is false. Manual blocks, locked blocks, and anything already completed survive untouched. The planner owns its own future proposals and nothing else.
 
-**`add_item(title, description?, source_url?, due_at?, est_minutes?, course?, is_project?)`, `update_item(...)`, `complete_item(item_id)`, `archive_item(item_id)`, and `log_habit(habit_id, date)`**
+**`add_item(title, description?, source_url?, due_at?, planned_date?, est_minutes?, category?, is_project?)`, `update_item(...)`, `complete_item(item_id)`, `archive_item(item_id)`, and `log_habit(habit_id, date)`**
 
-So the dashboard is addressable from any chat, not just at 5am. Claude can retain concise supporting context and its original web source when it captures work. The narrow MCP layer stores the validated source URL with the item description and returns it to Claude as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. `complete_item` mirrors the Today checkbox for tasks and project steps. `archive_item` is a soft removal for non-feed work that preserves completed steps and manual or locked schedule blocks. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Mark my ride done for today." "Archive that cancelled FBLA task."
+So the dashboard is addressable from any chat, not just at 5am. Claude can retain concise supporting context and its original web source when it captures work. `category` maps to the stored course or workstream label. `planned_date` puts a small leaf task on one Today list, while long-term projects remain in Projects and surface through their scheduled steps. The narrow MCP layer stores the validated source URL with the item description and returns it to Claude as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. `complete_item` mirrors the Today checkbox for tasks and project steps. `archive_item` is a soft removal for non-feed work that preserves completed steps and manual or locked schedule blocks. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Put the reading response on Tuesday's Today list." "Archive that cancelled FBLA task."
 
 **`create_note(title, body?, pinned?)` and `update_note(note_id, ...)`**
 

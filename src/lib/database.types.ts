@@ -329,6 +329,7 @@ export type Database = {
           last_seen_at: string | null
           origin: string
           parent_id: string | null
+          planned_date: string | null
           priority: string
           remaining_minutes: number | null
           source_id: string | null
@@ -352,6 +353,7 @@ export type Database = {
           last_seen_at?: string | null
           origin?: string
           parent_id?: string | null
+          planned_date?: string | null
           priority?: string
           remaining_minutes?: number | null
           source_id?: string | null
@@ -375,6 +377,7 @@ export type Database = {
           last_seen_at?: string | null
           origin?: string
           parent_id?: string | null
+          planned_date?: string | null
           priority?: string
           remaining_minutes?: number | null
           source_id?: string | null

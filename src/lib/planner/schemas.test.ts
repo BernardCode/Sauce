@@ -123,6 +123,30 @@ describe("planner schemas", () => {
     ).toBe(false);
   });
 
+  it("keeps projects out of Today and accepts category labels", () => {
+    expect(
+      addItemInputSchema.safeParse({
+        title: "Rice application",
+        is_project: true,
+        category: "Rice Application",
+      }).success,
+    ).toBe(true);
+    expect(
+      addItemInputSchema.safeParse({
+        title: "Rice application",
+        is_project: true,
+        planned_date: "2026-07-22",
+      }).success,
+    ).toBe(false);
+    expect(
+      updateItemInputSchema.safeParse({
+        item_id: "00000000-0000-4000-8000-000000000001",
+        category: "Rice Essays",
+        planned_date: "2026-07-23",
+      }).success,
+    ).toBe(true);
+  });
+
   it("requires update tools to change at least one field", () => {
     const itemId = "00000000-0000-4000-8000-000000000001";
     expect(
