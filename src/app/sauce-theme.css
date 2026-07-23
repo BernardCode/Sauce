@@ -423,10 +423,6 @@ textarea:disabled {
   border-color: #e5484d !important;
 }
 
-.today-schedule-panel .today-now-dot {
-  background: #e5484d !important;
-}
-
 .today-rail-habit {
   position: absolute;
   right: 0.25rem;

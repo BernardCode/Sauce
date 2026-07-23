@@ -2013,10 +2013,6 @@ button:hover .motion-habit-dot + span {
   animation: motion-line-draw 450ms ease-out both;
 }
 
-.motion-now-dot {
-  animation: motion-ring-ping 2s ease-out infinite;
-}
-
 .motion-rail-event,
 .motion-all-day-event {
   animation: motion-rise-in 260ms 90ms ease-out both;
