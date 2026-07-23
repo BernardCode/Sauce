@@ -9,6 +9,7 @@ import { AppQuickActions } from "@/app/components/app-quick-actions";
 
 const links = [
   { href: "/today", label: "Today", short: "Today" },
+  { href: "/projects", label: "Projects", short: "Projects" },
   { href: "/calendar", label: "Calendar", short: "Calendar" },
   { href: "/sat", label: "SAT Studio", short: "SAT" },
   { href: "/habits", label: "Habits", short: "Habits" },
@@ -17,7 +18,7 @@ const links = [
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/today") return pathname === href || pathname === "/focus";
-  if (href === "/more") return ["/more", "/projects", "/notes", "/links", "/review", "/settings"].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  if (href === "/more") return ["/more", "/notes", "/links", "/review", "/settings"].some((path) => pathname === path || pathname.startsWith(`${path}/`));
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

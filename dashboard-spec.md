@@ -89,7 +89,7 @@ Clicking any empty slot creates a manual block with no item behind it. Clicking 
 
 ### 3. Projects and project view
 
-Projects has a compact index under More for long-term outcomes. It is not a top-level navigation item. Opening a project card leads to the detail route for one project.
+Projects is a primary navigation item directly below Today. It has a compact index for long-term outcomes, separate from the daily Today list. Opening a project card leads to the detail route for one project.
 
 At the top: the project title, its real deadline, and an overall progress bar (minutes done over estimated, and steps done over total).
 

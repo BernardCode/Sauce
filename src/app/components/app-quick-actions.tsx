@@ -7,6 +7,7 @@ import { OPEN_COMMAND_MENU_EVENT, type OpenCommandMenuDetail } from "./ui-events
 const routeShortcuts: Record<string, string> = {
   c: "/calendar",
   h: "/habits",
+  p: "/projects",
   s: "/sat",
   t: "/today",
 };
@@ -147,7 +148,7 @@ export function AppQuickActions() {
         Shortcuts
       </button>
 
-      {waitingForDestination ? <div className="shortcut-chord">G then T, C, S, or H</div> : null}
+      {waitingForDestination ? <div className="shortcut-chord">G then T, P, C, S, or H</div> : null}
       {shortcutsOpen ? (
         <div className="shortcut-popover" role="dialog" aria-label="Keyboard shortcuts">
           <div className="shortcut-popover-heading">
@@ -158,6 +159,7 @@ export function AppQuickActions() {
             <div><span>Add a task</span><kbd>N</kbd></div>
             <div><span>Find or jump</span><kbd>⌘ K</kbd></div>
             <div><span>Today</span><kbd>G T</kbd></div>
+            <div><span>Projects</span><kbd>G P</kbd></div>
             <div><span>Calendar</span><kbd>G C</kbd></div>
             <div><span>SAT Studio</span><kbd>G S</kbd></div>
             <div><span>Habits</span><kbd>G H</kbd></div>
