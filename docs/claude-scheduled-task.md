@@ -117,7 +117,8 @@ Use every available source: Sauce, Gmail, Google Drive, Google Calendar, and Cla
 9. Call get_planning_context again after all imports and updates.
 10. Build the schedule across the horizon. Honor due dates, remaining_minutes, planner preferences, working hours, blocked windows, Google Calendar events, Sauce calendar events, and every manual or locked block. Spread project steps across days and give each proposed block a one-sentence reason. A scheduled block makes its leaf task visible on Today for that date, so do not place project records themselves on Today.
 11. Call apply_plan with scheduled_pass set to true for the full horizon.
-12. Report the sources searched, unavailable sources, items and notes written, blocks and steps written, every rejected write and its reason, deadlines, and projects whose remaining work does not fit.
+12. Call get_planning_context one final time and confirm every accepted block appears in scheduled_blocks. planned_date controls the Today task list directly, events are calendar commitments, and neither field confirms whether a schedule block was written. Report any accepted block missing from scheduled_blocks as a write verification failure.
+13. Report the sources searched, unavailable sources, items and notes written, blocks and steps written, every rejected write and its reason, deadlines, and projects whose remaining work does not fit.
 
 Never invent an item id, note id, habit id, deadline, date, event, or commitment. Never claim that an unavailable source was searched. Use complete_item only when I explicitly say the work is complete or a reliable connected source clearly confirms completion. Use archive_item only when I explicitly ask to remove or cancel work, or a reliable connected source clearly says it was cancelled. Never infer completion or cancellation from silence. If a tool rejects data, report the rejection and do not work around its validation.
 ```

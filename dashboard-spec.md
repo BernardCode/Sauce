@@ -150,7 +150,7 @@ One call, everything the planner needs over the horizon (default: today through 
 * Projects flagged `is_project` that have no steps yet, so the planner knows to decompose them
 * Calendar events across the horizon
 * Habits due in the horizon that aren't yet logged
-* Existing blocks in the horizon where `locked` is true or `origin` is `manual`
+* Every scheduled block in the horizon, plus a separate protected subset where `locked` is true or `origin` is `manual`
 * Working hours and blocked-out windows
 * The free-text planner preferences from Settings
 * Which dates in the horizon already have a `planner_run`

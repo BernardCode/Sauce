@@ -44,7 +44,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Get planning context",
       description:
-        "Load open work, calendar events, habits, protected blocks, settings, and planner runs for a date horizon.",
+        "Load open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, and planner runs for a date horizon.",
       inputSchema: optionalDateRangeSchema.shape,
     },
     async (input) => {

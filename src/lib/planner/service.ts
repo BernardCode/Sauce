@@ -100,8 +100,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
       .eq("user_id", parsedUserId.data)
       .eq("done", false)
       .lt("start_at", end.toISOString())
-      .gt("end_at", start.toISOString())
-      .or("locked.eq.true,origin.eq.manual"),
+      .gt("end_at", start.toISOString()),
     admin
       .from("habits")
       .select("id, name, cadence, days_json, target_per_week, color, scheduled_time")
@@ -201,7 +200,10 @@ export async function getPlanningContext(userId: string, input: unknown) {
         };
       }),
     events: eventsResult.data ?? [],
-    protected_blocks: blocksResult.data ?? [],
+    scheduled_blocks: blocksResult.data ?? [],
+    protected_blocks: (blocksResult.data ?? []).filter(
+      (block) => block.locked || block.origin === "manual",
+    ),
     habits: dueHabits,
     planner_runs: runsResult.data ?? [],
   };
