@@ -1053,6 +1053,35 @@ select:focus-visible {
   padding: 1.5rem;
 }
 
+.project-index-card {
+  display: block;
+  min-height: 11rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--surface);
+  padding: 1rem;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.project-index-card:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-subtle);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-index-card {
+    transition: none;
+  }
+
+  .project-index-card:hover {
+    transform: none;
+  }
+}
+
 .project-summary h1 {
   margin-top: 0.6rem;
   font-size: clamp(1.8rem, 3.5vw, 2.7rem);

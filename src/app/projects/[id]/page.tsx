@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
@@ -27,7 +28,7 @@ export default async function ProjectPage({
   const [projectResult, stepsResult] = await Promise.all([
     supabase
       .from("items")
-      .select("id, title, due_at, est_minutes, actual_minutes, status")
+      .select("id, title, course, due_at, est_minutes, actual_minutes, status")
       .eq("id", parsedId.data)
       .eq("user_id", user.id)
       .eq("is_project", true)
@@ -100,7 +101,10 @@ export default async function ProjectPage({
           </div>
         ) : null}
         <section className="motion-project-hero project-summary">
-          <p className="page-kicker">Project overview</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="page-kicker">{project.course ?? "Project overview"}</p>
+            <Link href="/projects" className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--foreground)]">All projects</Link>
+          </div>
           <h1>{project.title}</h1>
           <p className="project-summary-deadline">
             {deadline ? `Due ${deadline.toLocaleString()}` : "No deadline"}

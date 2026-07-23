@@ -21,6 +21,7 @@ type Props = {
   dueAt: string | null;
   scheduled: boolean;
   projectHref?: string;
+  onEdit?: () => void;
   onComplete?: () => void;
   onShowSchedule?: () => void;
 };
@@ -49,7 +50,7 @@ function googleCalendarUrl(title: string, dueAt: string | null): string | null {
 }
 
 export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function TaskContextMenu(
-  { title, details, dueAt, scheduled, projectHref, onComplete, onShowSchedule },
+  { title, details, dueAt, scheduled, projectHref, onEdit, onComplete, onShowSchedule },
   ref,
 ) {
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -131,6 +132,7 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
         >
           <div className="task-context-title"><span>Task actions</span><strong>{title}</strong></div>
           {projectHref ? <Link href={projectHref} role="menuitem" onClick={close}>Open project</Link> : null}
+          {onEdit ? <button type="button" role="menuitem" onClick={() => { onEdit(); close(); }}>Edit task</button> : null}
           {onShowSchedule ? <button type="button" role="menuitem" onClick={() => { onShowSchedule(); close(); }}>Show on today&apos;s schedule</button> : null}
           <Link href="/calendar" role="menuitem" onClick={close}>{scheduled ? "View in sauce calendar" : "Plan in sauce calendar"}</Link>
           {calendarUrl ? <a href={calendarUrl} target="_blank" rel="noreferrer" role="menuitem" onClick={close}>Add deadline to Google Calendar</a> : null}

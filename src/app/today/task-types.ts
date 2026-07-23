@@ -3,6 +3,7 @@ export type TodayItem = {
   title: string;
   course: string | null;
   dueAt: string | null;
+  plannedDate: string | null;
   estMinutes: number | null;
   isProject: boolean;
   origin: string;

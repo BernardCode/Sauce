@@ -24,6 +24,7 @@ type ItemRow = {
   title: string;
   course: string | null;
   due_at: string | null;
+  planned_date: string | null;
   est_minutes: number | null;
   remaining_minutes: number | null;
   is_project: boolean;
@@ -53,7 +54,7 @@ type EventRow = {
 };
 
 const itemColumns =
-  "id, title, course, due_at, est_minutes, remaining_minutes, is_project, origin, priority";
+  "id, title, course, due_at, planned_date, est_minutes, remaining_minutes, is_project, origin, priority";
 const blockColumns =
   "id, item_id, title, start_at, end_at, origin, locked, done, reason, actual_minutes";
 const eventColumns = "id, title, start_at, end_at, all_day";
@@ -89,6 +90,7 @@ function toTodayItem(row: ItemRow): TodayItem {
     title: row.title,
     course: row.course,
     dueAt: row.due_at,
+    plannedDate: row.planned_date,
     estMinutes: row.est_minutes,
     isProject: row.is_project,
     origin: row.origin,
@@ -167,7 +169,7 @@ export default async function TodayPage() {
       .select(itemColumns)
       .eq("user_id", user.id)
       .eq("status", "open")
-      .is("parent_id", null)
+      .eq("is_project", false)
       .order("due_at", { ascending: true, nullsFirst: false }),
     supabase
       .from("blocks")
@@ -215,14 +217,8 @@ export default async function TodayPage() {
     });
   }
 
-  const openItems = ((openResult.data ?? []) as ItemRow[]).map(toTodayItem);
   const timeZone = safeTimeZone(profileResult.data?.timezone ?? "UTC");
   const localToday = localParts(new Date(), timeZone);
-  const dustMood = workloadMood(
-    (openResult.data ?? []) as ItemRow[],
-    localToday.date,
-    timeZone,
-  );
   const parsedHours = workingHoursSchema.safeParse(
     profileResult.data?.working_hours_json ?? {},
   );
@@ -235,6 +231,15 @@ export default async function TodayPage() {
     .filter((block) =>
       overlapsLocalDate(block.startAt, block.endAt, localToday.date, timeZone),
     );
+  const scheduledItemIds = new Set(
+    blocks.flatMap((block) => (block.itemId ? [block.itemId] : [])),
+  );
+  const todayRows = ((openResult.data ?? []) as ItemRow[]).filter(
+    (item) =>
+      item.planned_date === localToday.date || scheduledItemIds.has(item.id),
+  );
+  const openItems = todayRows.map(toTodayItem);
+  const dustMood = workloadMood(todayRows, localToday.date, timeZone);
   const events = ((eventsResult.data ?? []) as EventRow[])
     .map(toTodayEvent)
     .filter((event) =>
@@ -309,7 +314,7 @@ export default async function TodayPage() {
                   Could not load your tasks. Refresh to try again.
                 </p>
               ) : (
-                <ItemList openItems={openItems} />
+                <ItemList openItems={openItems} todayDate={localToday.date} />
               )}
             </section>
             <TodaySchedulePanel

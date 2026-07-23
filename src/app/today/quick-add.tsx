@@ -46,8 +46,10 @@ function endOfDueDate(value: string): string | null {
 
 export function QuickAdd({
   onOptimisticAdd,
+  todayDate,
 }: {
   onOptimisticAdd: (item: TodayItem) => void;
+  todayDate: string;
 }) {
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -143,6 +145,7 @@ export function QuickAdd({
         title: trimmed,
         course: null,
         dueAt: dueAtIso,
+        plannedDate: todayDate,
         estMinutes,
         isProject: false,
         origin: "manual",
@@ -151,6 +154,7 @@ export function QuickAdd({
       const result = await addItem({
         title: trimmed,
         dueAtIso,
+        plannedDate: todayDate,
         estMinutes,
         isProject: false,
         scheduledStartIso,

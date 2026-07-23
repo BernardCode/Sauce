@@ -18,6 +18,7 @@ const prefetchedRoutes = [
   "/sat",
   "/habits",
   "/more",
+  "/projects",
   "/notes",
   "/links",
   "/review",

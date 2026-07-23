@@ -13,11 +13,19 @@ const destinations = [
   { href: "/calendar", label: "Calendar" },
   { href: "/sat", label: "SAT studio" },
   { href: "/habits", label: "Habits" },
+  { href: "/projects", label: "Projects" },
   { href: "/review", label: "Weekly review" },
   { href: "/notes", label: "Notes" },
   { href: "/links", label: "Links" },
   { href: "/settings", label: "Settings" },
 ];
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function CommandMenu() {
   const router = useRouter();
@@ -57,9 +65,10 @@ export function CommandMenu() {
     const parsed = parseQuickAdd(query);
     if (!parsed.title) return;
     startTransition(async () => {
-      const result = await addItem({ title: parsed.title, dueAtIso: parsed.dueAt?.toISOString() ?? null, estMinutes: parsed.estMinutes, isProject: parsed.isProject ?? false });
+      const isProject = parsed.isProject ?? false;
+      const result = await addItem({ title: parsed.title, dueAtIso: parsed.dueAt?.toISOString() ?? null, plannedDate: isProject ? null : localDateKey(new Date()), estMinutes: parsed.estMinutes, isProject });
       setError(result.error);
-      if (!result.error) { setOpen(false); setQuery(""); router.push("/today"); router.refresh(); }
+      if (!result.error) { setOpen(false); setQuery(""); router.push(isProject ? "/projects" : "/today"); router.refresh(); }
     });
   }
 

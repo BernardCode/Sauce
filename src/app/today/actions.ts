@@ -15,6 +15,7 @@ const addItemSchema = z
       .min(1, "A task needs a title.")
       .max(500, "Keep titles under 500 characters."),
     dueAtIso: optionalIsoTime,
+    plannedDate: z.iso.date().nullable().default(null),
     estMinutes: z
       .number()
       .int("The estimate must be whole minutes.")
@@ -66,6 +67,7 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
   const {
     title,
     dueAtIso,
+    plannedDate,
     estMinutes,
     isProject,
     course,
@@ -78,6 +80,7 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
       user_id: user.id,
       title,
       due_at: dueAtIso,
+      planned_date: isProject ? null : plannedDate,
       est_minutes: estMinutes,
       // Remaining starts equal to the estimate; it drops as blocks complete.
       remaining_minutes: estMinutes,
@@ -87,7 +90,7 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
       origin: "manual",
       status: "open",
     })
-    .select("id, title, course, due_at, est_minutes, is_project, origin")
+    .select("id, title, course, due_at, planned_date, est_minutes, is_project, origin")
     .single();
 
   if (error || !item) {
@@ -124,11 +127,76 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
       title: item.title,
       course: item.course,
       dueAt: item.due_at,
+      plannedDate: item.planned_date,
       estMinutes: item.est_minutes,
       isProject: item.is_project,
       origin: item.origin,
     },
   };
+}
+
+const updateItemSchema = z.object({
+  id: z.uuid("That item id is not valid."),
+  title: z.string().trim().min(1).max(500),
+  category: z.string().trim().max(100).nullable(),
+  plannedDate: z.iso.date().nullable(),
+  dueAtIso: optionalIsoTime,
+  estMinutes: z
+    .number()
+    .int("The estimate must be whole minutes.")
+    .positive("The estimate must be at least a minute.")
+    .max(600, "Estimates cap out at 600 minutes.")
+    .nullable(),
+});
+
+export async function updateItem(input: unknown): Promise<ActionResult> {
+  const parsed = updateItemSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "That task update is not valid." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You are signed out. Refresh and sign in again." };
+  }
+
+  const { data: item, error: itemError } = await supabase
+    .from("items")
+    .select("id, origin, actual_minutes, parent_id")
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id)
+    .eq("status", "open")
+    .eq("is_project", false)
+    .maybeSingle();
+  if (itemError || !item) return { error: "That open task could not be found." };
+  if (item.origin === "feed") return { error: "School feed tasks are read-only." };
+
+  const { error } = await supabase
+    .from("items")
+    .update({
+      title: parsed.data.title,
+      course: parsed.data.category,
+      planned_date: parsed.data.plannedDate,
+      due_at: parsed.data.dueAtIso,
+      est_minutes: parsed.data.estMinutes,
+      remaining_minutes:
+        parsed.data.estMinutes === null
+          ? null
+          : Math.max(0, parsed.data.estMinutes - (item.actual_minutes ?? 0)),
+      origin: "manual",
+    })
+    .eq("id", item.id)
+    .eq("user_id", user.id)
+    .eq("status", "open");
+  if (error) return { error: "Could not save that task. Try again." };
+
+  revalidatePath("/today");
+  revalidatePath("/calendar");
+  if (item.parent_id) revalidatePath(`/projects/${item.parent_id}`);
+  return { error: null };
 }
 
 export async function setItemDone(input: unknown): Promise<ActionResult> {

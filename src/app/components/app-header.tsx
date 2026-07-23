@@ -16,8 +16,8 @@ const links = [
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/today") return pathname === href || pathname.startsWith("/projects/") || pathname === "/focus";
-  if (href === "/more") return ["/more", "/notes", "/links", "/review", "/settings"].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  if (href === "/today") return pathname === href || pathname === "/focus";
+  if (href === "/more") return ["/more", "/projects", "/notes", "/links", "/review", "/settings"].some((path) => pathname === path || pathname.startsWith(`${path}/`));
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

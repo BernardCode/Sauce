@@ -12,6 +12,7 @@ import {
 } from "@/app/components/task-context-menu";
 import type { TodayItem } from "./item-list";
 import { formatDue } from "./relative-time";
+import { TaskEditDialog } from "./task-edit-dialog";
 
 type Props = {
   item: TodayItem;
@@ -24,6 +25,7 @@ export function ItemCard({ item, now, onDone }: Props) {
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
   const contextDetails = [
     item.course ?? (item.origin === "feed" ? "School feed" : null),
@@ -101,6 +103,7 @@ export function ItemCard({ item, now, onDone }: Props) {
               details={contextDetails}
               dueAt={item.dueAt}
               scheduled={false}
+              onEdit={item.origin === "feed" ? undefined : () => setIsEditing(true)}
               onComplete={completeTask}
             />
           )}
@@ -116,6 +119,11 @@ export function ItemCard({ item, now, onDone }: Props) {
           </div>
         ) : null}
       </div>
+      <TaskEditDialog
+        item={item}
+        open={isEditing}
+        onClose={() => setIsEditing(false)}
+      />
     </li>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 import { setItemDone } from "./actions";
 import { ItemCard } from "./item-card";
@@ -13,13 +12,14 @@ export type { TodayItem } from "./task-types";
 
 type Props = {
   openItems: TodayItem[];
+  todayDate: string;
 };
 
 function dueTime(item: TodayItem): number {
   return item.dueAt ? new Date(item.dueAt).getTime() : Number.POSITIVE_INFINITY;
 }
 
-export function ItemList({ openItems }: Props) {
+export function ItemList({ openItems, todayDate }: Props) {
   const now = useNow();
   const [doneError, setDoneError] = useState<string | null>(null);
   const [items, updateOptimistic] = useOptimistic(
@@ -58,41 +58,15 @@ export function ItemList({ openItems }: Props) {
         </span>
       </div>
       <ul className="today-task-list">
-        {sortedItems.map((item) =>
-          item.isProject ? (
-            <li
-              key={item.id}
-              className="today-task-row today-project-row"
-              data-saving={item.optimistic === true}
-            >
-              <span className="today-project-checkbox" aria-hidden="true" />
-              {item.optimistic ? (
-                <div className="min-w-0 flex-1">
-                  <span className="today-task-title">{item.title}</span>
-                  <span className="today-task-meta">
-                    <span>Saving project</span>
-                  </span>
-                </div>
-              ) : (
-                <Link href={`/projects/${item.id}`} className="min-w-0 flex-1">
-                  <span className="today-task-title">{item.title}</span>
-                  <span className="today-task-meta">
-                    <span>Project</span>
-                    {item.course ? <span>{item.course}</span> : null}
-                  </span>
-                </Link>
-              )}
-            </li>
-          ) : (
-            <ItemCard
-              key={item.id}
-              item={item}
-              now={now}
-              onDone={handleDone}
-            />
-          ),
-        )}
-        <QuickAdd onOptimisticAdd={handleOptimisticAdd} />
+        {sortedItems.map((item) => (
+          <ItemCard
+            key={item.id}
+            item={item}
+            now={now}
+            onDone={handleDone}
+          />
+        ))}
+        <QuickAdd onOptimisticAdd={handleOptimisticAdd} todayDate={todayDate} />
       </ul>
       {doneError ? <p className="today-list-error">{doneError}</p> : null}
     </section>

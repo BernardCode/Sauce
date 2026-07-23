@@ -4,6 +4,7 @@ import { AppHeader } from "@/app/components/app-header";
 import { createClient } from "@/lib/supabase/server";
 
 const tools = [
+  { href: "/projects", title: "Projects" },
   { href: "/review", title: "Weekly review" },
   { href: "/notes", title: "Notes" },
   { href: "/links", title: "Saved links" },

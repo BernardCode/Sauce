@@ -7,6 +7,7 @@ const task: TodayItem = {
   title: "Read chapter five",
   course: "English",
   dueAt: null,
+  plannedDate: "2026-07-22",
   estMinutes: 30,
   isProject: false,
   origin: "manual",
