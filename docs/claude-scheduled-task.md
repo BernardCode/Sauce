@@ -96,7 +96,7 @@ Confirm that Claude lists these tools:
 2. Choose **New task**.
 3. Choose **Set up manually**.
 4. Name the task `Plan sauce`.
-5. Set it to run every day at `5:00 AM` in the local timezone.
+5. Set it to run every day at `4:50 AM` in the local timezone.
 6. Give the task access to `sauce`, Gmail, Google Drive, and Google Calendar. Allow Claude chat memory or search if the scheduled-task interface offers it.
 7. Use the approval mode that permits the trusted sauce tools to run without asking each morning.
 8. Paste this prompt:

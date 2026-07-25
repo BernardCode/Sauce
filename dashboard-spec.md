@@ -134,7 +134,7 @@ Every day gets an automatic daily note in Notes.
 
 ## How Claude fits
 
-No API key. No metered billing. The planner runs on the Claude Pro plan as a scheduled task talking to a custom MCP server that the app hosts itself.
+No API key. No metered billing. The planner runs as a connected assistant's scheduled task talking to a custom MCP server that the app hosts itself.
 
 ### The MCP server
 
@@ -195,7 +195,7 @@ Before writing, `apply_plan` deletes blocks in the horizon where `origin = 'ai'`
 
 **`add_item(title, description?, source_url?, due_at?, planned_date?, est_minutes?, category?, is_project?)`, `update_item(...)`, `complete_item(item_id)`, `archive_item(item_id)`, and `log_habit(habit_id, date)`**
 
-So the dashboard is addressable from any chat, not just at 5am. Claude can retain concise supporting context and its original web source when it captures work. `category` maps to the stored course or workstream label. `planned_date` puts a small leaf task on one Today list, while long-term projects remain in Projects and surface through their scheduled steps. The narrow MCP layer stores the validated source URL with the item description and returns it to Claude as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. `complete_item` mirrors the Today checkbox for tasks and project steps. `archive_item` is a soft removal for non-feed work that preserves completed steps and manual or locked schedule blocks. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Put the reading response on Tuesday's Today list." "Archive that cancelled FBLA task."
+So the dashboard is addressable from any chat, not just at 4:50am. The assistant can retain concise supporting context and its original web source when it captures work. `category` maps to the stored course or workstream label. `planned_date` puts a small leaf task on one Today list, while long-term projects remain in Projects and surface through their scheduled steps. The narrow MCP layer stores the validated source URL with the item description and returns it to the assistant as a separate field, so no general database access is needed. `update_item` changes only an owned, open, non-feed item and requires a real item id. `complete_item` mirrors the Today checkbox for tasks and project steps. `archive_item` is a soft removal for non-feed work that preserves completed steps and manual or locked schedule blocks. "Add a history essay due next Friday, mark it a project." "Attach the assignment instructions to that essay." "Put the reading response on Tuesday's Today list." "Archive that cancelled FBLA task."
 
 **`create_note(title, body?, pinned?)` and `update_note(note_id, ...)`**
 
@@ -207,7 +207,7 @@ A `planner_runs` table with a unique constraint on `plan_date`, one row per day 
 
 ### The scheduled task
 
-One task in Claude runs daily at 5:00am. Scheduled tasks run in local time. The exact prompt is maintained in `docs/claude-scheduled-task.md`. It loads Sauce first, then checks available Claude context, Gmail, Google Drive, and Google Calendar for concrete unfinished obligations. It reconciles those sources against existing items, saves concise context and source links on new or matching items, creates Notes only for useful longer reference material, decomposes projects, reloads the planning context, and then applies a validated seven-day schedule.
+One assistant task runs daily at 4:50am local time. It loads Sauce first, then checks available assistant context, Gmail, Google Drive, and Google Calendar for concrete unfinished obligations. It reconciles those sources against existing items, saves concise context and source links on new or matching items, creates Notes only for useful longer reference material, decomposes projects, reloads the planning context, and then applies a validated seven-day schedule.
 
 The import, decomposition, and risk report are the parts that matter. Importing makes external obligations visible in Sauce. Decomposition makes big work start early. The risk report is the honest signal that you are overcommitted while there is still time to do something about it.
 
@@ -242,7 +242,7 @@ ChatGPT supports custom remote MCP servers behind Developer Mode on paid plans. 
 * Zod for every boundary: ICS parse output, MCP tool input, server action input
 * Server actions for UI mutations, no separate API layer
 * `mcp-handler` and `@modelcontextprotocol/sdk` for the MCP route
-* Vercel, with Vercel Cron for feed sync only (the planner is a Claude scheduled task, not a cron)
+* Vercel, with Vercel Cron for feed sync only (the planner is an assistant scheduled task, not a Vercel cron)
 * `node-ical` for feed parsing
 
 ## Sync and deletions
@@ -270,7 +270,7 @@ Each of these should be independently shippable and useful.
 2. **Time.** Blocks table, the day rail, drag to schedule, the "do this now" counter writing `actual_minutes` and `remaining_minutes`. Now it's a usable manual planner that already measures how long things take.
 3. **Calendar in.** Google Calendar OAuth, events mirror, calendar page, the sync-and-archive loop. Now it knows when you're busy and cleans up after deletions.
 4. **The MCP server.** The route, `get_planning_context`, `apply_plan` with full Zod validation, item and note tools, `log_habit`, and `planner_runs`. Test it by connecting Claude and planning a few days by hand, in chat. Get the prompt right here, before automating anything.
-5. **The scheduled task.** Turn the working hand-prompt into a 5am daily pass over the horizon. Now the schedule fills itself.
+5. **The scheduled task.** Turn the working hand-prompt into a 4:50am daily pass over the horizon. Now the schedule fills itself.
 6. **Projects.** `parent_id`, project cards, the project view with its timeline, `decompose_project`, the at-risk widget, course-default estimate learning. This is the ambitious part; everything before it works without it.
 7. **Habits.** Small table, grid UI, sidebar row. An afternoon of work.
 8. **Links and notes.** The easy pages, built last.

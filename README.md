@@ -95,7 +95,7 @@ It exposes only these tools:
 
 There is no SQL tool and no general data API. Supabase OAuth authenticates the connector, and every tool call is restricted to `MCP_USER_ID`. The secret path remains available only as a legacy testing fallback.
 
-Use [docs/claude-scheduled-task.md](docs/claude-scheduled-task.md) to connect Claude and create the daily 5:00am planning task. The task itself lives in Claude, not Vercel Cron. Vercel Cron is used only for source sync.
+The daily planner automation runs in Codex at 4:50am local time. [docs/claude-scheduled-task.md](docs/claude-scheduled-task.md) remains available if you want to connect Claude instead. The planner task does not run through Vercel Cron. Vercel Cron is used only for source sync.
 
 ## Calendar and school feeds
 
@@ -104,6 +104,8 @@ Signing in requests read-only Google Calendar access. The dashboard mirrors even
 Add a Canvas, Schoology, or other ICS URL from Settings. The URL is encrypted with AES-256-GCM before storage. A successful sync upserts assignments by `(source_id, external_id)`. Only after a clean fetch and parse does the app archive assignments that disappeared upstream. A fetch or parse failure leaves existing assignments untouched.
 
 On Vercel Hobby, source sync runs once each day through `vercel.json`. Today and Calendar also sync on page load when a source is more than 15 minutes stale, so normal dashboard use stays current. Vercel Pro can restore the spec's 30-minute background schedule by changing the cron expression to `*/30 * * * *`.
+
+Authenticated pages subscribe to Supabase Realtime and refresh their server data after a matching database change. They also refresh when the tab regains focus and every 30 seconds while visible, so the dashboard still catches changes if a browser suspends the live connection. Apply migration `0015_realtime_refresh.sql` to enable immediate Realtime updates.
 
 ## Quick-add
 
@@ -141,6 +143,6 @@ The production build intentionally loads `node-ical` as a native Node package th
 3. Deploy and add the production callback URL to Supabase Authentication.
 4. Confirm Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` to `/api/sync`. Vercel uses `CRON_SECRET` automatically for cron requests when it is configured.
 5. Connect Claude to the private MCP URL and run the planner prompt by hand once.
-6. Create the 5:00am scheduled task only after the manual planner run succeeds.
+6. Create the 4:50am daily planner automation only after the manual planner run succeeds.
 
 Never commit a source URL, OAuth token, service-role key, cron secret, or MCP connector URL.
