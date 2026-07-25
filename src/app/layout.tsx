@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Manrope } from "next/font/google";
+import { LiveDataRefresh } from "@/app/components/live-data-refresh";
 import { MotionOrchestrator } from "@/app/components/motion-orchestrator";
 import "./globals.css";
 import "./sauce-theme.css";
@@ -36,6 +37,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <MotionOrchestrator>{children}</MotionOrchestrator>
+        <LiveDataRefresh />
       </body>
     </html>
   );
