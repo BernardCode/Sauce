@@ -10,6 +10,7 @@ import {
 } from "@/lib/source-secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toIcsItemCandidate } from "./ics-schema";
+import { normalizeIcsFeedUrl } from "./ics-url";
 
 const sourceSchema = z.object({
   id: z.uuid(),
@@ -22,7 +23,7 @@ const sourceSchema = z.object({
 const saveSchema = z.object({
   userId: z.uuid(),
   label: z.string().trim().min(1).max(100),
-  url: z.url().max(4_000),
+  url: z.string().trim().min(1).max(4_000),
 });
 const icsDocumentSchema = z
   .string()
@@ -82,7 +83,8 @@ async function fetchIcs(initialUrl: URL): Promise<string> {
 export async function saveIcsSource(input: unknown) {
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "That ICS source is not valid." };
-  const url = new URL(parsed.data.url);
+  const url = normalizeIcsFeedUrl(parsed.data.url);
+  if (!url) return { ok: false as const, error: "That ICS source is not valid." };
   try {
     await validatePublicLinkUrl(url);
   } catch {

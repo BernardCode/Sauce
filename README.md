@@ -103,6 +103,14 @@ Signing in requests read-only Google Calendar access. The dashboard mirrors even
 
 Add a Canvas, Schoology, or other ICS URL from Settings. The URL is encrypted with AES-256-GCM before storage. A successful sync upserts assignments by `(source_id, external_id)`. Only after a clean fetch and parse does the app archive assignments that disappeared upstream. A fetch or parse failure leaves existing assignments untouched.
 
+FUHSD does not provide student Schoology API keys. Connect Schoology with its private iCal subscription instead:
+
+1. Sign in at `https://fuhsd.schoology.com/`.
+2. Open your name, select Settings, then find Share Your Schoology Calendar.
+3. Enable sharing, copy the iCal link, and paste it into the Schoology section in sauce Settings.
+
+Schoology may copy the subscription as a `webcal://` link. sauce converts that transport to HTTPS before validating, encrypting, and syncing it. The feed is read-only and only contains Schoology calendar entries with dates.
+
 On Vercel Hobby, source sync runs once each day through `vercel.json`. Today and Calendar also sync on page load when a source is more than 15 minutes stale, so normal dashboard use stays current. Vercel Pro can restore the spec's 30-minute background schedule by changing the cron expression to `*/30 * * * *`.
 
 Authenticated pages subscribe to Supabase Realtime and refresh their server data after a matching database change. They also refresh when the tab regains focus and every 30 seconds while visible, so the dashboard still catches changes if a browser suspends the live connection. Apply migration `0015_realtime_refresh.sql` to enable immediate Realtime updates.

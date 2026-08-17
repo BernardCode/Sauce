@@ -23,7 +23,7 @@ const sourceIdSchema = z.object({ id: z.uuid() });
 const sourceEnabledSchema = sourceIdSchema.extend({ enabled: z.boolean() });
 const icsSourceSchema = z.object({
   label: z.string().trim().min(1).max(100),
-  url: z.url().max(4_000),
+  url: z.string().trim().min(1).max(4_000),
 });
 
 type ActionResult = { error: string | null };
