@@ -4,8 +4,11 @@ import {
   useEffect,
   useRef,
   useState,
+  type DragEvent,
+  type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { GripVertical } from "lucide-react";
 import {
   TaskContextMenu,
   type TaskContextMenuHandle,
@@ -18,9 +21,19 @@ type Props = {
   item: TodayItem;
   now: Date | null;
   onDone: (id: string) => void;
+  reorder?: {
+    disabled: boolean;
+    isDragging: boolean;
+    isDropTarget: boolean;
+    onDragStart: (event: DragEvent<HTMLButtonElement>) => void;
+    onDragEnd: () => void;
+    onDragOver: (event: DragEvent<HTMLLIElement>) => void;
+    onDrop: (event: DragEvent<HTMLLIElement>) => void;
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  };
 };
 
-export function ItemCard({ item, now, onDone }: Props) {
+export function ItemCard({ item, now, onDone, reorder }: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,10 +86,27 @@ export function ItemCard({ item, now, onDone }: Props) {
   return (
     <li
       onContextMenu={handleContextMenu}
+      onDragOver={reorder?.onDragOver}
+      onDrop={reorder?.onDrop}
       data-saving={item.optimistic === true}
       data-completing={isCompleting}
-      className="today-task-row"
+      data-dragging={reorder?.isDragging || undefined}
+      className={`today-task-row ${reorder?.isDragging ? "opacity-45" : ""} ${reorder?.isDropTarget ? "outline outline-2 outline-offset-1 outline-[var(--today-accent)]" : ""}`}
     >
+      {reorder ? (
+        <button
+          type="button"
+          draggable={!reorder.disabled}
+          disabled={reorder.disabled}
+          onDragStart={reorder.onDragStart}
+          onDragEnd={reorder.onDragEnd}
+          onKeyDown={reorder.onKeyDown}
+          aria-label={`Reorder "${item.title}". Use arrow keys or drag.`}
+          className="-ml-1 mt-0.5 grid size-5 shrink-0 cursor-grab place-items-center rounded text-[var(--muted)] opacity-60 transition hover:bg-[var(--surface-subtle)] hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing disabled:cursor-default disabled:opacity-25"
+        >
+          <GripVertical size={15} aria-hidden="true" />
+        </button>
+      ) : null}
       <button
         type="button"
         role="checkbox"

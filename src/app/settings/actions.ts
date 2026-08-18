@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Json } from "@/lib/database.types";
 import { workingHoursSchema } from "@/lib/planner/schemas";
+import { mergePlannerPreferences } from "@/lib/planner/preferences";
 import { safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,14 +33,23 @@ export async function updatePlannerSettings(input: unknown): Promise<ActionResul
   } = await supabase.auth.getUser();
   if (!user) return { error: "You are signed out. Refresh and sign in again." };
 
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("planner_prefs_json")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError || !profile) {
+    return { error: "Could not save planner settings." };
+  }
+
   const { data, error } = await supabase
     .from("users")
     .update({
       timezone: parsed.data.timezone,
       working_hours_json: parsed.data.workingHours as unknown as Json,
-      planner_prefs_json: {
+      planner_prefs_json: mergePlannerPreferences(profile.planner_prefs_json, {
         text: parsed.data.plannerPreferences,
-      } satisfies Json,
+      }),
     })
     .eq("id", user.id)
     .select("id")
