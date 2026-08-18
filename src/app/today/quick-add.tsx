@@ -8,6 +8,8 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
+import { classifyCourse } from "@/lib/quick-add/course";
+import { parseDueText, parseQuickAdd } from "@/lib/quick-add/parse";
 import { addItem } from "./actions";
 import type { TodayItem } from "./task-types";
 
@@ -26,24 +28,6 @@ function todayAtTime(value: string): string | null {
   return start.toISOString();
 }
 
-function endOfDueDate(value: string): string | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const due = new Date(year, month - 1, day, 23, 59, 0, 0);
-  if (
-    due.getFullYear() !== year ||
-    due.getMonth() !== month - 1 ||
-    due.getDate() !== day
-  ) {
-    return null;
-  }
-  return due.toISOString();
-}
-
 export function QuickAdd({
   onOptimisticAdd,
   todayDate,
@@ -56,7 +40,7 @@ export function QuickAdd({
   const [value, setValue] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [duration, setDuration] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [dueText, setDueText] = useState("");
   const [expandedOption, setExpandedOption] = useState<DraftOption | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -78,7 +62,7 @@ export function QuickAdd({
     setValue("");
     setScheduledTime("");
     setDuration("");
-    setDueDate("");
+    setDueText("");
     setExpandedOption(null);
     setError(null);
     setIsComposing(false);
@@ -99,6 +83,9 @@ export function QuickAdd({
       return;
     }
 
+    const parsedQuickAdd = parseQuickAdd(trimmed);
+    const parsedTitle = parsedQuickAdd.title || trimmed;
+    const course = classifyCourse(parsedTitle);
     const explicitMinutes = duration === "" ? null : Number(duration);
     if (
       explicitMinutes !== null &&
@@ -109,7 +96,7 @@ export function QuickAdd({
       setError("Duration must be between 1 and 600 minutes.");
       return;
     }
-    const estMinutes = explicitMinutes;
+    const estMinutes = explicitMinutes ?? parsedQuickAdd.estMinutes;
     const scheduledStartIso =
       scheduledTime === "" ? null : todayAtTime(scheduledTime);
     if (scheduledTime !== "" && scheduledStartIso === null) {
@@ -120,19 +107,20 @@ export function QuickAdd({
       setError("Add a duration before scheduling this task.");
       return;
     }
-    const explicitDueAtIso = dueDate === "" ? null : endOfDueDate(dueDate);
-    if (dueDate !== "" && explicitDueAtIso === null) {
-      setError("Choose a valid due date.");
+    const explicitDueAt = dueText === "" ? null : parseDueText(dueText);
+    if (dueText !== "" && explicitDueAt === null) {
+      setError("Use a date like Friday 11:59 pm, tomorrow 8:30, or the 24th.");
       return;
     }
 
-    const dueAtIso = explicitDueAtIso;
+    const dueAtIso = (explicitDueAt ?? parsedQuickAdd.dueAt)?.toISOString() ?? null;
+    const isProject = parsedQuickAdd.isProject ?? false;
     const temporaryId = crypto.randomUUID();
     const submittedDraft = {
       value,
       scheduledTime,
       duration,
-      dueDate,
+      dueText,
     };
 
     setError(null);
@@ -142,28 +130,29 @@ export function QuickAdd({
     startTransition(async () => {
       onOptimisticAdd({
         id: temporaryId,
-        title: trimmed,
-        course: null,
+        title: parsedTitle,
+        course,
         dueAt: dueAtIso,
-        plannedDate: todayDate,
+        plannedDate: isProject ? null : todayDate,
         estMinutes,
-        isProject: false,
+        isProject,
         origin: "manual",
         optimistic: true,
       });
       const result = await addItem({
-        title: trimmed,
+        title: parsedTitle,
         dueAtIso,
         plannedDate: todayDate,
         estMinutes,
-        isProject: false,
+        isProject,
+        course,
         scheduledStartIso,
       });
       if (result.error) {
         setValue(submittedDraft.value);
         setScheduledTime(submittedDraft.scheduledTime);
         setDuration(submittedDraft.duration);
-        setDueDate(submittedDraft.dueDate);
+        setDueText(submittedDraft.dueText);
         setError(result.error);
         setIsComposing(true);
       } else {
@@ -172,6 +161,8 @@ export function QuickAdd({
       setSavingCount((count) => Math.max(0, count - 1));
     });
   }
+
+  const courseSuggestion = classifyCourse(parseQuickAdd(value).title);
 
   return (
     <>
@@ -197,6 +188,11 @@ export function QuickAdd({
                 maxLength={500}
                 required
               />
+              {courseSuggestion ? (
+                <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+                  Course: {courseSuggestion}
+                </p>
+              ) : null}
               <div className="today-task-draft-option-buttons" aria-label="Optional task details">
                 <button
                   type="button"
@@ -218,9 +214,9 @@ export function QuickAdd({
                   type="button"
                   aria-expanded={expandedOption === "due"}
                   onClick={() => setExpandedOption((current) => current === "due" ? null : "due")}
-                  data-filled={dueDate !== ""}
+                  data-filled={dueText !== ""}
                 >
-                  {dueDate ? `Due ${dueDate}` : "Due date"}
+                  {dueText ? `Due ${dueText}` : "Due date"}
                 </button>
               </div>
               {expandedOption ? (
@@ -255,10 +251,12 @@ export function QuickAdd({
                   />
                   ) : (
                   <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(event) => setDueDate(event.target.value)}
+                    type="text"
+                    value={dueText}
+                    onChange={(event) => setDueText(event.target.value)}
+                    placeholder="Friday 11:59 pm"
                     aria-label="Due date"
+                    autoComplete="off"
                     autoFocus
                   />
                   )}

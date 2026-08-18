@@ -123,13 +123,13 @@ Quick-add reads optional date, time, and estimate tokens from the end of a line:
 chem lab writeup fri 5pm 90m
 ```
 
-Supported dates include `today`, `tomorrow`, weekdays, and `7/20`. Estimates include `45m`, `2h`, and `1h30`. Prefix the line with `*` to create a project:
+Supported dates include `today`, `tomorrow`, weekdays, day-only dates such as `24th`, named dates such as `August 24`, and numeric dates such as `8/24`. A bare `8:30` means 8:30am, while the common `11:59` school deadline means 11:59pm. Estimates include `45m`, `2h`, and `1h30`. Prefix the line with `*` to create a project:
 
 ```text
 * history documentary fri 3h
 ```
 
-Unrecognized text remains part of the title. Quick-add never guesses with AI.
+The title is matched against the student's six courses: AP Gov, AP Lit, AP Calc BC, AP Physics C, Ceramics, and PE. Explicit course names and strong subject-specific words are classified automatically. Ambiguous titles stay unclassified instead of being guessed. Unrecognized date text remains part of the title. Quick-add never guesses with AI.
 
 ## Verification
 

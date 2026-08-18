@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseQuickAdd } from "./parse";
+import { parseDueText, parseQuickAdd } from "./parse";
 
 // Tuesday, July 14 2026, 9:00am local. Every test resolves against this
 // clock so results are stable no matter when the suite runs.
@@ -91,6 +91,22 @@ describe("parseQuickAdd", () => {
     const result = parseQuickAdd("dentist forms tomorrow 9am", NOW);
     expect(result.title).toBe("dentist forms");
     expect(result.dueAt).toEqual(local(2026, 7, 15, 9, 0));
+  });
+
+  it("accepts a separated meridiem and assumes the common 11:59 deadline is pm", () => {
+    const separated = parseQuickAdd("AP Lit essay friday 11:59 pm", NOW);
+    const inferred = parseQuickAdd("AP Gov FRQ friday 11:59", NOW);
+
+    expect(separated.title).toBe("AP Lit essay");
+    expect(separated.dueAt).toEqual(local(2026, 7, 17, 23, 59));
+    expect(inferred.dueAt).toEqual(local(2026, 7, 17, 23, 59));
+  });
+
+  it("assumes a bare 8:30 time is am", () => {
+    const result = parseQuickAdd("physics lab tomorrow 8:30", NOW);
+
+    expect(result.title).toBe("physics lab");
+    expect(result.dueAt).toEqual(local(2026, 7, 15, 8, 30));
   });
 
   it("defaults a weekday with no time to 11:59pm", () => {
@@ -218,5 +234,60 @@ describe("parseQuickAdd", () => {
     expect(result.title).toBe("meet fri");
     expect(result.dueAt).toEqual(local(2026, 7, 14, 17, 0));
     expect(result.estMinutes).toBe(90);
+  });
+});
+
+describe("parseDueText", () => {
+  it("parses natural weekday and relative date examples", () => {
+    expect(parseDueText("Friday 11:59 pm", NOW)).toEqual(
+      local(2026, 7, 17, 23, 59),
+    );
+    expect(parseDueText("tomorrow 8:30", NOW)).toEqual(
+      local(2026, 7, 15, 8, 30),
+    );
+  });
+
+  it("accepts filler words and flexible meridiem spacing", () => {
+    expect(parseDueText("due Friday at 5 pm", NOW)).toEqual(
+      local(2026, 7, 17, 17, 0),
+    );
+  });
+
+  it("uses this month for an upcoming day and next month for a passed day", () => {
+    expect(parseDueText("due on the 24th", NOW)).toEqual(
+      local(2026, 7, 24, 23, 59),
+    );
+    expect(parseDueText("3", NOW)).toEqual(
+      local(2026, 8, 3, 23, 59),
+    );
+  });
+
+  it("accepts named, numeric, ISO, and next-week dates", () => {
+    expect(parseDueText("August 2 at 9am", NOW)).toEqual(
+      local(2026, 8, 2, 9, 0),
+    );
+    expect(parseDueText("8/2 9am", NOW)).toEqual(
+      local(2026, 8, 2, 9, 0),
+    );
+    expect(parseDueText("2026-08-02 9am", NOW)).toEqual(
+      local(2026, 8, 2, 9, 0),
+    );
+    expect(parseDueText("next friday", NOW)).toEqual(
+      local(2026, 7, 24, 23, 59),
+    );
+  });
+
+  it("uses today for a time by itself", () => {
+    expect(parseDueText("8:30", NOW)).toEqual(
+      local(2026, 7, 14, 8, 30),
+    );
+    expect(parseDueText("11:59", NOW)).toEqual(
+      local(2026, 7, 14, 23, 59),
+    );
+  });
+
+  it("rejects impossible or unreadable dates", () => {
+    expect(parseDueText("February 30", NOW)).toBeNull();
+    expect(parseDueText("whenever", NOW)).toBeNull();
   });
 });
