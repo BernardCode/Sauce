@@ -2,8 +2,10 @@
 
 import {
   useEffect,
+  useOptimistic,
   useRef,
   useState,
+  useTransition,
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -14,6 +16,7 @@ import {
 } from "@/app/components/task-context-menu";
 import type { TodayItem } from "./item-list";
 import { formatDue } from "./relative-time";
+import { renameItem } from "./rename-item-action";
 import { TaskEditDialog } from "./task-edit-dialog";
 
 type Props = {
@@ -36,8 +39,15 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const cancelRenameRef = useRef(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(item.title);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [title, setOptimisticTitle] = useOptimistic(item.title);
+  const [isRenaming, startRenameTransition] = useTransition();
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
   const contextDetails = [
     item.course ?? (item.origin === "feed" ? "School feed" : null),
@@ -51,8 +61,10 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
       item.origin === "feed" ||
       item.dueAt ||
       item.estMinutes ||
-      item.optimistic,
+      item.optimistic ||
+      isRenaming,
   );
+  const canRename = !item.optimistic && item.origin !== "feed";
 
   function handleContextMenu(event: ReactMouseEvent<HTMLLIElement>) {
     if (
@@ -75,12 +87,53 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
     }, 240);
   }
 
+  function beginRenaming() {
+    if (!canRename || isRenaming) return;
+    cancelRenameRef.current = false;
+    setRenameError(null);
+    setTitleDraft(title);
+    setIsEditingTitle(true);
+  }
+
+  function commitTitle() {
+    if (cancelRenameRef.current) {
+      cancelRenameRef.current = false;
+      return;
+    }
+    if (!isEditingTitle) return;
+    const nextTitle = titleDraft.trim();
+    setIsEditingTitle(false);
+
+    if (!nextTitle) {
+      setTitleDraft(title);
+      setRenameError("A task needs a title.");
+      return;
+    }
+    if (nextTitle === title) return;
+
+    setRenameError(null);
+    startRenameTransition(async () => {
+      setOptimisticTitle(nextTitle);
+      const result = await renameItem({
+        id: item.id,
+        title: nextTitle,
+      });
+      setRenameError(result.error);
+    });
+  }
+
   useEffect(() => {
     return () => {
       if (completionTimerRef.current) clearTimeout(completionTimerRef.current);
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isEditingTitle) return;
+    renameInputRef.current?.focus();
+    renameInputRef.current?.select();
+  }, [isEditingTitle]);
 
   return (
     <li
@@ -100,7 +153,7 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
           onDragStart={reorder.onDragStart}
           onDragEnd={reorder.onDragEnd}
           onKeyDown={reorder.onKeyDown}
-          aria-label={`Reorder "${item.title}"`}
+          aria-label={`Reorder "${title}"`}
           className="-ml-1 mt-0.5 grid size-5 shrink-0 cursor-grab place-items-center rounded text-[var(--muted)] opacity-60 transition hover:bg-[var(--surface-subtle)] hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing disabled:cursor-default disabled:opacity-25"
         >
           <span
@@ -122,8 +175,8 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
         onClick={completeTask}
         aria-label={
           item.optimistic
-            ? `Saving "${item.title}"`
-            : `Toggle completion for "${item.title}"`
+            ? `Saving "${title}"`
+            : `Toggle completion for "${title}"`
         }
         data-checked={isCompleting}
         className="completion-check today-task-checkbox"
@@ -132,11 +185,39 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
-          <span className="today-task-title min-w-0 flex-1">{item.title}</span>
+          {isEditingTitle ? (
+            <input
+              ref={renameInputRef}
+              value={titleDraft}
+              onChange={(event) => setTitleDraft(event.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                } else if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelRenameRef.current = true;
+                  setTitleDraft(title);
+                  setIsEditingTitle(false);
+                }
+              }}
+              aria-label="Task title"
+              maxLength={500}
+              className="today-task-title min-w-0 flex-1 border-0 border-b border-[var(--line-strong)] bg-transparent p-0 outline-none focus:border-[var(--primary)]"
+            />
+          ) : (
+            <span
+              onDoubleClick={beginRenaming}
+              className={`today-task-title min-w-0 flex-1 ${canRename ? "cursor-text" : ""}`}
+            >
+              {title}
+            </span>
+          )}
           {item.optimistic ? null : (
             <TaskContextMenu
               ref={contextMenuRef}
-              title={item.title}
+              title={title}
               details={contextDetails}
               dueAt={item.dueAt}
               scheduled={false}
@@ -145,6 +226,11 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
             />
           )}
         </div>
+        {renameError ? (
+          <p role="alert" className="mt-1 text-xs text-red-600">
+            {renameError}
+          </p>
+        ) : null}
         {hasMeta ? (
           <div className="today-task-meta">
             {item.course || item.origin === "feed" ? (
@@ -153,11 +239,12 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
             {item.dueAt ? <span>{due?.label ?? " "}</span> : null}
             {item.estMinutes ? <span>{item.estMinutes}m</span> : null}
             {item.optimistic ? <span>Saving</span> : null}
+            {isRenaming ? <span>Saving</span> : null}
           </div>
         ) : null}
       </div>
       <TaskEditDialog
-        item={item}
+        item={{ ...item, title }}
         open={isEditing}
         onClose={() => setIsEditing(false)}
       />
