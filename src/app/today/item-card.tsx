@@ -8,7 +8,6 @@ import {
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { GripVertical } from "lucide-react";
 import {
   TaskContextMenu,
   type TaskContextMenuHandle,
@@ -101,10 +100,18 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
           onDragStart={reorder.onDragStart}
           onDragEnd={reorder.onDragEnd}
           onKeyDown={reorder.onKeyDown}
-          aria-label={`Reorder "${item.title}". Use arrow keys or drag.`}
+          aria-label={`Reorder "${item.title}"`}
           className="-ml-1 mt-0.5 grid size-5 shrink-0 cursor-grab place-items-center rounded text-[var(--muted)] opacity-60 transition hover:bg-[var(--surface-subtle)] hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing disabled:cursor-default disabled:opacity-25"
         >
-          <GripVertical size={15} aria-hidden="true" />
+          <span
+            aria-hidden="true"
+            className="block size-3"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, currentColor 1px, transparent 1.5px)",
+              backgroundSize: "4px 4px",
+            }}
+          />
         </button>
       ) : null}
       <button
