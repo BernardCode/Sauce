@@ -17,6 +17,7 @@ import {
 import type { TodayItem } from "./item-list";
 import { formatDue } from "./relative-time";
 import { renameItem } from "./rename-item-action";
+import type { DropPosition } from "./reorder";
 import { TaskEditDialog } from "./task-edit-dialog";
 
 type Props = {
@@ -26,12 +27,12 @@ type Props = {
   reorder?: {
     disabled: boolean;
     isDragging: boolean;
-    isDropTarget: boolean;
-    onDragStart: (event: DragEvent<HTMLButtonElement>) => void;
+    dropPosition: DropPosition | null;
+    onDragStart: (event: DragEvent<HTMLLIElement>) => void;
     onDragEnd: () => void;
     onDragOver: (event: DragEvent<HTMLLIElement>) => void;
     onDrop: (event: DragEvent<HTMLLIElement>) => void;
-    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+    onKeyDown: (event: KeyboardEvent<HTMLLIElement>) => void;
   };
 };
 
@@ -138,34 +139,26 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
   return (
     <li
       onContextMenu={handleContextMenu}
+      draggable={reorder ? !reorder.disabled && !isEditingTitle : undefined}
+      onDragStart={reorder?.onDragStart}
+      onDragEnd={reorder?.onDragEnd}
       onDragOver={reorder?.onDragOver}
       onDrop={reorder?.onDrop}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget) reorder?.onKeyDown(event);
+      }}
+      tabIndex={reorder ? 0 : undefined}
       data-saving={item.optimistic === true}
       data-completing={isCompleting}
       data-dragging={reorder?.isDragging || undefined}
-      className={`today-task-row ${reorder?.isDragging ? "opacity-45" : ""} ${reorder?.isDropTarget ? "outline outline-2 outline-offset-1 outline-[var(--today-accent)]" : ""}`}
+      data-drop-position={reorder?.dropPosition ?? undefined}
+      className={`today-task-row relative ${reorder && !isEditingTitle ? "cursor-grab active:cursor-grabbing" : ""} ${reorder?.isDragging ? "opacity-45" : ""}`}
     >
-      {reorder ? (
-        <button
-          type="button"
-          draggable={!reorder.disabled}
-          disabled={reorder.disabled}
-          onDragStart={reorder.onDragStart}
-          onDragEnd={reorder.onDragEnd}
-          onKeyDown={reorder.onKeyDown}
-          aria-label={`Reorder "${title}"`}
-          className="-ml-1 mt-0.5 grid size-5 shrink-0 cursor-grab place-items-center rounded text-[var(--muted)] opacity-60 transition hover:bg-[var(--surface-subtle)] hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing disabled:cursor-default disabled:opacity-25"
-        >
-          <span
-            aria-hidden="true"
-            className="block size-3"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, currentColor 1px, transparent 1.5px)",
-              backgroundSize: "4px 4px",
-            }}
-          />
-        </button>
+      {reorder?.dropPosition ? (
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute left-3 right-3 z-20 h-0.5 rounded-full bg-[var(--today-accent)] ${reorder.dropPosition === "before" ? "-top-[0.3rem]" : "-bottom-[0.3rem]"}`}
+        />
       ) : null}
       <button
         type="button"
