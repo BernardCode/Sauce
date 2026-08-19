@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 import type { AddItemResult } from "./task-types";
 
@@ -49,6 +50,63 @@ const setItemDoneSchema = z.object({
 });
 
 type ActionResult = { error: string | null; warning?: string | null };
+type RolloverResult = ActionResult & { changed: boolean };
+
+export async function rolloverUnfinishedItems(): Promise<RolloverResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      error: "You are signed out. Refresh and sign in again.",
+      changed: false,
+    };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("timezone")
+    .eq("id", user.id)
+    .single();
+  if (profileError) {
+    return { error: "Could not check earlier tasks.", changed: false };
+  }
+
+  const today = localParts(
+    new Date(),
+    safeTimeZone(profile?.timezone ?? "UTC"),
+  ).date;
+  const { data: items, error: itemsError } = await supabase
+    .from("items")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "open")
+    .eq("is_project", false)
+    .neq("origin", "feed")
+    .not("planned_date", "is", null)
+    .lt("planned_date", today);
+  if (itemsError) {
+    return { error: "Could not check earlier tasks.", changed: false };
+  }
+
+  const itemIds = (items ?? []).map((item) => item.id);
+  if (itemIds.length === 0) return { error: null, changed: false };
+
+  const { error: plannedDateError } = await supabase
+    .from("items")
+    .update({ planned_date: today })
+    .eq("user_id", user.id)
+    .eq("status", "open")
+    .in("id", itemIds);
+  if (plannedDateError) {
+    return { error: "Could not carry earlier tasks forward.", changed: false };
+  }
+
+  revalidatePath("/today");
+  revalidatePath("/calendar");
+  return { error: null, changed: true };
+}
 
 export async function addItem(input: unknown): Promise<AddItemResult> {
   const parsed = addItemSchema.safeParse(input);

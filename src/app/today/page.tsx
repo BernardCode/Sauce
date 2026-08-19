@@ -11,6 +11,7 @@ import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 import { MagicDust, type MagicDustMood } from "@/components/ui/magic-dust";
 import { ItemList } from "./item-list";
+import { RolloverUnfinishedItems } from "./rollover-yesterday";
 import type { TodayItem } from "./task-types";
 import { TodaySchedulePanel } from "./today-schedule-panel";
 import type {
@@ -18,6 +19,7 @@ import type {
   TodayEvent,
   TodayScheduledHabit,
 } from "./types";
+import { isVisibleToday } from "./visible-items";
 
 type ItemRow = {
   id: string;
@@ -235,8 +237,7 @@ export default async function TodayPage() {
     blocks.flatMap((block) => (block.itemId ? [block.itemId] : [])),
   );
   const todayRows = ((openResult.data ?? []) as ItemRow[]).filter(
-    (item) =>
-      item.planned_date === localToday.date || scheduledItemIds.has(item.id),
+    (item) => isVisibleToday(item, localToday.date, scheduledItemIds),
   );
   const openItems = todayRows.map(toTodayItem);
   const dustMood = workloadMood(todayRows, localToday.date, timeZone);
@@ -300,6 +301,7 @@ export default async function TodayPage() {
 
   return (
     <div className="app-page" data-page="today">
+      <RolloverUnfinishedItems />
       <AppHeader />
       <MagicDust mood={dustMood} />
       <main className="flex flex-1 flex-col">
