@@ -25,6 +25,7 @@ import {
   type TodayScheduledHabit,
 } from "./types";
 import { useNow } from "./use-now";
+import { withoutCompletedBlocks } from "./visible-blocks";
 
 const PX_PER_HOUR = 64;
 const PX_PER_MINUTE = PX_PER_HOUR / 60;
@@ -224,7 +225,7 @@ export function DayRail({
 
   // Optimistic overlay over props: removed blocks vanish, moved blocks show
   // their new times, and the live drag preview wins over everything.
-  const overlaid = blocks
+  const overlaid = withoutCompletedBlocks(blocks)
     .filter((block) => !removedIds[block.id])
     .map((block) => {
       const times = movedTimes[block.id];
@@ -357,11 +358,6 @@ export function DayRail({
       Math.max(0, railHeight - 160),
     );
     setPopover({ blockId: entry.block.id, top, left });
-  }
-
-  function openPopoverForBlock(block: TodayBlock) {
-    const entry = placed.find((candidate) => candidate.block.id === block.id);
-    if (entry) openPopover(entry);
   }
 
   function commitTimes(blockId: string, startMs: number, endMs: number) {
@@ -702,7 +698,6 @@ export function DayRail({
             onPressMove={handlePressMove}
             onPressEnd={handlePressEnd}
             onPressCancel={handlePressCancel}
-            onOpen={openPopoverForBlock}
             onToggleLock={handleToggleLock}
           />
         ))}

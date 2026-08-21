@@ -1990,12 +1990,23 @@ button:hover .motion-habit-dot + span {
 
 .motion-resize-handle {
   opacity: 0;
-  background: linear-gradient(90deg, transparent 25%, color-mix(in srgb, var(--primary) 55%, transparent) 50%, transparent 75%);
   transition: opacity 160ms ease;
 }
 
+.motion-resize-handle::after {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, currentColor 28%, transparent);
+  content: "";
+  transform: translateX(-50%);
+}
+
 .motion-rail-block:hover .motion-resize-handle {
-  opacity: 1;
+  opacity: 0.72;
 }
 
 .motion-rail-block[data-dragging="true"] {

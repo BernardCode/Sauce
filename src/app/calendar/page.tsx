@@ -5,7 +5,7 @@ import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { buildHabitSchedule } from "@/lib/habits/schedule";
-import { habitDaysSchema } from "@/lib/planner/schemas";
+import { habitDaysSchema, workingHoursSchema } from "@/lib/planner/schemas";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarBoard } from "./calendar-board";
 
@@ -111,6 +111,7 @@ export default async function CalendarPage({
     sourcesResult,
     habitsResult,
     habitLogsResult,
+    profileResult,
   ] =
     await Promise.all([
       supabase
@@ -159,6 +160,11 @@ export default async function CalendarPage({
         .eq("user_id", user.id)
         .gte("date", range.days[0])
         .lte("date", range.days[range.days.length - 1]),
+      supabase
+        .from("users")
+        .select("working_hours_json")
+        .eq("id", user.id)
+        .single(),
     ]);
 
   const staleCutoff = staleCutoffMs();
@@ -184,6 +190,7 @@ export default async function CalendarPage({
     sourcesResult.error,
     habitsResult.error,
     habitLogsResult.error,
+    profileResult.error,
   ];
   if (errors.some(Boolean)) {
     return (
@@ -220,6 +227,12 @@ export default async function CalendarPage({
     }),
     completedHabitDates,
   );
+  const parsedHours = workingHoursSchema.safeParse(
+    profileResult.data?.working_hours_json ?? {},
+  );
+  const plannerHours = parsedHours.success
+    ? parsedHours.data
+    : workingHoursSchema.parse({});
   const previous = dateKey(addDays(anchor, -range.step));
   const next = dateKey(addDays(anchor, range.step));
 
@@ -286,6 +299,8 @@ export default async function CalendarPage({
               }))}
             sources={sourcesResult.data ?? []}
             habits={calendarHabits}
+            wakeHour={plannerHours.wake}
+            sleepHour={plannerHours.sleep}
           />
         </section>
       </main>

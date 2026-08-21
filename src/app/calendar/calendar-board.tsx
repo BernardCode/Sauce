@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useMemo,
   useState,
   useTransition,
   type DragEvent,
@@ -16,6 +15,11 @@ import {
 } from "@/app/today/block-actions";
 import { setHabitLog } from "@/app/habits/actions";
 import { createManualBlock } from "./actions";
+import {
+  CALENDAR_PX_PER_HOUR,
+  placeCalendarEntries,
+  type PlacedCalendarEntry,
+} from "./calendar-layout";
 import type {
   CalendarBlock,
   CalendarEvent,
@@ -48,7 +52,35 @@ type Props = {
   items: CalendarItem[];
   sources: CalendarSource[];
   habits: CalendarHabit[];
+  wakeHour: number;
+  sleepHour: number;
 };
+
+type DayEntry =
+  | {
+      kind: "block";
+      id: string;
+      title: string;
+      startMinutes: number;
+      endMinutes: number;
+      block: CalendarBlock;
+    }
+  | {
+      kind: "event";
+      id: string;
+      title: string;
+      startMinutes: number;
+      endMinutes: number;
+      event: CalendarEvent;
+    }
+  | {
+      kind: "habit";
+      id: string;
+      title: string;
+      startMinutes: number;
+      endMinutes: number;
+      habit: CalendarHabit;
+    };
 
 function localDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -81,6 +113,31 @@ function habitTimeLabel(value: string): string {
   });
 }
 
+function timeMinutes(value: string): number {
+  const date = new Date(value);
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function timedRange(startAt: string, endAt: string) {
+  const startMinutes = timeMinutes(startAt);
+  const durationMinutes = Math.max(
+    15,
+    Math.round((Date.parse(endAt) - Date.parse(startAt)) / 60_000),
+  );
+  return { startMinutes, endMinutes: startMinutes + durationMinutes };
+}
+
+function habitRange(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  const startMinutes = hours * 60 + minutes;
+  return { startMinutes, endMinutes: startMinutes + 30 };
+}
+
+function hourLabel(hour: number): string {
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}${hour < 12 ? "am" : "pm"}`;
+}
+
 function readDragPayload(event: DragEvent): z.infer<typeof dragPayloadSchema> | null {
   const raw = event.dataTransfer.getData(DRAG_TYPE);
   if (!raw) return null;
@@ -106,7 +163,17 @@ function moveToDay(iso: string, day: string): Date {
   );
 }
 
-export function CalendarBoard({ view, days, blocks, events, items, sources, habits }: Props) {
+export function CalendarBoard({
+  view,
+  days,
+  blocks,
+  events,
+  items,
+  sources,
+  habits,
+  wakeHour,
+  sleepHour,
+}: Props) {
   const [hiddenSources, setHiddenSources] = useState<Record<string, true>>({});
   const [localBlocks, setLocalBlocks] = useState(blocks);
   const [localHabits, setLocalHabits] = useState(habits);
@@ -117,9 +184,10 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const sourceLabels = useMemo(
-    () => Object.fromEntries(sources.map((source) => [source.id, source.label])),
-    [sources],
+  const timelineHeight = Math.max(1, sleepHour - wakeHour) * CALENDAR_PX_PER_HOUR;
+  const hourMarks = Array.from(
+    { length: Math.max(1, sleepHour - wakeHour) + 1 },
+    (_, index) => wakeHour + index,
   );
 
   function run(action: () => Promise<{ error: string | null }>) {
@@ -243,7 +311,13 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
     const nextEnd = new Date(new Date(block.endAt).getTime() + deltaMinutes * 60_000);
     if (nextEnd <= new Date(block.startAt)) return;
     const previous = localBlocks;
+    const previousSelected = selectedBlock;
     setLocalBlocks((current) => current.map((entry) => entry.id === block.id ? { ...entry, endAt: nextEnd.toISOString() } : entry));
+    setSelectedBlock((current) =>
+      current?.id === block.id
+        ? { ...current, endAt: nextEnd.toISOString() }
+        : current,
+    );
     startTransition(async () => {
       const result = await updateBlockTimes({
         id: block.id,
@@ -251,18 +325,28 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
         endAtIso: nextEnd.toISOString(),
       });
       setError(result.error);
-      if (result.error) setLocalBlocks(previous);
+      if (result.error) {
+        setLocalBlocks(previous);
+        setSelectedBlock(previousSelected);
+      }
     });
   }
 
   function toggleLock(block: CalendarBlock) {
     const previous = localBlocks;
+    const previousSelected = selectedBlock;
     const locked = !block.locked;
     setLocalBlocks((current) => current.map((entry) => entry.id === block.id ? { ...entry, locked } : entry));
+    setSelectedBlock((current) =>
+      current?.id === block.id ? { ...current, locked } : current,
+    );
     startTransition(async () => {
       const result = await setBlockLocked({ id: block.id, locked });
       setError(result.error);
-      if (result.error) setLocalBlocks(previous);
+      if (result.error) {
+        setLocalBlocks(previous);
+        setSelectedBlock(previousSelected);
+      }
     });
   }
 
@@ -292,6 +376,84 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
       setError(result.error);
       if (result.error) setLocalHabits(previous);
     });
+  }
+
+  function renderEntry(
+    entry: DayEntry,
+    placement?: PlacedCalendarEntry<DayEntry>,
+  ) {
+    const placementStyle = placement
+      ? {
+          top: placement.top,
+          height: placement.height,
+          left: `calc(${(placement.lane / placement.laneCount) * 100}% + 5px)`,
+          width: `calc(${100 / placement.laneCount}% - 10px)`,
+          zIndex: placement.zIndex,
+        }
+      : undefined;
+    const isTimeline = placement !== undefined;
+
+    if (entry.kind === "habit") {
+      return (
+        <button
+          key={entry.id}
+          type="button"
+          data-done={entry.habit.done}
+          data-timeline={isTimeline}
+          aria-pressed={entry.habit.done}
+          aria-label={`Toggle completion for ${entry.habit.name} at ${habitTimeLabel(entry.habit.scheduledTime)}`}
+          title={`${entry.habit.name}, ${habitTimeLabel(entry.habit.scheduledTime)}`}
+          onClick={() => toggleHabit(entry.habit)}
+          className="motion-calendar-habit calendar-entry-card"
+          style={placementStyle}
+        >
+          <span
+            className="completion-check calendar-habit-check"
+            data-checked={entry.habit.done}
+            aria-hidden="true"
+          >
+            {entry.habit.done ? "✓" : ""}
+          </span>
+          <span className="calendar-entry-title">{entry.title}</span>
+        </button>
+      );
+    }
+
+    if (entry.kind === "event") {
+      const time = entry.event.allDay
+        ? "All day"
+        : `${clockLabel(entry.event.startAt)} to ${clockLabel(entry.event.endAt)}`;
+      return (
+        <article
+          key={entry.id}
+          data-timeline={isTimeline}
+          aria-label={`${entry.title}, ${time}`}
+          title={`${entry.title}, ${time}`}
+          className="motion-calendar-event calendar-event-row calendar-entry-card"
+          style={placementStyle}
+        >
+          <p className="calendar-entry-title">{entry.title}</p>
+        </article>
+      );
+    }
+
+    const time = `${clockLabel(entry.block.startAt)} to ${clockLabel(entry.block.endAt)}`;
+    return (
+      <button
+        key={entry.id}
+        type="button"
+        draggable={!entry.block.done}
+        data-timeline={isTimeline}
+        aria-label={`${entry.title}, ${time}`}
+        title={`${entry.title}, ${time}`}
+        onDragStart={(event) => startBlockDrag(event, entry.block)}
+        onClick={() => setSelectedBlock(entry.block)}
+        className="motion-calendar-block calendar-block-row calendar-entry-card"
+        style={placementStyle}
+      >
+        <span className="calendar-entry-title">{entry.title}</span>
+      </button>
+    );
   }
 
   return (
@@ -335,6 +497,25 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
               : "calendar-days-month"
         }`}
       >
+        {view !== "month" ? (
+          <aside className="calendar-time-column" aria-hidden="true">
+            <div className="calendar-time-column-header" />
+            <div className="calendar-time-column-all-day">All day</div>
+            <div
+              className="calendar-time-labels"
+              style={{ height: timelineHeight }}
+            >
+              {hourMarks.map((hour, index) => (
+                <span
+                  key={hour}
+                  style={{ top: index * CALENDAR_PX_PER_HOUR }}
+                >
+                  {hourLabel(hour)}
+                </span>
+              ))}
+            </div>
+          </aside>
+        ) : null}
         {days.map((day) => {
           const dayBlocks = localBlocks.filter(
             (block) => localDateKey(new Date(block.startAt)) === day,
@@ -345,6 +526,77 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
               !hiddenSources[event.sourceId],
           );
           const dayHabits = localHabits.filter((habit) => habit.date === day);
+          const blockEntries: DayEntry[] = dayBlocks.map((block) => ({
+            kind: "block",
+            id: `block:${block.id}`,
+            title: block.title,
+            ...timedRange(block.startAt, block.endAt),
+            block,
+          }));
+          const eventEntries: DayEntry[] = dayEvents
+            .filter((event) => !event.allDay)
+            .map((event) => ({
+              kind: "event",
+              id: `event:${event.id}`,
+              title: event.title,
+              ...timedRange(event.startAt, event.endAt),
+              event,
+            }));
+          const allDayEntries: DayEntry[] = dayEvents
+            .filter((event) => event.allDay)
+            .map((event) => ({
+              kind: "event",
+              id: `event:${event.id}`,
+              title: event.title,
+              startMinutes: -1,
+              endMinutes: 0,
+              event,
+            }));
+          const habitEntries: DayEntry[] = dayHabits.map((habit) => ({
+            kind: "habit",
+            id: `habit:${habit.id}`,
+            title: habit.name,
+            ...habitRange(habit.scheduledTime),
+            habit,
+          }));
+          const timedEntries = [
+            ...blockEntries,
+            ...eventEntries,
+            ...habitEntries,
+          ];
+          const monthEntries = [...allDayEntries, ...timedEntries].sort(
+            (a, b) =>
+              a.startMinutes - b.startMinutes || a.id.localeCompare(b.id),
+          );
+          const placedEntries = placeCalendarEntries(
+            timedEntries.map((entry) => ({
+              value: entry,
+              startMinutes: entry.startMinutes,
+              endMinutes: entry.endMinutes,
+            })),
+            wakeHour,
+            sleepHour,
+          );
+          const composer = composerDay === day ? (
+            <form
+              onSubmit={(event) => addManualBlock(event, day)}
+              className="calendar-block-composer"
+            >
+              <input
+                value={manualTitle}
+                onChange={(event) => setManualTitle(event.target.value)}
+                placeholder="Block title"
+                aria-label={`New block for ${dayLabel(day, view)}`}
+                autoFocus
+              />
+              <div>
+                <span>9:00 AM, 60 min</span>
+                <button type="submit" disabled={isPending || !manualTitle.trim()}>
+                  Add
+                </button>
+              </div>
+            </form>
+          ) : null;
           return (
             <section
               key={day}
@@ -376,108 +628,35 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
                   New block
                 </button>
               </header>
-              <div className="calendar-day-items">
-                {composerDay === day ? (
-                  <form
-                    onSubmit={(event) => addManualBlock(event, day)}
-                    className="calendar-block-composer"
+              {view === "month" ? (
+                <div className="calendar-day-items">
+                  {composer}
+                  {monthEntries.map((entry) => renderEntry(entry))}
+                </div>
+              ) : (
+                <>
+                  <div className="calendar-all-day-strip">
+                    {composer}
+                    {allDayEntries.map((entry) => renderEntry(entry))}
+                  </div>
+                  <div
+                    className="calendar-day-timeline"
+                    style={{ height: timelineHeight }}
                   >
-                    <input
-                      value={manualTitle}
-                      onChange={(event) => setManualTitle(event.target.value)}
-                      placeholder="Block title"
-                      aria-label={`New block for ${dayLabel(day, view)}`}
-                      autoFocus
-                    />
-                    <div>
-                      <span>9:00 AM, 60 min</span>
-                      <button type="submit" disabled={isPending || !manualTitle.trim()}>
-                        Add
-                      </button>
-                    </div>
-                  </form>
-                ) : null}
-                {dayHabits.map((habit) => (
-                  <button
-                    key={habit.id}
-                    type="button"
-                    data-done={habit.done}
-                    aria-pressed={habit.done}
-                    aria-label={`Toggle completion for ${habit.name} on ${habit.date}`}
-                    onClick={() => toggleHabit(habit)}
-                    className="motion-calendar-habit"
-                  >
-                    <span
-                      className="completion-check calendar-habit-check"
-                      data-checked={habit.done}
-                      aria-hidden="true"
-                    >
-                      {habit.done ? "✓" : ""}
-                    </span>
-                    <span className="calendar-habit-copy">
-                      <span className="calendar-habit-title">{habit.name}</span>
-                      <span className="calendar-habit-time">{habitTimeLabel(habit.scheduledTime)}, habit</span>
-                    </span>
-                  </button>
-                ))}
-                {dayEvents.map((event) => (
-                  <article
-                    key={event.id}
-                    className="motion-calendar-event calendar-event-row"
-                  >
-                    <p className="calendar-entry-title">{event.title}</p>
-                    <p className="calendar-entry-meta">
-                      {event.allDay ? "All day" : clockLabel(event.startAt)}
-                      {sourceLabels[event.sourceId]
-                        ? `, ${sourceLabels[event.sourceId]}`
-                        : ""}
-                    </p>
-                  </article>
-                ))}
-                {dayBlocks.map((block) => (
-                  <article
-                    key={block.id}
-                    draggable={!block.done}
-                    onDragStart={(event) => startBlockDrag(event, block)}
-                    onClick={() => setSelectedBlock(block)}
-                    className="motion-calendar-block calendar-block-row"
-                  >
-                    <p className="calendar-entry-title">{block.title}</p>
-                    <p className="calendar-entry-meta">
-                      {clockLabel(block.startAt)} to {clockLabel(block.endAt)}
-                    </p>
-                    <div className="calendar-block-actions">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          resizeBlock(block, -15);
-                        }}
-                      >
-                        -15m
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          resizeBlock(block, 15);
-                        }}
-                      >
-                        +15m
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleLock(block);
-                        }}
-                      >
-                        {block.locked ? "Unlock" : "Lock"}
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                    {hourMarks.map((hour, index) => (
+                      <span
+                        key={hour}
+                        className="calendar-hour-line"
+                        style={{ top: index * CALENDAR_PX_PER_HOUR }}
+                        aria-hidden="true"
+                      />
+                    ))}
+                    {placedEntries.map((entry) =>
+                      renderEntry(entry.value, entry),
+                    )}
+                  </div>
+                </>
+              )}
             </section>
           );
         })}
@@ -524,6 +703,26 @@ export function CalendarBoard({ view, days, blocks, events, items, sources, habi
           {selectedBlock.reason ? (
             <p className="calendar-detail-reason">{selectedBlock.reason}</p>
           ) : null}
+          <div className="calendar-detail-actions">
+            <button
+              type="button"
+              onClick={() => resizeBlock(selectedBlock, -15)}
+            >
+              Shorten 15 min
+            </button>
+            <button
+              type="button"
+              onClick={() => resizeBlock(selectedBlock, 15)}
+            >
+              Extend 15 min
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleLock(selectedBlock)}
+            >
+              {selectedBlock.locked ? "Unlock" : "Lock"}
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => {

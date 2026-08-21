@@ -62,8 +62,6 @@ type Props = {
   onPressMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPressEnd: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPressCancel: (event: ReactPointerEvent<HTMLDivElement>) => void;
-  // Done blocks skip the drag state machine, so they open the popover here.
-  onOpen: (block: TodayBlock) => void;
   onToggleLock: (block: TodayBlock) => void;
 };
 
@@ -80,16 +78,16 @@ export function BlockCard({
   onPressMove,
   onPressEnd,
   onPressCancel,
-  onOpen,
   onToggleLock,
 }: Props) {
+  if (block.done) return null;
+
   const startMs = Date.parse(block.startAt);
   const endMs = Date.parse(block.endAt);
-  const interactive = !block.done;
 
-  // Item-less blocks ("bike to school") and done blocks both read as
-  // background noise next to real scheduled work.
-  const muted = block.done || block.itemId === null;
+  // Item-less blocks ("bike to school") read as background noise next to
+  // real scheduled work.
+  const muted = block.itemId === null;
   const surface = muted
     ? "border-zinc-200 bg-white/70 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400"
     : "border-[var(--task-accent)] bg-[var(--task-soft)] text-[var(--task-ink)]";
@@ -97,7 +95,7 @@ export function BlockCard({
   const classes = [
     "absolute overflow-hidden rounded-lg border shadow-sm select-none",
     surface,
-    interactive ? "touch-none cursor-grab active:cursor-grabbing" : "cursor-pointer",
+    "touch-none cursor-grab active:cursor-grabbing",
     highlighted ? "ring-2 ring-sky-500" : "",
     isDragging ? "opacity-90 shadow-md" : "",
     isOffRail ? "border-dashed border-red-400 opacity-40 dark:border-red-500" : "",
@@ -115,21 +113,13 @@ export function BlockCard({
       data-done={block.done}
       style={{ top, height, left: 44 + indent, right: 4, zIndex }}
       className={`motion-rail-block ${classes}`}
-      onPointerDown={
-        interactive ? (event) => onPressStart(event, block, "move") : undefined
-      }
-      onPointerMove={interactive ? onPressMove : undefined}
-      onPointerUp={interactive ? onPressEnd : undefined}
-      onPointerCancel={interactive ? onPressCancel : undefined}
-      onClick={interactive ? undefined : () => onOpen(block)}
+      onPointerDown={(event) => onPressStart(event, block, "move")}
+      onPointerMove={onPressMove}
+      onPointerUp={onPressEnd}
+      onPointerCancel={onPressCancel}
     >
       <div className="flex items-start justify-between gap-1 pt-0.5 pr-1 pl-2">
-        <span
-          className={`min-w-0 truncate text-xs font-medium ${
-            block.done ? "line-through" : ""
-          }`}
-          title={block.title}
-        >
+        <span className="min-w-0 truncate text-xs font-medium" title={block.title}>
           {block.title}
         </span>
         <button
@@ -153,17 +143,15 @@ export function BlockCard({
       <p className="px-2 text-[10px] whitespace-nowrap tabular-nums text-zinc-500">
         {rangeLabel(startMs, endMs)}
       </p>
-      {interactive ? (
-        <div
-          aria-hidden="true"
-          className="motion-resize-handle absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
-          onPointerDown={(event) => {
-            // Stop the card's move handler so this press only resizes.
-            event.stopPropagation();
-            onPressStart(event, block, "resize");
-          }}
-        />
-      ) : null}
+      <div
+        aria-hidden="true"
+        className="motion-resize-handle absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
+        onPointerDown={(event) => {
+          // Stop the card's move handler so this press only resizes.
+          event.stopPropagation();
+          onPressStart(event, block, "resize");
+        }}
+      />
     </div>
   );
 }

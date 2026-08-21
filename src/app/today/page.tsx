@@ -19,6 +19,7 @@ import type {
   TodayEvent,
   TodayScheduledHabit,
 } from "./types";
+import { withoutCompletedBlocks } from "./visible-blocks";
 import { isVisibleToday } from "./visible-items";
 
 type ItemRow = {
@@ -228,10 +229,17 @@ export default async function TodayPage() {
     ? parsedHours.data
     : workingHoursSchema.parse({});
 
-  const blocks = ((blocksResult.data ?? []) as BlockRow[])
-    .map(toTodayBlock)
-    .filter((block) =>
-      overlapsLocalDate(block.startAt, block.endAt, localToday.date, timeZone),
+  const blocks = withoutCompletedBlocks(
+    ((blocksResult.data ?? []) as BlockRow[]).map(toTodayBlock),
+  )
+    .filter(
+      (block) =>
+        overlapsLocalDate(
+          block.startAt,
+          block.endAt,
+          localToday.date,
+          timeZone,
+        ),
     );
   const scheduledItemIds = new Set(
     blocks.flatMap((block) => (block.itemId ? [block.itemId] : [])),
