@@ -29,6 +29,7 @@ import {
   safeTimeZone,
   utcRangeBounds,
 } from "./time";
+import { buildSchedulingGuidance } from "./scheduling-guidance";
 
 type Rejection = { block: unknown; why: string };
 
@@ -165,17 +166,21 @@ export async function getPlanningContext(userId: string, input: unknown) {
   const preferences = plannerPreferencesSchema.safeParse(
     userResult.data.planner_prefs_json ?? {},
   );
+  const timeZone = safeTimeZone(userResult.data.timezone);
 
   return {
     from_date: parsed.data.from_date,
     to_date: parsed.data.to_date,
-    timezone: safeTimeZone(userResult.data.timezone),
+    timezone: timeZone,
     working_hours: workingHours.success
       ? workingHours.data
       : workingHoursSchema.parse({}),
     planner_preferences: preferences.success ? preferences.data.text : "",
     items: visibleItems.map((item) => {
       const context = readItemContext(item.description);
+      const dueDate = item.due_at
+        ? localParts(new Date(item.due_at), timeZone).date
+        : null;
       return {
         ...item,
         category: item.course,
@@ -186,6 +191,15 @@ export async function getPlanningContext(userId: string, input: unknown) {
           : item.parent_id
             ? "project_step"
             : "task",
+        scheduling_guidance:
+          dueDate && !item.is_project
+            ? buildSchedulingGuidance({
+                planningStartDate: parsed.data.from_date,
+                dueDate,
+                remainingMinutes: item.remaining_minutes ?? item.est_minutes,
+                priority: item.priority,
+              })
+            : null,
       };
     }),
     projects_without_steps: items
@@ -447,7 +461,7 @@ export async function addPlannerItem(userId: string, input: unknown) {
       est_minutes: learnedEstimate,
       remaining_minutes: learnedEstimate,
       is_project: parsed.data.is_project,
-      origin: "manual",
+      origin: "ai",
       status: "open",
     })
     .select(

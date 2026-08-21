@@ -161,8 +161,9 @@ describe("MCP planner tool registration", () => {
       expect(tool?.inputSchema).toMatchObject({
         properties: {
           item_id: { type: "string", format: "uuid" },
+          confirmed_by_user: { const: true },
         },
-        required: ["item_id"],
+        required: ["item_id", "confirmed_by_user"],
       });
       expect(tool?.annotations).toMatchObject({
         readOnlyHint: false,
@@ -172,7 +173,7 @@ describe("MCP planner tool registration", () => {
       });
     }
 
-    const input = { item_id: itemId };
+    const input = { item_id: itemId, confirmed_by_user: true };
     const completeResult = await client.callTool({
       name: "complete_item",
       arguments: input,
@@ -204,10 +205,12 @@ describe("MCP planner tool registration", () => {
     expect(updateTool?.inputSchema).toMatchObject({
       properties: {
         item_id: { type: "string", format: "uuid" },
+        confirmed_by_user: { const: true },
         title: { type: "string" },
         category: { anyOf: expect.any(Array) },
         planned_date: { anyOf: expect.any(Array) },
       },
+      required: ["item_id", "confirmed_by_user"],
     });
   });
 });

@@ -141,6 +141,7 @@ describe("planner schemas", () => {
     expect(
       updateItemInputSchema.safeParse({
         item_id: "00000000-0000-4000-8000-000000000001",
+        confirmed_by_user: true,
         category: "Rice Essays",
         planned_date: "2026-07-23",
       }).success,
@@ -152,12 +153,16 @@ describe("planner schemas", () => {
     expect(
       updateItemInputSchema.safeParse({
         item_id: itemId,
+        confirmed_by_user: true,
         description: "Bring the latest transcript.",
       }).success,
     ).toBe(true);
-    expect(updateItemInputSchema.safeParse({ item_id: itemId }).success).toBe(
-      false,
-    );
+    expect(
+      updateItemInputSchema.safeParse({
+        item_id: itemId,
+        confirmed_by_user: true,
+      }).success,
+    ).toBe(false);
 
     expect(
       updateNoteInputSchema.safeParse({
@@ -170,14 +175,28 @@ describe("planner schemas", () => {
     );
   });
 
-  it("requires a real Sauce item id for lifecycle changes", () => {
+  it("requires explicit user confirmation for item mutations", () => {
+    const itemId = "00000000-0000-4000-8000-000000000001";
+    expect(
+      updateItemInputSchema.safeParse({
+        item_id: itemId,
+        title: "Rename without permission",
+      }).success,
+    ).toBe(false);
     expect(
       itemLifecycleInputSchema.safeParse({
-        item_id: "00000000-0000-4000-8000-000000000001",
+        item_id: itemId,
+        confirmed_by_user: true,
       }).success,
     ).toBe(true);
     expect(
-      itemLifecycleInputSchema.safeParse({ item_id: "FBLA DM" }).success,
+      itemLifecycleInputSchema.safeParse({ item_id: itemId }).success,
+    ).toBe(false);
+    expect(
+      itemLifecycleInputSchema.safeParse({
+        item_id: "FBLA DM",
+        confirmed_by_user: true,
+      }).success,
     ).toBe(false);
   });
 

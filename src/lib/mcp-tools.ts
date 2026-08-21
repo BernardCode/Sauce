@@ -44,7 +44,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Get planning context",
       description:
-        "Load open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, and planner runs for a date horizon.",
+        "Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, and planner runs for a date horizon. Dated leaf items include scheduling_guidance with a finish-early target, latest safe start date, and session budget.",
       inputSchema: optionalDateRangeSchema.shape,
     },
     async (input) => {
@@ -98,7 +98,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Update item",
       description:
-        "Edit an open task or project, including its title, details, deadline, planned Today date, estimate, category, and energy. Feed items remain read-only, and projects never receive a planned_date.",
+        "Edit an open task or project only after the user explicitly requests the exact change in the current conversation. Set confirmed_by_user to true only for that direct request. Never use this tool during an unattended planner run. Feed items remain read-only, and projects never receive a planned_date.",
       inputSchema: updateItemInputSchema.shape,
     },
     async (input) => asTextResult(await updatePlannerItem(userId, input)),
@@ -109,7 +109,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Complete item",
       description:
-        "Mark an open task or project step complete. Projects complete automatically after their open steps are complete.",
+        "Mark an open task or project step complete only after the user explicitly confirms completion in the current conversation. Set confirmed_by_user to true only for that direct confirmation. Never use this tool during an unattended planner run.",
       inputSchema: itemLifecycleInputSchema.shape,
       annotations: {
         readOnlyHint: false,
@@ -126,7 +126,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Archive item",
       description:
-        "Soft-archive an open non-feed item. Open project steps are archived with their project, while completed steps and manual or locked blocks are preserved.",
+        "Soft-archive an open non-feed item only after the user explicitly asks to remove that exact item in the current conversation. Set confirmed_by_user to true only for that direct request. Never use this tool during an unattended planner run.",
       inputSchema: itemLifecycleInputSchema.shape,
       annotations: {
         readOnlyHint: false,

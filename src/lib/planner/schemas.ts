@@ -62,6 +62,11 @@ export const applyPlanServiceInputSchema = z
   });
 
 const categorySchema = z.string().trim().min(1).max(100);
+const explicitUserConfirmationSchema = z
+  .literal(true)
+  .describe(
+    "True only when the user explicitly requested this exact mutation in the current conversation",
+  );
 
 export const addItemInputSchema = z
   .object({
@@ -101,6 +106,7 @@ export const addItemInputSchema = z
 export const updateItemInputSchema = z
   .object({
     item_id: z.uuid(),
+    confirmed_by_user: explicitUserConfirmationSchema,
     title: z.string().trim().min(1).max(500).optional(),
     description: z.string().trim().max(20_000).nullable().optional(),
     source_url: z
@@ -131,12 +137,16 @@ export const updateItemInputSchema = z
     }
   })
   .refine(
-    (value) => Object.keys(value).some((key) => key !== "item_id"),
+    (value) =>
+      Object.keys(value).some(
+        (key) => key !== "item_id" && key !== "confirmed_by_user",
+      ),
     "at least one item field is required",
   );
 
 export const itemLifecycleInputSchema = z.object({
   item_id: z.uuid().describe("Sauce item id"),
+  confirmed_by_user: explicitUserConfirmationSchema,
 });
 
 export const createNoteInputSchema = z.object({
