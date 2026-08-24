@@ -141,21 +141,11 @@ export function ItemList({ openItems, todayDate }: Props) {
   }
 
   function handleDragStart(
-    event: DragEvent<HTMLLIElement>,
+    event: DragEvent<HTMLButtonElement>,
     itemId: string,
   ) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const offsetX = Math.max(
-      0,
-      Math.min(bounds.width, event.clientX - bounds.left),
-    );
-    const offsetY = Math.max(
-      0,
-      Math.min(bounds.height, event.clientY - bounds.top),
-    );
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", itemId);
-    event.dataTransfer.setDragImage(event.currentTarget, offsetX, offsetY);
     setDraggedId(itemId);
     setDropTarget(null);
   }
@@ -188,7 +178,7 @@ export function ItemList({ openItems, todayDate }: Props) {
   }
 
   function handleReorderKeyDown(
-    event: KeyboardEvent<HTMLLIElement>,
+    event: KeyboardEvent<HTMLButtonElement>,
     itemId: string,
   ) {
     const currentIndex = visiblePersistentIds.indexOf(itemId);
