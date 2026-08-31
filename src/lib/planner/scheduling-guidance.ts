@@ -1,5 +1,6 @@
 const DAY_MS = 86_400_000;
 const MAX_SESSION_MINUTES = 90;
+const LARGE_TASK_MINUTES = 180;
 
 export type SchedulingUrgency =
   | "overdue"
@@ -32,26 +33,37 @@ function shiftDate(date: string, days: number): string {
   return new Date(dateValue(date) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
-function finishBufferDays(
-  remainingMinutes: number | null,
-  priority: string,
-): number {
-  let days = 1;
-  if (remainingMinutes !== null && remainingMinutes > 180) days = 3;
-  else if (remainingMinutes !== null && remainingMinutes > 60) days = 2;
-  if (priority === "high") days += 1;
-  return Math.min(days, 4);
+type ScheduleDateInput = {
+  scheduleDate: string;
+  dueDate: string;
+  remainingMinutes: number | null;
+};
+
+export function canScheduleOnDate({
+  scheduleDate,
+  dueDate,
+  remainingMinutes,
+}: ScheduleDateInput): boolean {
+  const daysUntilDue = Math.round(
+    (dateValue(dueDate) - dateValue(scheduleDate)) / DAY_MS,
+  );
+  if (daysUntilDue < 2) return true;
+  if (remainingMinutes === null || remainingMinutes <= LARGE_TASK_MINUTES) {
+    return false;
+  }
+
+  const laterSessionCapacity = (daysUntilDue - 1) * MAX_SESSION_MINUTES;
+  return remainingMinutes > laterSessionCapacity;
 }
 
 export function buildSchedulingGuidance({
   planningStartDate,
   dueDate,
   remainingMinutes,
-  priority,
 }: SchedulingGuidanceInput): SchedulingGuidance {
   const dueValue = dateValue(dueDate);
   const planningStartValue = dateValue(planningStartDate);
-  const bufferDays = finishBufferDays(remainingMinutes, priority);
+  const bufferDays = 1;
   const unboundedTarget = shiftDate(dueDate, -bufferDays);
   const targetCompletionDate =
     dateValue(unboundedTarget) < planningStartValue

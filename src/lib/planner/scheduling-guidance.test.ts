@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildSchedulingGuidance } from "./scheduling-guidance";
+import {
+  buildSchedulingGuidance,
+  canScheduleOnDate,
+} from "./scheduling-guidance";
 
 describe("buildSchedulingGuidance", () => {
   it("finishes a short assignment the day before it is due", () => {
@@ -20,7 +23,7 @@ describe("buildSchedulingGuidance", () => {
     });
   });
 
-  it("starts multi-session work early and finishes several days ahead", () => {
+  it("starts large multi-session work only as early as its session count requires", () => {
     expect(
       buildSchedulingGuidance({
         planningStartDate: "2026-08-20",
@@ -29,16 +32,16 @@ describe("buildSchedulingGuidance", () => {
         priority: "normal",
       }),
     ).toMatchObject({
-      target_completion_date: "2026-08-25",
-      must_start_by: "2026-08-22",
-      buffer_days: 3,
+      target_completion_date: "2026-08-27",
+      must_start_by: "2026-08-24",
+      buffer_days: 1,
       recommended_sessions: 4,
       recommended_session_minutes: 75,
       urgency: "planned_ahead",
     });
   });
 
-  it("adds another buffer day for high-priority work", () => {
+  it("does not pull ordinary high-priority work several days forward", () => {
     expect(
       buildSchedulingGuidance({
         planningStartDate: "2026-08-20",
@@ -47,9 +50,9 @@ describe("buildSchedulingGuidance", () => {
         priority: "high",
       }),
     ).toMatchObject({
-      target_completion_date: "2026-08-25",
-      must_start_by: "2026-08-24",
-      buffer_days: 3,
+      target_completion_date: "2026-08-27",
+      must_start_by: "2026-08-26",
+      buffer_days: 1,
       recommended_sessions: 2,
     });
   });
@@ -84,5 +87,54 @@ describe("buildSchedulingGuidance", () => {
       recommended_session_minutes: null,
       urgency: "overdue",
     });
+  });
+});
+
+describe("canScheduleOnDate", () => {
+  it("keeps ordinary work off a day that is two or more days before its deadline", () => {
+    expect(
+      canScheduleOnDate({
+        scheduleDate: "2026-08-31",
+        dueDate: "2026-09-03",
+        remainingMinutes: 90,
+      }),
+    ).toBe(false);
+  });
+
+  it("allows ordinary work on the day before its deadline", () => {
+    expect(
+      canScheduleOnDate({
+        scheduleDate: "2026-09-02",
+        dueDate: "2026-09-03",
+        remainingMinutes: 90,
+      }),
+    ).toBe(true);
+  });
+
+  it("allows a large task early only when later daily sessions cannot fit it", () => {
+    expect(
+      canScheduleOnDate({
+        scheduleDate: "2026-08-31",
+        dueDate: "2026-09-03",
+        remainingMinutes: 300,
+      }),
+    ).toBe(true);
+    expect(
+      canScheduleOnDate({
+        scheduleDate: "2026-08-31",
+        dueDate: "2026-09-04",
+        remainingMinutes: 240,
+      }),
+    ).toBe(false);
+  });
+
+  it("treats work without an estimate as ordinary work", () => {
+    expect(
+      canScheduleOnDate({
+        scheduleDate: "2026-08-31",
+        dueDate: "2026-09-03",
+        remainingMinutes: null,
+      }),
+    ).toBe(false);
   });
 });

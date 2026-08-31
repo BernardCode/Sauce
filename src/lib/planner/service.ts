@@ -29,7 +29,10 @@ import {
   safeTimeZone,
   utcRangeBounds,
 } from "./time";
-import { buildSchedulingGuidance } from "./scheduling-guidance";
+import {
+  buildSchedulingGuidance,
+  canScheduleOnDate,
+} from "./scheduling-guidance";
 
 type Rejection = { block: unknown; why: string };
 
@@ -245,7 +248,7 @@ export async function applyPlan(userId: string, input: unknown) {
         .single(),
       admin
         .from("items")
-        .select("id, status, is_project, remaining_minutes, est_minutes")
+        .select("id, status, is_project, due_at, remaining_minutes, est_minutes")
         .eq("user_id", parsedUserId.data),
       admin
         .from("events")
@@ -327,6 +330,15 @@ export async function applyPlan(userId: string, input: unknown) {
       existingRuns.has(localStart.date)
     ) {
       why = "date already has a planner run";
+    } else if (
+      item.due_at &&
+      !canScheduleOnDate({
+        scheduleDate: localStart.date,
+        dueDate: localParts(new Date(item.due_at), timeZone).date,
+        remainingMinutes: item.remaining_minutes ?? item.est_minutes,
+      })
+    ) {
+      why = "task is due two or more days later and does not need an early session";
     } else if (
       localStart.date !== localEnd.date ||
       localStart.minutes < workingHours.wake * 60 ||

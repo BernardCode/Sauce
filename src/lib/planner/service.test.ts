@@ -160,9 +160,9 @@ describe("getPlanningContext", () => {
         {
           title: "Write research paper",
           scheduling_guidance: {
-            target_completion_date: "2026-07-27",
-            must_start_by: "2026-07-24",
-            buffer_days: 3,
+            target_completion_date: "2026-07-29",
+            must_start_by: "2026-07-26",
+            buffer_days: 1,
             recommended_sessions: 4,
             recommended_session_minutes: 75,
             urgency: "planned_ahead",
