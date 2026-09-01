@@ -317,30 +317,6 @@ textarea:disabled {
   box-shadow: 0 1px 2px color-mix(in srgb, black 8%, transparent);
 }
 
-.task-menu-trigger {
-  width: auto;
-  height: auto;
-  margin: -0.2rem -0.25rem -0.2rem auto;
-  border-radius: 0.3rem;
-  padding: 0.25rem 0.4rem;
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 650;
-  opacity: 0;
-}
-
-.today-task-row:hover .task-menu-trigger,
-.task-menu-trigger:focus-visible,
-.task-menu-trigger[aria-expanded="true"],
-[data-page="assignments"] article:hover .task-menu-trigger {
-  opacity: 1;
-}
-
-.task-menu-trigger:hover,
-.task-menu-trigger[aria-expanded="true"] {
-  background: var(--primary-soft);
-}
-
 .task-context-title span {
   color: var(--muted);
 }
@@ -786,62 +762,15 @@ textarea:disabled {
   width: 100%;
   overflow: hidden;
   color: var(--foreground);
+  font-family: var(--font-manrope), "Manrope", sans-serif;
   font-size: 1rem;
-  font-weight: 620;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-optical-sizing: auto;
+  font-weight: 650;
+  letter-spacing: -0.018em;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.today-task-rename-error {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  left: 0;
-  z-index: 5;
-  border: 1px solid color-mix(in srgb, #c0392b 36%, transparent);
-  border-radius: 0.3rem;
-  background: var(--surface);
-  padding: 0.2rem 0.35rem;
-  color: #a53126;
-  font-size: 0.68rem;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.today-task-actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 0.05rem;
-}
-
-.today-task-list-move {
-  display: grid;
-  width: 1.6rem;
-  height: 1.6rem;
-  flex: none;
-  place-items: center;
-  border-radius: 0.45rem;
-  color: var(--muted);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.82rem;
-  opacity: 0.58;
-}
-
-.today-task-row .task-menu-trigger {
-  display: grid;
-  width: 1.6rem;
-  height: 1.6rem;
-  margin: 0;
-  place-items: center;
-  padding: 0;
-  font-size: 0;
-}
-
-.today-task-row .task-menu-trigger::before {
-  content: "•••";
-  font-size: 0.58rem;
-  letter-spacing: 0.06em;
 }
 
 .today-task-due {
@@ -866,24 +795,8 @@ textarea:disabled {
   color: color-mix(in srgb, var(--today-accent) 74%, var(--foreground));
 }
 
-:root[data-theme="dark"] .today-task-rename-error,
 :root[data-theme="dark"] .today-task-due[data-tone="overdue"] {
   color: #ff9b91;
-}
-
-.today-task-list-move:hover,
-.today-task-list-move:focus-visible {
-  background: color-mix(in srgb, var(--today-accent) 12%, transparent);
-  color: var(--today-accent);
-  opacity: 1;
-}
-
-.today-task-list-move:disabled {
-  opacity: 0.3;
-}
-
-.today-task-row:hover .today-task-list-move {
-  opacity: 1;
 }
 
 .today-task-lists > .today-list-error {
@@ -2042,10 +1955,6 @@ textarea:disabled {
 
   .today-schedule-panel {
     padding: 0.55rem;
-  }
-
-  .task-menu-trigger {
-    opacity: 1;
   }
 
   .habit-today-row {

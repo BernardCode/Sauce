@@ -23,6 +23,11 @@ type Props = {
   projectHref?: string;
   onEdit?: () => void;
   onComplete?: () => void;
+  listAction?: {
+    disabled: boolean;
+    label: string;
+    onMove: () => void;
+  };
   onShowSchedule?: () => void;
 };
 
@@ -50,7 +55,17 @@ function googleCalendarUrl(title: string, dueAt: string | null): string | null {
 }
 
 export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function TaskContextMenu(
-  { title, details, dueAt, scheduled, projectHref, onEdit, onComplete, onShowSchedule },
+  {
+    title,
+    details,
+    dueAt,
+    scheduled,
+    projectHref,
+    onEdit,
+    onComplete,
+    listAction,
+    onShowSchedule,
+  },
   ref,
 ) {
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -65,7 +80,7 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
 
   function openAt(x: number, y: number) {
     const menuWidth = 252;
-    const menuHeight = 280;
+    const menuHeight = 320;
     setCopied(false);
     setPosition({
       left: Math.max(12, Math.min(x, window.innerWidth - menuWidth - 12)),
@@ -105,42 +120,93 @@ export const TaskContextMenu = forwardRef<TaskContextMenuHandle, Props>(function
     }
   }
 
-  return (
-    <>
-      <button
-        type="button"
-        className="task-menu-trigger"
-        draggable={false}
-        aria-label={`More actions for ${title}`}
-        aria-haspopup="menu"
-        aria-expanded={position !== null}
-        onDragStart={(event) => event.preventDefault()}
-        onClick={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          openAt(rect.right - 252, rect.bottom + 6);
-        }}
-      >
-        Actions
-      </button>
-      {position ? createPortal(
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label={`Actions for ${title}`}
-          className="task-context-menu"
-          style={position}
-        >
-          <div className="task-context-title"><span>Task actions</span><strong>{title}</strong></div>
-          {projectHref ? <Link href={projectHref} role="menuitem" onClick={close}>Open project</Link> : null}
-          {onEdit ? <button type="button" role="menuitem" onClick={() => { onEdit(); close(); }}>Edit task</button> : null}
-          {onShowSchedule ? <button type="button" role="menuitem" onClick={() => { onShowSchedule(); close(); }}>Show on today&apos;s schedule</button> : null}
-          <Link href="/calendar" role="menuitem" onClick={close}>{scheduled ? "View in sauce calendar" : "Plan in sauce calendar"}</Link>
-          {calendarUrl ? <a href={calendarUrl} target="_blank" rel="noreferrer" role="menuitem" onClick={close}>Add deadline to Google Calendar</a> : null}
-          <button type="button" role="menuitem" onClick={copyTask}>{copied ? "Copied" : "Copy task details"}</button>
-          {onComplete ? <button type="button" role="menuitem" className="task-context-complete" onClick={() => { onComplete(); close(); }}>Mark complete</button> : null}
-        </div>,
-        document.body,
+  if (!position) return null;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      role="menu"
+      aria-label={`Actions for ${title}`}
+      className="task-context-menu"
+      style={position}
+    >
+      <div className="task-context-title">
+        <span>Task actions</span>
+        <strong>{title}</strong>
+      </div>
+      {projectHref ? (
+        <Link href={projectHref} role="menuitem" onClick={close}>
+          Open project
+        </Link>
       ) : null}
-    </>
+      {onEdit ? (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            onEdit();
+            close();
+          }}
+        >
+          Edit task
+        </button>
+      ) : null}
+      {listAction ? (
+        <button
+          type="button"
+          role="menuitem"
+          disabled={listAction.disabled}
+          onClick={() => {
+            listAction.onMove();
+            close();
+          }}
+        >
+          {listAction.label}
+        </button>
+      ) : null}
+      {onShowSchedule ? (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            onShowSchedule();
+            close();
+          }}
+        >
+          Show on today&apos;s schedule
+        </button>
+      ) : null}
+      <Link href="/calendar" role="menuitem" onClick={close}>
+        {scheduled ? "View in sauce calendar" : "Plan in sauce calendar"}
+      </Link>
+      {calendarUrl ? (
+        <a
+          href={calendarUrl}
+          target="_blank"
+          rel="noreferrer"
+          role="menuitem"
+          onClick={close}
+        >
+          Add deadline to Google Calendar
+        </a>
+      ) : null}
+      <button type="button" role="menuitem" onClick={copyTask}>
+        {copied ? "Copied" : "Copy task details"}
+      </button>
+      {onComplete ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="task-context-complete"
+          onClick={() => {
+            onComplete();
+            close();
+          }}
+        >
+          Mark complete
+        </button>
+      ) : null}
+    </div>,
+    document.body,
   );
 });

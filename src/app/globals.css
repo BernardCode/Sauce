@@ -764,25 +764,6 @@ select:focus-visible {
   opacity: 1;
 }
 
-.task-menu-trigger {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  flex: none;
-  place-items: center;
-  margin: -0.4rem -0.4rem -0.4rem auto;
-  border-radius: 0.5rem;
-  color: var(--muted);
-  opacity: 0.58;
-}
-
-.task-menu-trigger:hover,
-.task-menu-trigger[aria-expanded="true"] {
-  background: var(--surface);
-  color: var(--foreground);
-  opacity: 1;
-}
-
 .task-context-menu {
   position: fixed;
   z-index: 120;
@@ -1247,12 +1228,6 @@ select:focus-visible {
 
   .app-tool-icon {
     width: 2.5rem;
-  }
-
-  .task-menu-trigger {
-    width: 2.35rem;
-    height: 2.35rem;
-    opacity: 0.8;
   }
 
   .app-page > main {
