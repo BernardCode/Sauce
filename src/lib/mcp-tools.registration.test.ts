@@ -189,7 +189,7 @@ describe("MCP planner tool registration", () => {
     expect(serviceMocks.archivePlannerItem).toHaveBeenCalledWith(userId, input);
   });
 
-  it("exposes project, category, planned date, and task editing fields", async () => {
+  it("exposes project, category, list, planned date, and task editing fields", async () => {
     const client = await connectPlanner();
     const listed = await client.listTools();
     const addTool = listed.tools.find((tool) => tool.name === "add_item");
@@ -198,6 +198,7 @@ describe("MCP planner tool registration", () => {
     expect(addTool?.inputSchema).toMatchObject({
       properties: {
         category: { type: "string" },
+        list: { type: "string", enum: ["main", "later"] },
         planned_date: { type: "string", format: "date" },
         is_project: { type: "boolean" },
       },

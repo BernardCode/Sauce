@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mergePlannerPreferences,
+  readLaterItemIds,
   readTodayTaskOrder,
 } from "./preferences";
 
@@ -18,12 +19,28 @@ describe("planner preference storage", () => {
     expect(readTodayTaskOrder({ todayTaskOrder: ["not-a-uuid"] })).toEqual([]);
   });
 
+  it("reads the personal Later list and rejects malformed ids", () => {
+    expect(readLaterItemIds({ laterItemIds: [firstId, secondId] })).toEqual([
+      firstId,
+      secondId,
+    ]);
+    expect(readLaterItemIds({ laterItemIds: ["not-a-uuid"] })).toEqual([]);
+  });
+
   it("merges updates without discarding other preferences", () => {
     expect(
       mergePlannerPreferences(
-        { text: "Keep this", todayTaskOrder: [firstId] },
+        {
+          text: "Keep this",
+          todayTaskOrder: [firstId],
+          laterItemIds: [secondId],
+        },
         { text: "Updated" },
       ),
-    ).toEqual({ text: "Updated", todayTaskOrder: [firstId] });
+    ).toEqual({
+      text: "Updated",
+      todayTaskOrder: [firstId],
+      laterItemIds: [secondId],
+    });
   });
 });

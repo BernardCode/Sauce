@@ -7,11 +7,13 @@ import {
   habitDaysSchema,
   workingHoursSchema,
 } from "@/lib/planner/schemas";
+import { readLaterItemIds } from "@/lib/planner/preferences";
 import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 import { MagicDust, type MagicDustMood } from "@/components/ui/magic-dust";
 import { ItemList } from "./item-list";
 import { RolloverUnfinishedItems } from "./rollover-yesterday";
+import { partitionTodayItems } from "./task-lists";
 import type { TodayItem } from "./task-types";
 import { TodaySchedulePanel } from "./today-schedule-panel";
 import type {
@@ -20,7 +22,6 @@ import type {
   TodayScheduledHabit,
 } from "./types";
 import { withoutCompletedBlocks } from "./visible-blocks";
-import { isVisibleToday } from "./visible-items";
 
 type ItemRow = {
   id: string;
@@ -87,7 +88,7 @@ function overlapsLocalDate(
   return startDate <= date && endDate >= date;
 }
 
-function toTodayItem(row: ItemRow): TodayItem {
+function toTodayItem(row: ItemRow, isLater: boolean): TodayItem {
   return {
     id: row.id,
     title: row.title,
@@ -96,6 +97,7 @@ function toTodayItem(row: ItemRow): TodayItem {
     plannedDate: row.planned_date,
     estMinutes: row.est_minutes,
     isProject: row.is_project,
+    isLater,
     origin: row.origin,
   };
 }
@@ -190,7 +192,7 @@ export default async function TodayPage() {
       .order("start_at", { ascending: true }),
     supabase
       .from("users")
-      .select("timezone, working_hours_json")
+      .select("timezone, working_hours_json, planner_prefs_json")
       .eq("id", user.id)
       .single(),
     supabase
@@ -244,10 +246,17 @@ export default async function TodayPage() {
   const scheduledItemIds = new Set(
     blocks.flatMap((block) => (block.itemId ? [block.itemId] : [])),
   );
-  const todayRows = ((openResult.data ?? []) as ItemRow[]).filter(
-    (item) => isVisibleToday(item, localToday.date, scheduledItemIds),
+  const laterItemIds = new Set(
+    readLaterItemIds(profileResult.data?.planner_prefs_json ?? null),
   );
-  const openItems = todayRows.map(toTodayItem);
+  const { main: todayRows, later: laterRows } = partitionTodayItems(
+    (openResult.data ?? []) as ItemRow[],
+    localToday.date,
+    scheduledItemIds,
+    laterItemIds,
+  );
+  const openItems = todayRows.map((item) => toTodayItem(item, false));
+  const laterItems = laterRows.map((item) => toTodayItem(item, true));
   const dustMood = workloadMood(todayRows, localToday.date, timeZone);
   const events = ((eventsResult.data ?? []) as EventRow[])
     .map(toTodayEvent)
@@ -324,7 +333,11 @@ export default async function TodayPage() {
                   Could not load your tasks. Refresh to try again.
                 </p>
               ) : (
-                <ItemList openItems={openItems} todayDate={localToday.date} />
+                <ItemList
+                  openItems={openItems}
+                  laterItems={laterItems}
+                  todayDate={localToday.date}
+                />
               )}
             </section>
             <TodaySchedulePanel

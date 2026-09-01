@@ -31,10 +31,14 @@ function todayAtTime(value: string): string | null {
 export function QuickAdd({
   onOptimisticAdd,
   todayDate,
+  destination = "main",
 }: {
   onOptimisticAdd: (item: TodayItem) => void;
   todayDate: string;
+  destination?: "main" | "later";
 }) {
+  const isLater = destination === "later";
+  const composerId = `today-${destination}-task-composer`;
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [isComposing, setIsComposing] = useState(false);
   const [value, setValue] = useState("");
@@ -133,20 +137,22 @@ export function QuickAdd({
         title: parsedTitle,
         course,
         dueAt: dueAtIso,
-        plannedDate: isProject ? null : todayDate,
+        plannedDate: isProject || isLater ? null : todayDate,
         estMinutes,
         isProject,
+        isLater: isLater && !isProject,
         origin: "manual",
         optimistic: true,
       });
       const result = await addItem({
         title: parsedTitle,
         dueAtIso,
-        plannedDate: todayDate,
+        plannedDate: isLater ? null : todayDate,
         estMinutes,
         isProject,
         course,
-        scheduledStartIso,
+        list: isProject ? "main" : destination,
+        scheduledStartIso: isLater ? null : scheduledStartIso,
       });
       if (result.error) {
         setValue(submittedDraft.value);
@@ -169,7 +175,7 @@ export function QuickAdd({
       {isComposing ? (
         <li className="today-task-draft-row">
           <form
-            id="today-task-composer"
+            id={composerId}
             onSubmit={handleSubmit}
             onKeyDown={handleKeyDown}
             className="today-task-draft-form"
@@ -182,7 +188,7 @@ export function QuickAdd({
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 placeholder="Task title"
-                aria-label="Task title"
+                aria-label={isLater ? "Later task title" : "Task title"}
                 className="today-task-draft-title"
                 autoComplete="off"
                 maxLength={500}
@@ -194,14 +200,16 @@ export function QuickAdd({
                 </p>
               ) : null}
               <div className="today-task-draft-option-buttons" aria-label="Optional task details">
-                <button
-                  type="button"
-                  aria-expanded={expandedOption === "time"}
-                  onClick={() => setExpandedOption((current) => current === "time" ? null : "time")}
-                  data-filled={scheduledTime !== ""}
-                >
-                  {scheduledTime ? `Time ${scheduledTime}` : "Time"}
-                </button>
+                {!isLater ? (
+                  <button
+                    type="button"
+                    aria-expanded={expandedOption === "time"}
+                    onClick={() => setExpandedOption((current) => current === "time" ? null : "time")}
+                    data-filled={scheduledTime !== ""}
+                  >
+                    {scheduledTime ? `Time ${scheduledTime}` : "Time"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   aria-expanded={expandedOption === "duration"}
@@ -279,12 +287,12 @@ export function QuickAdd({
           <button
             type="button"
             onClick={openComposer}
-            aria-label="Start a new task"
+            aria-label={isLater ? "Add a task for later" : "Start a new task"}
             aria-expanded="false"
-            aria-controls="today-task-composer"
+            aria-controls={composerId}
             className="today-task-entry-input"
           >
-            New task
+            {isLater ? "Add for later" : "New task"}
           </button>
           {message ? (
             <p className="today-task-trigger-message" role="status">

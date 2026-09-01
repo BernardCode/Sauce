@@ -10,6 +10,7 @@ const task: TodayItem = {
   plannedDate: "2026-07-22",
   estMinutes: 30,
   isProject: false,
+  isLater: false,
   origin: "manual",
 };
 
@@ -30,5 +31,15 @@ describe("updateOptimisticItems", () => {
     expect(
       updateOptimisticItems([task], { type: "complete", id: task.id }),
     ).toEqual([]);
+  });
+
+  it("moves a task between Main and Later before the server responds", () => {
+    expect(
+      updateOptimisticItems([task], {
+        type: "move",
+        id: task.id,
+        destination: "later",
+      }),
+    ).toEqual([{ ...task, isLater: true }]);
   });
 });

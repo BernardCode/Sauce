@@ -87,7 +87,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Add item",
       description:
-        "Add one task or long-term project. Use is_project for multi-session outcomes, category for a class or workstream, and planned_date only for a small task intentionally assigned to that day's Today list.",
+        "Add one task or long-term project. Use is_project for multi-session outcomes, category for a class or workstream, planned_date only for a small task intentionally assigned to that day's Today list, and list set to later for a low-pressure reminder or task that should stay out of Main until it is timely.",
       inputSchema: addItemInputSchema.shape,
     },
     async (input) => asTextResult(await addPlannerItem(userId, input)),

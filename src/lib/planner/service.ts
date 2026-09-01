@@ -3,6 +3,10 @@ import "server-only";
 import { z } from "zod";
 import type { Json } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  mergePlannerPreferences,
+  readLaterItemIds,
+} from "./preferences";
 import { readItemContext, writeItemContext } from "./item-context";
 import {
   addItemInputSchema,
@@ -35,6 +39,33 @@ import {
 } from "./scheduling-guidance";
 
 type Rejection = { block: unknown; why: string };
+
+async function removeItemsFromLater(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  itemIds: string[],
+): Promise<boolean> {
+  const { data: profile, error: profileError } = await admin
+    .from("users")
+    .select("planner_prefs_json")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError || !profile) return false;
+  const removedIds = new Set(itemIds);
+  const currentLaterItemIds = readLaterItemIds(profile.planner_prefs_json);
+  const laterItemIds = currentLaterItemIds.filter((id) => !removedIds.has(id));
+  if (laterItemIds.length === currentLaterItemIds.length) return true;
+  const { error } = await admin
+    .from("users")
+    .update({
+      planner_prefs_json: mergePlannerPreferences(
+        profile.planner_prefs_json,
+        { laterItemIds },
+      ),
+    })
+    .eq("id", userId);
+  return !error;
+}
 
 function habitIsDue(
   habit: { cadence: string; days_json: Json | null },
@@ -169,6 +200,9 @@ export async function getPlanningContext(userId: string, input: unknown) {
   const preferences = plannerPreferencesSchema.safeParse(
     userResult.data.planner_prefs_json ?? {},
   );
+  const laterItemIds = new Set(
+    readLaterItemIds(userResult.data.planner_prefs_json),
+  );
   const timeZone = safeTimeZone(userResult.data.timezone);
 
   return {
@@ -189,6 +223,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
         category: item.course,
         description: context.description,
         source_url: context.sourceUrl,
+        list: laterItemIds.has(item.id) ? "later" : "main",
         kind: item.is_project
           ? "project"
           : item.parent_id
@@ -481,6 +516,42 @@ export async function addPlannerItem(userId: string, input: unknown) {
     )
     .single();
   if (error || !data) return { error: "The item could not be added." };
+  if (parsed.data.list === "later") {
+    const { data: profile, error: profileError } = await admin
+      .from("users")
+      .select("planner_prefs_json")
+      .eq("id", parsedUserId.data)
+      .maybeSingle();
+    if (profileError || !profile) {
+      await admin
+        .from("items")
+        .delete()
+        .eq("id", data.id)
+        .eq("user_id", parsedUserId.data);
+      return { error: "The item could not be added to Later." };
+    }
+    const laterItemIds = [
+      ...readLaterItemIds(profile.planner_prefs_json),
+      data.id,
+    ].slice(-500);
+    const { error: preferenceError } = await admin
+      .from("users")
+      .update({
+        planner_prefs_json: mergePlannerPreferences(
+          profile.planner_prefs_json,
+          { laterItemIds },
+        ),
+      })
+      .eq("id", parsedUserId.data);
+    if (preferenceError) {
+      await admin
+        .from("items")
+        .delete()
+        .eq("id", data.id)
+        .eq("user_id", parsedUserId.data);
+      return { error: "The item could not be added to Later." };
+    }
+  }
   const context = readItemContext(data.description);
   return {
     item: {
@@ -488,6 +559,7 @@ export async function addPlannerItem(userId: string, input: unknown) {
       category: data.course,
       description: context.description,
       source_url: context.sourceUrl,
+      list: parsed.data.list,
     },
   };
 }
@@ -628,6 +700,9 @@ export async function completePlannerItem(userId: string, input: unknown) {
     .eq("item_id", completed.id)
     .eq("user_id", parsedUserId.data);
   if (blocksError) warnings.push("Its linked schedule blocks could not be completed.");
+  if (!(await removeItemsFromLater(admin, parsedUserId.data, [completed.id]))) {
+    warnings.push("The item could not be removed from Later.");
+  }
 
   let parentCompleted = false;
   if (completed.parent_id) {
@@ -730,14 +805,21 @@ export async function archivePlannerItem(userId: string, input: unknown) {
     .gt("end_at", new Date().toISOString())
     .select("id");
 
+  const laterCleaned = await removeItemsFromLater(
+    admin,
+    parsedUserId.data,
+    itemIds,
+  );
+  const warnings: string[] = [];
+  if (blocksError) warnings.push("Future unlocked AI blocks could not be removed.");
+  if (!laterCleaned) warnings.push("Archived items could not be removed from Later.");
+
   return {
     archived: true,
     item: { id: item.id, title: item.title },
     items_archived: archived.length,
     ai_blocks_removed: removedBlocks?.length ?? 0,
-    warnings: blocksError
-      ? ["Future unlocked AI blocks could not be removed."]
-      : [],
+    warnings,
   };
 }
 

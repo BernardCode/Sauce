@@ -123,6 +123,22 @@ describe("planner schemas", () => {
     ).toBe(false);
   });
 
+  it("accepts personal Later tasks and keeps projects out of Later", () => {
+    expect(
+      addItemInputSchema.safeParse({
+        title: "Remember scholarship portal",
+        list: "later",
+      }).success,
+    ).toBe(true);
+    expect(
+      addItemInputSchema.safeParse({
+        title: "College applications",
+        is_project: true,
+        list: "later",
+      }).success,
+    ).toBe(false);
+  });
+
   it("keeps projects out of Today and accepts category labels", () => {
     expect(
       addItemInputSchema.safeParse({

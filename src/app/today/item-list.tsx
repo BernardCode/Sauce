@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
-import { setItemDone } from "./actions";
+import { moveItemToList, setItemDone } from "./actions";
 import { ItemCard } from "./item-card";
 import { updateOptimisticItems } from "./optimistic-items";
 import { QuickAdd } from "./quick-add";
@@ -24,6 +24,7 @@ export type { TodayItem } from "./task-types";
 
 type Props = {
   openItems: TodayItem[];
+  laterItems: TodayItem[];
   todayDate: string;
 };
 
@@ -31,24 +32,33 @@ function dueTime(item: TodayItem): number {
   return item.dueAt ? new Date(item.dueAt).getTime() : Number.POSITIVE_INFINITY;
 }
 
-export function ItemList({ openItems, todayDate }: Props) {
+export function ItemList({ openItems, laterItems, todayDate }: Props) {
   const now = useNow();
   const [doneError, setDoneError] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [orderedIds, setOrderedIds] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [listDropTarget, setListDropTarget] = useState<
+    "main" | "later" | null
+  >(null);
   const [dropTarget, setDropTarget] = useState<{
     id: string;
     position: DropPosition;
   } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [items, updateOptimistic] = useOptimistic(
-    openItems,
+    [...openItems, ...laterItems],
     updateOptimisticItems,
   );
   const [isPending, startTransition] = useTransition();
 
-  const fallbackItems = [...items].sort((a, b) => dueTime(a) - dueTime(b));
+  const fallbackItems = items
+    .filter((item) => !item.isLater)
+    .sort((a, b) => dueTime(a) - dueTime(b));
+  const sortedLaterItems = items
+    .filter((item) => item.isLater)
+    .sort((a, b) => dueTime(a) - dueTime(b));
   const persistentItemIds = fallbackItems
     .filter((item) => !item.optimistic)
     .map((item) => item.id);
@@ -101,6 +111,21 @@ export function ItemList({ openItems, todayDate }: Props) {
 
   function handleOptimisticAdd(item: TodayItem) {
     updateOptimistic({ type: "add", item });
+  }
+
+  function moveToList(itemId: string, destination: "main" | "later") {
+    const item = items.find((candidate) => candidate.id === itemId);
+    if (!item || item.optimistic || item.isLater === (destination === "later")) {
+      return;
+    }
+
+    setListError(null);
+    setAnnouncement(`${item.title} moved to ${destination === "later" ? "Later" : "Main"}.`);
+    startTransition(async () => {
+      updateOptimistic({ type: "move", id: itemId, destination });
+      const result = await moveItemToList({ id: itemId, destination });
+      setListError(result.error ?? result.warning ?? null);
+    });
   }
 
   function saveOrder(nextIds: string[], movedId: string, movedTitle: string) {
@@ -162,6 +187,7 @@ export function ItemList({ openItems, todayDate }: Props) {
 
   function handleDragOver(event: DragEvent<HTMLLIElement>, targetId: string) {
     if (!draggedId || draggedId === targetId) return;
+    if (items.find((item) => item.id === draggedId)?.isLater) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -175,6 +201,7 @@ export function ItemList({ openItems, todayDate }: Props) {
   }
 
   function handleDrop(event: DragEvent<HTMLLIElement>, targetId: string) {
+    if (items.find((item) => item.id === draggedId)?.isLater) return;
     event.preventDefault();
     if (draggedId) {
       moveItem(
@@ -185,6 +212,29 @@ export function ItemList({ openItems, todayDate }: Props) {
     }
     setDraggedId(null);
     setDropTarget(null);
+  }
+
+  function handleListDragOver(
+    event: DragEvent<HTMLElement>,
+    destination: "main" | "later",
+  ) {
+    const item = items.find((candidate) => candidate.id === draggedId);
+    if (!item || item.isLater === (destination === "later")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setListDropTarget(destination);
+  }
+
+  function handleListDrop(
+    event: DragEvent<HTMLElement>,
+    destination: "main" | "later",
+  ) {
+    event.preventDefault();
+    const itemId = event.dataTransfer.getData("text/plain") || draggedId;
+    if (itemId) moveToList(itemId, destination);
+    setDraggedId(null);
+    setDropTarget(null);
+    setListDropTarget(null);
   }
 
   function handleReorderKeyDown(
@@ -220,54 +270,135 @@ export function ItemList({ openItems, todayDate }: Props) {
   }
 
   return (
-    <section className="today-task-panel" aria-label="Tasks">
-      <div className="today-task-list-header">
-        <span className="today-task-list-label">Main</span>
-        <span
-          className="today-task-count"
-          aria-label={`${sortedItems.length} open ${sortedItems.length === 1 ? "task" : "tasks"}`}
-        >
-          {sortedItems.length}
-        </span>
-      </div>
-      <ul className="today-task-list">
-        {sortedItems.map((item) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-            now={now}
-            onDone={handleDone}
-            reorder={
-              item.optimistic
-                ? undefined
-                : {
-                    disabled: isPending,
-                    isDragging: draggedId === item.id,
-                    dropPosition:
-                      dropTarget?.id === item.id
-                        ? dropTarget.position
-                        : null,
-                    onDragStart: (event) => handleDragStart(event, item.id),
-                    onDragEnd: () => {
-                      setDraggedId(null);
-                      setDropTarget(null);
-                    },
-                    onDragOver: (event) => handleDragOver(event, item.id),
-                    onDrop: (event) => handleDrop(event, item.id),
-                    onKeyDown: (event) =>
-                      handleReorderKeyDown(event, item.id),
-                  }
-            }
+    <div className="today-task-lists">
+      <section
+        className="today-task-panel"
+        aria-label="Main tasks"
+        data-list-drop={listDropTarget === "main" || undefined}
+        onDragOver={(event) => handleListDragOver(event, "main")}
+        onDrop={(event) => handleListDrop(event, "main")}
+      >
+        <div className="today-task-list-header">
+          <span className="today-task-list-label">Main</span>
+          <span
+            className="today-task-count"
+            aria-label={`${sortedItems.length} open ${sortedItems.length === 1 ? "task" : "tasks"}`}
+          >
+            {sortedItems.length}
+          </span>
+        </div>
+        <ul className="today-task-list">
+          {sortedItems.map((item) => (
+            <ItemCard
+              key={item.id}
+              item={item}
+              now={now}
+              onDone={handleDone}
+              listAction={
+                item.optimistic
+                  ? undefined
+                  : {
+                      destination: "later",
+                      disabled: isPending,
+                      onMove: () => moveToList(item.id, "later"),
+                    }
+              }
+              reorder={
+                item.optimistic
+                  ? undefined
+                  : {
+                      disabled: isPending,
+                      isDragging: draggedId === item.id,
+                      dropPosition:
+                        dropTarget?.id === item.id
+                          ? dropTarget.position
+                          : null,
+                      onDragStart: (event) => handleDragStart(event, item.id),
+                      onDragEnd: () => {
+                        setDraggedId(null);
+                        setDropTarget(null);
+                        setListDropTarget(null);
+                      },
+                      onDragOver: (event) => handleDragOver(event, item.id),
+                      onDrop: (event) => handleDrop(event, item.id),
+                      onKeyDown: (event) =>
+                        handleReorderKeyDown(event, item.id),
+                    }
+              }
+            />
+          ))}
+          <QuickAdd
+            onOptimisticAdd={handleOptimisticAdd}
+            todayDate={todayDate}
           />
-        ))}
-        <QuickAdd onOptimisticAdd={handleOptimisticAdd} todayDate={todayDate} />
-      </ul>
-      {doneError || reorderError ? (
-        <p className="today-list-error">{doneError ?? reorderError}</p>
+        </ul>
+      </section>
+
+      <section
+        className="today-task-panel today-later-panel"
+        aria-label="Later tasks"
+        data-list-drop={listDropTarget === "later" || undefined}
+        onDragOver={(event) => handleListDragOver(event, "later")}
+        onDrop={(event) => handleListDrop(event, "later")}
+      >
+        <div className="today-task-list-header">
+          <span className="today-task-list-label">Later</span>
+          <span
+            className="today-task-count"
+            aria-label={`${sortedLaterItems.length} ${sortedLaterItems.length === 1 ? "item" : "items"} for later`}
+          >
+            {sortedLaterItems.length}
+          </span>
+        </div>
+        <p className="today-later-hint">Keep it nearby without making it today&apos;s priority.</p>
+        <ul className="today-task-list">
+          {sortedLaterItems.map((item) => (
+            <ItemCard
+              key={item.id}
+              item={item}
+              now={now}
+              onDone={handleDone}
+              listAction={
+                item.optimistic
+                  ? undefined
+                  : {
+                      destination: "main",
+                      disabled: isPending,
+                      onMove: () => moveToList(item.id, "main"),
+                    }
+              }
+              listDrag={
+                item.optimistic
+                  ? undefined
+                  : {
+                      disabled: isPending,
+                      isDragging: draggedId === item.id,
+                      onDragStart: (event) => handleDragStart(event, item.id),
+                      onDragEnd: () => {
+                        setDraggedId(null);
+                        setDropTarget(null);
+                        setListDropTarget(null);
+                      },
+                    }
+              }
+            />
+          ))}
+          <QuickAdd
+            destination="later"
+            onOptimisticAdd={handleOptimisticAdd}
+            todayDate={todayDate}
+          />
+        </ul>
+      </section>
+
+      {doneError || reorderError || listError ? (
+        <p className="today-list-error">
+          {doneError ?? reorderError ?? listError}
+        </p>
       ) : null}
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
-    </section>
+    </div>
   );
 }

@@ -82,7 +82,12 @@ export function TaskEditDialog({
           </label>
           <label>
             <span className="text-xs font-semibold text-[var(--muted)]">Show on Today</span>
-            <input name="plannedDate" type="date" defaultValue={item.plannedDate ?? ""} className="mt-1 min-h-11 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 text-sm outline-none focus:border-[var(--primary)]" />
+            <input name="plannedDate" type="date" defaultValue={item.plannedDate ?? ""} disabled={item.isLater} className="mt-1 min-h-11 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 text-sm outline-none focus:border-[var(--primary)] disabled:opacity-55" />
+            {item.isLater ? (
+              <span className="mt-1 block text-xs text-[var(--muted)]">
+                Move this task to Main before choosing a Today date.
+              </span>
+            ) : null}
           </label>
           <label>
             <span className="text-xs font-semibold text-[var(--muted)]">Deadline</span>

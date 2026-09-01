@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Json } from "@/lib/database.types";
 
 const todayTaskOrderSchema = z.array(z.uuid()).max(500);
+const laterItemIdsSchema = z.array(z.uuid()).max(500);
 
 function jsonObject(
   value: Json | null,
@@ -16,6 +17,11 @@ export function readTodayTaskOrder(value: Json | null): string[] {
   const result = todayTaskOrderSchema.safeParse(
     jsonObject(value).todayTaskOrder,
   );
+  return result.success ? result.data : [];
+}
+
+export function readLaterItemIds(value: Json | null): string[] {
+  const result = laterItemIdsSchema.safeParse(jsonObject(value).laterItemIds);
   return result.success ? result.data : [];
 }
 

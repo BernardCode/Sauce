@@ -34,9 +34,27 @@ type Props = {
     onDrop: (event: DragEvent<HTMLLIElement>) => void;
     onKeyDown: (event: KeyboardEvent<HTMLLIElement>) => void;
   };
+  listDrag?: {
+    disabled: boolean;
+    isDragging: boolean;
+    onDragStart: (event: DragEvent<HTMLLIElement>) => void;
+    onDragEnd: () => void;
+  };
+  listAction?: {
+    destination: "main" | "later";
+    disabled: boolean;
+    onMove: () => void;
+  };
 };
 
-export function ItemCard({ item, now, onDone, reorder }: Props) {
+export function ItemCard({
+  item,
+  now,
+  onDone,
+  reorder,
+  listDrag,
+  listAction,
+}: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,9 +157,13 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
   return (
     <li
       onContextMenu={handleContextMenu}
-      draggable={reorder ? !reorder.disabled && !isEditingTitle : undefined}
-      onDragStart={reorder?.onDragStart}
-      onDragEnd={reorder?.onDragEnd}
+      draggable={
+        reorder || listDrag
+          ? !(reorder?.disabled ?? listDrag?.disabled) && !isEditingTitle
+          : undefined
+      }
+      onDragStart={reorder?.onDragStart ?? listDrag?.onDragStart}
+      onDragEnd={reorder?.onDragEnd ?? listDrag?.onDragEnd}
       onDragOver={reorder?.onDragOver}
       onDrop={reorder?.onDrop}
       onKeyDown={(event) => {
@@ -150,7 +172,7 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
       tabIndex={reorder ? 0 : undefined}
       data-saving={item.optimistic === true}
       data-completing={isCompleting}
-      data-dragging={reorder?.isDragging || undefined}
+      data-dragging={reorder?.isDragging || listDrag?.isDragging || undefined}
       data-drop-position={reorder?.dropPosition ?? undefined}
       className={`today-task-row relative ${reorder && !isEditingTitle ? "cursor-grab active:cursor-grabbing" : ""} ${reorder?.isDragging ? "opacity-45" : ""}`}
     >
@@ -208,15 +230,31 @@ export function ItemCard({ item, now, onDone, reorder }: Props) {
             </span>
           )}
           {item.optimistic ? null : (
-            <TaskContextMenu
-              ref={contextMenuRef}
-              title={title}
-              details={contextDetails}
-              dueAt={item.dueAt}
-              scheduled={false}
-              onEdit={item.origin === "feed" ? undefined : () => setIsEditing(true)}
-              onComplete={completeTask}
-            />
+            <div className="flex flex-none items-center gap-1">
+              {listAction ? (
+                <button
+                  type="button"
+                  disabled={listAction.disabled}
+                  onClick={listAction.onMove}
+                  className="today-task-list-move"
+                  aria-label={`Move ${title} to ${listAction.destination === "later" ? "Later" : "Main"}`}
+                  title={`Move to ${listAction.destination === "later" ? "Later" : "Main"}`}
+                >
+                  <span aria-hidden="true">
+                    {listAction.destination === "later" ? "→" : "←"}
+                  </span>
+                </button>
+              ) : null}
+              <TaskContextMenu
+                ref={contextMenuRef}
+                title={title}
+                details={contextDetails}
+                dueAt={item.dueAt}
+                scheduled={false}
+                onEdit={item.origin === "feed" ? undefined : () => setIsEditing(true)}
+                onComplete={completeTask}
+              />
+            </div>
           )}
         </div>
         {renameError ? (

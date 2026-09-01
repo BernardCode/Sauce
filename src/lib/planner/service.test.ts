@@ -115,7 +115,9 @@ describe("getPlanningContext", () => {
           data: {
             timezone: "America/Los_Angeles",
             working_hours_json: null,
-            planner_prefs_json: null,
+            planner_prefs_json: {
+              laterItemIds: ["00000000-0000-4000-8000-000000000012"],
+            },
           },
           error: null,
         },
@@ -159,6 +161,7 @@ describe("getPlanningContext", () => {
       items: [
         {
           title: "Write research paper",
+          list: "later",
           scheduling_guidance: {
             target_completion_date: "2026-07-29",
             must_start_by: "2026-07-26",

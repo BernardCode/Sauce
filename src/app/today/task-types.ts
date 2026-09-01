@@ -6,6 +6,7 @@ export type TodayItem = {
   plannedDate: string | null;
   estMinutes: number | null;
   isProject: boolean;
+  isLater: boolean;
   origin: string;
   optimistic?: boolean;
 };

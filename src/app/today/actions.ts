@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import {
+  mergePlannerPreferences,
+  readLaterItemIds,
+} from "@/lib/planner/preferences";
 import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 import type { AddItemResult } from "./task-types";
@@ -26,6 +30,7 @@ const addItemSchema = z
     isProject: z.boolean().default(false),
     course: z.string().trim().min(1).max(80).nullable().default(null),
     energy: z.enum(["low", "medium", "high"]).default("medium"),
+    list: z.enum(["main", "later"]).default("main"),
     scheduledStartIso: optionalIsoTime,
   })
   .superRefine((value, context) => {
@@ -43,6 +48,13 @@ const addItemSchema = z
         message: "Schedule a project step instead of the whole project.",
       });
     }
+    if (value.scheduledStartIso && value.list === "later") {
+      context.addIssue({
+        code: "custom",
+        path: ["scheduledStartIso"],
+        message: "A Later task cannot also be scheduled for today.",
+      });
+    }
   });
 
 const setItemDoneSchema = z.object({
@@ -51,6 +63,33 @@ const setItemDoneSchema = z.object({
 
 type ActionResult = { error: string | null; warning?: string | null };
 type RolloverResult = ActionResult & { changed: boolean };
+
+async function removeItemsFromLater(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  itemIds: string[],
+): Promise<boolean> {
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("planner_prefs_json")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError || !profile) return false;
+  const removedIds = new Set(itemIds);
+  const currentLaterItemIds = readLaterItemIds(profile.planner_prefs_json);
+  const laterItemIds = currentLaterItemIds.filter((id) => !removedIds.has(id));
+  if (laterItemIds.length === currentLaterItemIds.length) return true;
+  const { error } = await supabase
+    .from("users")
+    .update({
+      planner_prefs_json: mergePlannerPreferences(
+        profile.planner_prefs_json,
+        { laterItemIds },
+      ),
+    })
+    .eq("id", userId);
+  return !error;
+}
 
 export async function rolloverUnfinishedItems(): Promise<RolloverResult> {
   const supabase = await createClient();
@@ -130,15 +169,17 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
     isProject,
     course,
     energy,
+    list,
     scheduledStartIso,
   } = parsed.data;
+  const isLater = list === "later" && !isProject;
   const { data: item, error } = await supabase
     .from("items")
     .insert({
       user_id: user.id,
       title,
       due_at: dueAtIso,
-      planned_date: isProject ? null : plannedDate,
+      planned_date: isProject || isLater ? null : plannedDate,
       est_minutes: estMinutes,
       // Remaining starts equal to the estimate; it drops as blocks complete.
       remaining_minutes: estMinutes,
@@ -153,6 +194,43 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
 
   if (error || !item) {
     return { error: "Could not save the task. Try again." };
+  }
+
+  if (isLater) {
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("planner_prefs_json")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileError || !profile) {
+      await supabase
+        .from("items")
+        .delete()
+        .eq("id", item.id)
+        .eq("user_id", user.id);
+      return { error: "Could not add that task to Later. Try again." };
+    }
+    const laterItemIds = [
+      ...readLaterItemIds(profile.planner_prefs_json),
+      item.id,
+    ].slice(-500);
+    const { error: laterError } = await supabase
+      .from("users")
+      .update({
+        planner_prefs_json: mergePlannerPreferences(
+          profile.planner_prefs_json,
+          { laterItemIds },
+        ),
+      })
+      .eq("id", user.id);
+    if (laterError) {
+      await supabase
+        .from("items")
+        .delete()
+        .eq("id", item.id)
+        .eq("user_id", user.id);
+      return { error: "Could not add that task to Later. Try again." };
+    }
   }
 
   let warning: string | null = null;
@@ -188,9 +266,121 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
       plannedDate: item.planned_date,
       estMinutes: item.est_minutes,
       isProject: item.is_project,
+      isLater,
       origin: item.origin,
     },
   };
+}
+
+const moveItemToListSchema = z.object({
+  id: z.uuid("That item id is not valid."),
+  destination: z.enum(["main", "later"]),
+});
+
+export async function moveItemToList(input: unknown): Promise<ActionResult> {
+  const parsed = moveItemToListSchema.safeParse(input);
+  if (!parsed.success) return { error: "That list change is not valid." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You are signed out. Refresh and sign in again." };
+
+  const [itemResult, profileResult] = await Promise.all([
+    supabase
+      .from("items")
+      .select("id")
+      .eq("id", parsed.data.id)
+      .eq("user_id", user.id)
+      .eq("status", "open")
+      .eq("is_project", false)
+      .maybeSingle(),
+    supabase
+      .from("users")
+      .select("timezone, planner_prefs_json")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+  if (itemResult.error || !itemResult.data) {
+    return { error: "That open task could not be found." };
+  }
+  if (profileResult.error || !profileResult.data) {
+    return { error: "Could not update your task lists." };
+  }
+
+  const previousLaterItemIds = readLaterItemIds(
+    profileResult.data.planner_prefs_json,
+  );
+  const nextLaterItemIds =
+    parsed.data.destination === "later"
+      ? [...new Set([...previousLaterItemIds, parsed.data.id])].slice(-500)
+      : previousLaterItemIds.filter((id) => id !== parsed.data.id);
+  const nextPreferences = mergePlannerPreferences(
+    profileResult.data.planner_prefs_json,
+    { laterItemIds: nextLaterItemIds },
+  );
+  const { error: preferenceError } = await supabase
+    .from("users")
+    .update({ planner_prefs_json: nextPreferences })
+    .eq("id", user.id);
+  if (preferenceError) return { error: "Could not update your task lists." };
+
+  const timeZone = safeTimeZone(profileResult.data.timezone);
+  const today = localParts(new Date(), timeZone).date;
+  const { error: itemError } = await supabase
+    .from("items")
+    .update({
+      planned_date: parsed.data.destination === "main" ? today : null,
+    })
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id)
+    .eq("status", "open");
+  if (itemError) {
+    await supabase
+      .from("users")
+      .update({
+        planner_prefs_json: mergePlannerPreferences(
+          profileResult.data.planner_prefs_json,
+          { laterItemIds: previousLaterItemIds },
+        ),
+      })
+      .eq("id", user.id);
+    return { error: "Could not update your task lists." };
+  }
+
+  let warning: string | null = null;
+  if (parsed.data.destination === "later") {
+    const { data: candidateBlocks, error: blocksError } = await supabase
+      .from("blocks")
+      .select("id, start_at")
+      .eq("user_id", user.id)
+      .eq("item_id", parsed.data.id)
+      .eq("origin", "ai")
+      .eq("locked", false)
+      .eq("done", false);
+    const todayBlockIds = (candidateBlocks ?? [])
+      .filter(
+        (block) => localParts(new Date(block.start_at), timeZone).date === today,
+      )
+      .map((block) => block.id);
+    if (blocksError) {
+      warning = "Moved to Later, but today's AI block could not be checked.";
+    } else if (todayBlockIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("blocks")
+        .delete()
+        .eq("user_id", user.id)
+        .in("id", todayBlockIds);
+      if (deleteError) {
+        warning = "Moved to Later, but today's AI block is still scheduled.";
+      }
+    }
+  }
+
+  revalidatePath("/today");
+  revalidatePath("/calendar");
+  return { error: null, warning };
 }
 
 const updateItemSchema = z.object({
@@ -296,6 +486,7 @@ export async function setItemDone(input: unknown): Promise<ActionResult> {
     revalidatePath("/today");
     return { error: "Marked done, but its scheduled blocks did not update." };
   }
+  await removeItemsFromLater(supabase, user.id, [updatedItem.id]);
 
   if (updatedItem.parent_id) {
     const { count } = await supabase

@@ -84,6 +84,10 @@ export const addItemInputSchema = z
     category: categorySchema.optional(),
     course: categorySchema.optional(),
     energy: z.enum(["low", "medium", "high"]).default("medium"),
+    list: z
+      .enum(["main", "later"])
+      .default("main")
+      .describe("Put a leaf task in Main or the personal Later list"),
     is_project: z.boolean().default(false),
   })
   .superRefine((value, context) => {
@@ -99,6 +103,13 @@ export const addItemInputSchema = z
         code: "custom",
         path: ["planned_date"],
         message: "projects belong in Projects, not on one Today list",
+      });
+    }
+    if (value.is_project && value.list === "later") {
+      context.addIssue({
+        code: "custom",
+        path: ["list"],
+        message: "projects belong in Projects, not in Later",
       });
     }
   });
