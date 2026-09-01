@@ -7,6 +7,7 @@ import {
   useTransition,
   type DragEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import { moveItemToList, setItemDone } from "./actions";
 import { ItemCard } from "./item-card";
@@ -26,13 +27,14 @@ type Props = {
   openItems: TodayItem[];
   laterItems: TodayItem[];
   todayDate: string;
+  schedule: ReactNode;
 };
 
 function dueTime(item: TodayItem): number {
   return item.dueAt ? new Date(item.dueAt).getTime() : Number.POSITIVE_INFINITY;
 }
 
-export function ItemList({ openItems, laterItems, todayDate }: Props) {
+export function ItemList({ openItems, laterItems, todayDate, schedule }: Props) {
   const now = useNow();
   const [doneError, setDoneError] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState<string | null>(null);
@@ -333,6 +335,8 @@ export function ItemList({ openItems, laterItems, todayDate }: Props) {
           />
         </ul>
       </section>
+
+      {schedule}
 
       <section
         className="today-task-panel today-later-panel"

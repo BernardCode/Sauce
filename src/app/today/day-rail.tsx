@@ -10,7 +10,6 @@ import { setHabitLog } from "@/app/habits/actions";
 import {
   createBlockForItem,
   deleteBlock,
-  setBlockLocked,
   updateBlockTimes,
 } from "./block-actions";
 import { BlockCard, type DragMode } from "./block-card";
@@ -27,7 +26,7 @@ import {
 import { useNow } from "./use-now";
 import { withoutCompletedBlocks } from "./visible-blocks";
 
-const PX_PER_HOUR = 64;
+const PX_PER_HOUR = 88;
 const PX_PER_MINUTE = PX_PER_HOUR / 60;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -37,7 +36,7 @@ const SNAP_MS = SNAP_MINUTES * MINUTE_MS;
 const DRAG_THRESHOLD_PX = 4;
 // Releasing a move this far past either rail edge deletes the block.
 const OFF_RAIL_PX = 48;
-const LABEL_GUTTER_PX = 40;
+const LABEL_GUTTER_PX = 52;
 const POPOVER_WIDTH_PX = 256;
 const INDENT_STEP_PX = 12;
 
@@ -405,14 +404,6 @@ export function DayRail({
     });
   }
 
-  function handleToggleLock(block: TodayBlock) {
-    setActionError(null);
-    startTransition(async () => {
-      const result = await setBlockLocked({ id: block.id, locked: !block.locked });
-      if (result.error) setActionError(result.error);
-    });
-  }
-
   function handleToggleHabit(habit: TodayScheduledHabit) {
     const previous = habitDoneById[habit.habitId] ?? false;
     const done = !previous;
@@ -628,7 +619,7 @@ export function DayRail({
                 style={{ left: LABEL_GUTTER_PX }}
               />
               <span
-                className="absolute -top-[7px] left-0 pr-2 text-right text-[10px] text-zinc-400"
+                className="today-schedule-hour-label absolute left-0 pr-2 text-right"
                 style={{ width: LABEL_GUTTER_PX }}
               >
                 {hourLabel(hour)}
@@ -698,7 +689,6 @@ export function DayRail({
             onPressMove={handlePressMove}
             onPressEnd={handlePressEnd}
             onPressCancel={handlePressCancel}
-            onToggleLock={handleToggleLock}
           />
         ))}
 

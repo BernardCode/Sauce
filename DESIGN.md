@@ -37,7 +37,7 @@ sauce is a calm academic workspace for one student. It should feel focused, quic
 
 ## Route character
 
-- Today: a dominant Main task and assignment list, a smaller blue Later rail with its own quick-add row, and a narrower right-side schedule containing only today's commitments. Keep Main visually dominant and omit metrics, warnings, and unrelated widgets.
+- Today: a dominant Main task and assignment list, a readable center schedule containing only today's commitments, and a smaller blue Later rail on the far right with its own quick-add row. Schedule cards center one concise task title with a large time range at the right. Keep Main visually dominant and omit metrics, warnings, and unrelated widgets.
 - Projects: a compact long-term work index with progress and next steps before secondary details.
 - Calendar: scheduling surface with readable time hierarchy and calm event colors.
 - SAT: focused study plan, not a promotional hero page.

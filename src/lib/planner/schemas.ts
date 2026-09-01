@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_POSTPONED_WORK_KEYWORDS } from "./preferences";
 
 export const dateRangeSchema = z
   .object({
@@ -254,6 +255,10 @@ function isHttpUrl(value: string): boolean {
 
 export const plannerPreferencesSchema = z.object({
   text: z.string().max(5000).default(""),
+  postponedWorkKeywords: z
+    .array(z.string().trim().min(1).max(50))
+    .max(25)
+    .default(DEFAULT_POSTPONED_WORK_KEYWORDS),
 });
 
 export const habitDaysSchema = z.array(z.number().int().min(0).max(6));

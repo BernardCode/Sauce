@@ -1,6 +1,7 @@
 "use client";
 
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { formatScheduleTitle } from "./schedule-title";
 import { blockDomId, type TodayBlock } from "./types";
 
 export type DragMode = "move" | "resize";
@@ -22,27 +23,6 @@ function rangeLabel(startMs: number, endMs: number): string {
   return `${clockPart(start, !sameHalfOfDay)} to ${clockPart(end, true)}`;
 }
 
-function LockIcon({ locked }: { locked: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className="size-3"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <rect x="3.5" y="7.5" width="9" height="6" rx="1.5" />
-      {locked ? (
-        <path d="M5.5 7.5v-2a2.5 2.5 0 0 1 5 0v2" />
-      ) : (
-        <path d="M5.5 7.5v-3a2.5 2.5 0 0 1 4.7-1.2" />
-      )}
-    </svg>
-  );
-}
-
 type Props = {
   block: TodayBlock;
   top: number;
@@ -62,7 +42,6 @@ type Props = {
   onPressMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPressEnd: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPressCancel: (event: ReactPointerEvent<HTMLDivElement>) => void;
-  onToggleLock: (block: TodayBlock) => void;
 };
 
 export function BlockCard({
@@ -78,12 +57,12 @@ export function BlockCard({
   onPressMove,
   onPressEnd,
   onPressCancel,
-  onToggleLock,
 }: Props) {
   if (block.done) return null;
 
   const startMs = Date.parse(block.startAt);
   const endMs = Date.parse(block.endAt);
+  const title = formatScheduleTitle(block.title);
 
   // Item-less blocks ("bike to school") read as background noise next to
   // real scheduled work.
@@ -111,38 +90,21 @@ export function BlockCard({
       data-highlighted={highlighted}
       data-locked={block.locked}
       data-done={block.done}
-      style={{ top, height, left: 44 + indent, right: 4, zIndex }}
+      style={{ top, height, left: 56 + indent, right: 4, zIndex }}
       className={`motion-rail-block ${classes}`}
       onPointerDown={(event) => onPressStart(event, block, "move")}
       onPointerMove={onPressMove}
       onPointerUp={onPressEnd}
       onPointerCancel={onPressCancel}
     >
-      <div className="flex items-start justify-between gap-1 pt-0.5 pr-1 pl-2">
-        <span className="min-w-0 truncate text-xs font-medium" title={block.title}>
-          {block.title}
+      <div className="today-schedule-block-content">
+        <span className="today-schedule-block-title" title={title}>
+          {title}
         </span>
-        <button
-          type="button"
-          aria-label={block.locked ? `Unlock "${block.title}"` : `Lock "${block.title}"`}
-          aria-pressed={block.locked}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleLock(block);
-          }}
-          className={`motion-lock shrink-0 rounded p-0.5 ${
-            block.locked
-              ? "text-zinc-600 hover:text-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
-              : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-          }`}
-        >
-          <LockIcon locked={block.locked} />
-        </button>
+        <span className="today-schedule-block-time">
+          {rangeLabel(startMs, endMs)}
+        </span>
       </div>
-      <p className="px-2 text-[10px] whitespace-nowrap tabular-nums text-zinc-500">
-        {rangeLabel(startMs, endMs)}
-      </p>
       <div
         aria-hidden="true"
         className="motion-resize-handle absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"

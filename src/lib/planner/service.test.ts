@@ -97,6 +97,13 @@ describe("getPlanningContext", () => {
     );
 
     expect(result).toMatchObject({
+      working_hours: {
+        blockedWindows: [
+          { days: [1, 2, 4], start: "00:00", end: "16:00" },
+          { days: [3, 5], start: "00:00", end: "15:15" },
+        ],
+      },
+      postponed_work_keywords: ["essay", "essays", "sat"],
       scheduled_blocks: [
         {
           title: "Review Systems Design",
@@ -162,6 +169,7 @@ describe("getPlanningContext", () => {
         {
           title: "Write research paper",
           list: "later",
+          scheduling_status: "active",
           scheduling_guidance: {
             target_completion_date: "2026-07-29",
             must_start_by: "2026-07-26",

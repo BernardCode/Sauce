@@ -8,6 +8,7 @@ import {
   decomposeProjectInputSchema,
   decomposeProjectServiceInputSchema,
   itemLifecycleInputSchema,
+  plannerPreferencesSchema,
   projectStepSchema,
   updateItemInputSchema,
   updateNoteInputSchema,
@@ -86,6 +87,12 @@ describe("planner schemas", () => {
         blockedWindows: [{ start: "15:00", end: "08:00" }],
       }).success,
     ).toBe(false);
+  });
+
+  it("defaults the temporary postponed work categories", () => {
+    expect(plannerPreferencesSchema.parse({})).toMatchObject({
+      postponedWorkKeywords: ["essay", "essays", "sat"],
+    });
   });
 
   it("validates project steps", () => {

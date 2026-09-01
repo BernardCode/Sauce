@@ -2,6 +2,7 @@
 
 import { DoNowCounter } from "./do-now-counter";
 import { formatDue } from "./relative-time";
+import { formatScheduleTitle } from "./schedule-title";
 import type { TodayBlock } from "./types";
 import { useNow } from "./use-now";
 
@@ -20,7 +21,9 @@ export function BlockPopover({ block, itemDueAt, onClose }: Props) {
   return (
     <div className="w-64 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium">{block.title}</span>
+        <span className="text-sm font-medium">
+          {formatScheduleTitle(block.title)}
+        </span>
         <button
           type="button"
           onClick={onClose}

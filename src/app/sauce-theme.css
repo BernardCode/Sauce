@@ -362,7 +362,7 @@ textarea:disabled {
 }
 
 .today-daily-page {
-  width: min(100%, 70rem);
+  width: min(100%, 96rem);
   margin: 0 auto;
   padding: 2rem 0 4rem;
 }
@@ -405,7 +405,7 @@ textarea:disabled {
 
 .today-schedule-header h2 {
   color: var(--foreground);
-  font-size: 0.84rem;
+  font-size: 0.98rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -430,10 +430,62 @@ textarea:disabled {
   border-color: #e5484d !important;
 }
 
+.today-schedule-panel .motion-rail-block {
+  min-height: 2.75rem;
+  border-radius: 0.55rem;
+  box-shadow: none;
+}
+
+.today-schedule-block-content {
+  display: grid;
+  height: 100%;
+  min-height: 2.75rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.today-schedule-block-title {
+  overflow: hidden;
+  color: currentColor;
+  font-size: 0.86rem;
+  font-weight: 680;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-schedule-block-time {
+  color: color-mix(in srgb, currentColor 72%, var(--muted));
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.today-schedule-hour-label {
+  top: -0.45rem;
+  color: color-mix(in srgb, var(--foreground) 66%, var(--muted));
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.today-schedule-panel .motion-rail-event {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.82rem !important;
+}
+
 .today-rail-habit {
   position: absolute;
   right: 0.25rem;
-  left: 2.75rem;
+  left: 3.5rem;
   z-index: 15;
   display: grid;
   grid-template-columns: 0.85rem minmax(0, 1fr) auto;
@@ -500,14 +552,25 @@ textarea:disabled {
 }
 
 @media (min-width: 860px) {
-  .today-daily-grid {
-    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  .today-task-lists {
+    grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.9fr);
+  }
+
+  .today-later-panel {
+    grid-column: 1 / -1;
   }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1280px) {
   .today-task-lists {
-    grid-template-columns: minmax(0, 1.6fr) minmax(13.5rem, 0.78fr);
+    grid-template-columns:
+      minmax(28rem, 1.55fr)
+      minmax(22rem, 0.95fr)
+      minmax(17rem, 0.7fr);
+  }
+
+  .today-later-panel {
+    grid-column: auto;
   }
 }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mergePlannerPreferences,
   readLaterItemIds,
+  readPostponedWorkKeywords,
   readTodayTaskOrder,
 } from "./preferences";
 
@@ -25,6 +26,11 @@ describe("planner preference storage", () => {
       secondId,
     ]);
     expect(readLaterItemIds({ laterItemIds: ["not-a-uuid"] })).toEqual([]);
+  });
+
+  it("postpones essay and SAT work by default and allows an explicit override", () => {
+    expect(readPostponedWorkKeywords(null)).toEqual(["essay", "essays", "sat"]);
+    expect(readPostponedWorkKeywords({ postponedWorkKeywords: [] })).toEqual([]);
   });
 
   it("merges updates without discarding other preferences", () => {

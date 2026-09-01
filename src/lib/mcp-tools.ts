@@ -44,7 +44,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Get planning context",
       description:
-        "Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, and planner runs for a date horizon. Dated leaf items include scheduling_guidance with a completion target, latest necessary start date, and session budget.",
+        "Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, school dismissal windows, postponed-work status, and planner runs for a date horizon. Dated active leaf items include scheduling_guidance with a completion target, latest necessary start date, and session budget.",
       inputSchema: optionalDateRangeSchema.shape,
     },
     async (input) => {
@@ -76,7 +76,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Apply plan",
       description:
-        "Validate and replace unlocked AI blocks in a planning horizon. Invalid blocks are rejected individually.",
+        "Validate and replace unlocked AI blocks in a planning horizon. Blocks before school dismissal or for postponed work are rejected individually.",
       inputSchema: applyPlanInputSchema.shape,
     },
     async (input) => asTextResult(await applyPlan(userId, input)),

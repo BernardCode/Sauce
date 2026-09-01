@@ -6,8 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   mergePlannerPreferences,
   readLaterItemIds,
+  readPostponedWorkKeywords,
 } from "./preferences";
 import { readItemContext, writeItemContext } from "./item-context";
+import { isPostponedWork } from "./postponed-work";
+import { withSchoolDayWindows } from "./school-schedule";
 import {
   addItemInputSchema,
   applyPlanServiceInputSchema,
@@ -197,8 +200,14 @@ export async function getPlanningContext(userId: string, input: unknown) {
   const workingHours = workingHoursSchema.safeParse(
     userResult.data.working_hours_json ?? {},
   );
+  const effectiveWorkingHours = withSchoolDayWindows(
+    workingHours.success ? workingHours.data : workingHoursSchema.parse({}),
+  );
   const preferences = plannerPreferencesSchema.safeParse(
     userResult.data.planner_prefs_json ?? {},
+  );
+  const postponedWorkKeywords = readPostponedWorkKeywords(
+    userResult.data.planner_prefs_json,
   );
   const laterItemIds = new Set(
     readLaterItemIds(userResult.data.planner_prefs_json),
@@ -209,28 +218,29 @@ export async function getPlanningContext(userId: string, input: unknown) {
     from_date: parsed.data.from_date,
     to_date: parsed.data.to_date,
     timezone: timeZone,
-    working_hours: workingHours.success
-      ? workingHours.data
-      : workingHoursSchema.parse({}),
+    working_hours: effectiveWorkingHours,
     planner_preferences: preferences.success ? preferences.data.text : "",
+    postponed_work_keywords: postponedWorkKeywords,
     items: visibleItems.map((item) => {
       const context = readItemContext(item.description);
       const dueDate = item.due_at
         ? localParts(new Date(item.due_at), timeZone).date
         : null;
+      const postponed = isPostponedWork(item, postponedWorkKeywords);
       return {
         ...item,
         category: item.course,
         description: context.description,
         source_url: context.sourceUrl,
         list: laterItemIds.has(item.id) ? "later" : "main",
+        scheduling_status: postponed ? "postponed" : "active",
         kind: item.is_project
           ? "project"
           : item.parent_id
             ? "project_step"
             : "task",
         scheduling_guidance:
-          dueDate && !item.is_project
+          dueDate && !item.is_project && !postponed
             ? buildSchedulingGuidance({
                 planningStartDate: parsed.data.from_date,
                 dueDate,
@@ -249,6 +259,9 @@ export async function getPlanningContext(userId: string, input: unknown) {
           category: item.course,
           description: context.description,
           source_url: context.sourceUrl,
+          scheduling_status: isPostponedWork(item, postponedWorkKeywords)
+            ? "postponed"
+            : "active",
         };
       }),
     events: eventsResult.data ?? [],
@@ -278,12 +291,14 @@ export async function applyPlan(userId: string, input: unknown) {
     await Promise.all([
       admin
         .from("users")
-        .select("timezone, working_hours_json")
+        .select("timezone, working_hours_json, planner_prefs_json")
         .eq("id", parsedUserId.data)
         .single(),
       admin
         .from("items")
-        .select("id, status, is_project, due_at, remaining_minutes, est_minutes")
+        .select(
+          "id, title, course, status, is_project, due_at, remaining_minutes, est_minutes",
+        )
         .eq("user_id", parsedUserId.data),
       admin
         .from("events")
@@ -319,7 +334,12 @@ export async function applyPlan(userId: string, input: unknown) {
   const hours = workingHoursSchema.safeParse(
     userResult.data.working_hours_json ?? {},
   );
-  const workingHours = hours.success ? hours.data : workingHoursSchema.parse({});
+  const workingHours = withSchoolDayWindows(
+    hours.success ? hours.data : workingHoursSchema.parse({}),
+  );
+  const postponedWorkKeywords = readPostponedWorkKeywords(
+    userResult.data.planner_prefs_json,
+  );
   const items = new Map((itemsResult.data ?? []).map((item) => [item.id, item]));
   const existingRuns = new Set((runsResult.data ?? []).map((run) => run.plan_date));
   const protectedBlocks = (blocksResult.data ?? []).filter(
@@ -355,7 +375,9 @@ export async function applyPlan(userId: string, input: unknown) {
     let why: string | null = null;
     if (!item || item.status !== "open") why = "item is missing or not open";
     else if (item.is_project) why = "projects cannot be scheduled directly";
-    else if (
+    else if (isPostponedWork(item, postponedWorkKeywords)) {
+      why = "task is postponed by planner preferences";
+    } else if (
       localStart.date < parsed.data.from_date ||
       localStart.date > parsed.data.to_date
     ) {

@@ -8,6 +8,7 @@ import {
   workingHoursSchema,
 } from "@/lib/planner/schemas";
 import { readLaterItemIds } from "@/lib/planner/preferences";
+import { schoolDayRailStartHour } from "@/lib/planner/school-schedule";
 import { localParts, safeTimeZone } from "@/lib/planner/time";
 import { createClient } from "@/lib/supabase/server";
 import { MagicDust, type MagicDustMood } from "@/components/ui/magic-dust";
@@ -230,6 +231,10 @@ export default async function TodayPage() {
   const plannerHours = parsedHours.success
     ? parsedHours.data
     : workingHoursSchema.parse({});
+  const scheduleStartHour = schoolDayRailStartHour(
+    localToday.weekday,
+    plannerHours.wake,
+  );
 
   const blocks = withoutCompletedBlocks(
     ((blocksResult.data ?? []) as BlockRow[]).map(toTodayBlock),
@@ -337,19 +342,25 @@ export default async function TodayPage() {
                   openItems={openItems}
                   laterItems={laterItems}
                   todayDate={localToday.date}
+                  schedule={
+                    <TodaySchedulePanel
+                      key={scheduleKey}
+                      blocks={blocks}
+                      events={events}
+                      habits={scheduledHabits}
+                      wakeHour={scheduleStartHour}
+                      sleepHour={plannerHours.sleep}
+                      itemDueDates={itemDueDates}
+                      error={
+                        scheduleLoadError
+                          ? "Could not load today's schedule."
+                          : null
+                      }
+                    />
+                  }
                 />
               )}
             </section>
-            <TodaySchedulePanel
-              key={scheduleKey}
-              blocks={blocks}
-              events={events}
-              habits={scheduledHabits}
-              wakeHour={plannerHours.wake}
-              sleepHour={plannerHours.sleep}
-              itemDueDates={itemDueDates}
-              error={scheduleLoadError ? "Could not load today's schedule." : null}
-            />
           </div>
         </div>
       </main>
