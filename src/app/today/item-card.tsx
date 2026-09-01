@@ -15,9 +15,10 @@ import {
   type TaskContextMenuHandle,
 } from "@/app/components/task-context-menu";
 import type { TodayItem } from "./item-list";
-import { formatDue } from "./relative-time";
+import { formatDue, formatDueDate } from "./relative-time";
 import { renameItem } from "./rename-item-action";
 import type { DropPosition } from "./reorder";
+import { identifyTask } from "./task-identity";
 import { TaskEditDialog } from "./task-edit-dialog";
 
 type Props = {
@@ -68,21 +69,16 @@ export function ItemCard({
   const [title, setOptimisticTitle] = useOptimistic(item.title);
   const [isRenaming, startRenameTransition] = useTransition();
   const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
+  const dueDate =
+    item.dueAt && now ? formatDueDate(new Date(item.dueAt), now) : null;
+  const identity = identifyTask(title, item.course);
   const contextDetails = [
-    item.course ?? (item.origin === "feed" ? "School feed" : null),
+    identity.label,
     due?.label,
     item.estMinutes ? `${item.estMinutes} minutes` : null,
   ]
     .filter(Boolean)
     .join(", ");
-  const hasMeta = Boolean(
-    item.course ||
-      item.origin === "feed" ||
-      item.dueAt ||
-      item.estMinutes ||
-      item.optimistic ||
-      isRenaming,
-  );
   const canRename = !item.optimistic && item.origin !== "feed";
 
   function handleContextMenu(event: ReactMouseEvent<HTMLLIElement>) {
@@ -198,82 +194,82 @@ export function ItemCard({
       >
         <span aria-hidden="true">✓</span>
       </button>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
-          {isEditingTitle ? (
-            <input
-              ref={renameInputRef}
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
-              onBlur={commitTitle}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  event.currentTarget.blur();
-                } else if (event.key === "Escape") {
-                  event.preventDefault();
-                  cancelRenameRef.current = true;
-                  setTitleDraft(title);
-                  setIsEditingTitle(false);
-                }
-              }}
-              aria-label="Task title"
-              maxLength={500}
-              className="today-task-title min-w-0 flex-1 border-0 border-b border-[var(--line-strong)] bg-transparent p-0 outline-none focus:border-[var(--primary)]"
-            />
-          ) : (
-            <span
-              onDoubleClick={beginRenaming}
-              className={`today-task-title min-w-0 flex-1 ${canRename ? "cursor-text" : ""}`}
-            >
-              {title}
-            </span>
-          )}
-          {item.optimistic ? null : (
-            <div className="flex flex-none items-center gap-1">
-              {listAction ? (
-                <button
-                  type="button"
-                  disabled={listAction.disabled}
-                  onClick={listAction.onMove}
-                  className="today-task-list-move"
-                  aria-label={`Move ${title} to ${listAction.destination === "later" ? "Later" : "Main"}`}
-                  title={`Move to ${listAction.destination === "later" ? "Later" : "Main"}`}
-                >
-                  <span aria-hidden="true">
-                    {listAction.destination === "later" ? "→" : "←"}
-                  </span>
-                </button>
-              ) : null}
-              <TaskContextMenu
-                ref={contextMenuRef}
-                title={title}
-                details={contextDetails}
-                dueAt={item.dueAt}
-                scheduled={false}
-                onEdit={item.origin === "feed" ? undefined : () => setIsEditing(true)}
-                onComplete={completeTask}
-              />
-            </div>
-          )}
-        </div>
+      <span
+        className="today-task-class-emoji"
+        aria-label={identity.label}
+        title={identity.label}
+      >
+        {identity.emoji}
+      </span>
+      <div className="today-task-title-cell">
+        {isEditingTitle ? (
+          <input
+            ref={renameInputRef}
+            value={titleDraft}
+            onChange={(event) => setTitleDraft(event.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                cancelRenameRef.current = true;
+                setTitleDraft(title);
+                setIsEditingTitle(false);
+              }
+            }}
+            aria-label="Task title"
+            maxLength={500}
+            className="today-task-title min-w-0 border-0 border-b border-[var(--line-strong)] bg-transparent p-0 outline-none focus:border-[var(--primary)]"
+          />
+        ) : (
+          <span
+            onDoubleClick={beginRenaming}
+            className={`today-task-title ${canRename ? "cursor-text" : ""}`}
+          >
+            {title}
+          </span>
+        )}
         {renameError ? (
-          <p role="alert" className="mt-1 text-xs text-red-600">
+          <p role="alert" className="today-task-rename-error">
             {renameError}
           </p>
         ) : null}
-        {hasMeta ? (
-          <div className="today-task-meta">
-            {item.course || item.origin === "feed" ? (
-              <span>{item.course ?? "School feed"}</span>
-            ) : null}
-            {item.dueAt ? <span>{due?.label ?? " "}</span> : null}
-            {item.estMinutes ? <span>{item.estMinutes}m</span> : null}
-            {item.optimistic ? <span>Saving</span> : null}
-            {isRenaming ? <span>Saving</span> : null}
-          </div>
-        ) : null}
       </div>
+      {item.optimistic ? null : (
+        <div className="today-task-actions">
+          {listAction ? (
+            <button
+              type="button"
+              disabled={listAction.disabled}
+              onClick={listAction.onMove}
+              className="today-task-list-move"
+              aria-label={`Move ${title} to ${listAction.destination === "later" ? "Later" : "Main"}`}
+              title={`Move to ${listAction.destination === "later" ? "Later" : "Main"}`}
+            >
+              <span aria-hidden="true">
+                {listAction.destination === "later" ? "→" : "←"}
+              </span>
+            </button>
+          ) : null}
+          <TaskContextMenu
+            ref={contextMenuRef}
+            title={title}
+            details={contextDetails}
+            dueAt={item.dueAt}
+            scheduled={false}
+            onEdit={item.origin === "feed" ? undefined : () => setIsEditing(true)}
+            onComplete={completeTask}
+          />
+        </div>
+      )}
+      <span
+        className="today-task-due"
+        data-tone={dueDate?.tone ?? "none"}
+      >
+        {dueDate?.label ?? (item.dueAt ? "" : "No date")}
+      </span>
       <TaskEditDialog
         item={{ ...item, title }}
         open={isEditing}

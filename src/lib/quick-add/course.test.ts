@@ -10,7 +10,9 @@ describe("quick-add course classification", () => {
     ["glaze the coil pot", "Ceramics"],
     ["PE mile run", "PE"],
     ["gov FRQ", "AP Gov"],
+    ["macroeconomics fiscal policy", "AP Gov"],
     ["lit close reading", "AP Lit"],
+    ["The Namesake analysis", "AP Lit"],
     ["calc homework", "AP Calc BC"],
   ])("classifies %s as %s", (title, course) => {
     expect(classifyCourse(title)).toBe(course);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDue } from "./relative-time";
+import { formatDue, formatDueDate } from "./relative-time";
 
 const NOW = new Date(2026, 6, 14, 9, 0, 0);
 
@@ -27,5 +27,18 @@ describe("formatDue", () => {
     const result = formatDue(new Date(2026, 6, 15, 17, 0, 0), NOW);
 
     expect(result.label).toBe("due tomorrow 5pm");
+  });
+
+  it("formats compact due-column labels", () => {
+    expect(formatDueDate(new Date(2026, 6, 14, 17, 0, 0), NOW)).toEqual({
+      label: "Today",
+      tone: "soon",
+    });
+    expect(formatDueDate(new Date(2026, 6, 15, 17, 0, 0), NOW).label).toBe(
+      "Tomorrow",
+    );
+    expect(formatDueDate(new Date(2026, 7, 3, 17, 0, 0), NOW).label).toBe(
+      "Aug 3",
+    );
   });
 });

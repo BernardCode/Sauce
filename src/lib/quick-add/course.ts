@@ -13,6 +13,12 @@ const COURSE_RULES = [
       /\bcivil liberties\b/,
       /\bbureaucracy\b/,
       /\bpublic policy\b/,
+      /\beconomics?\b/,
+      /\bmacro(?:economics)?\b/,
+      /\bmicro(?:economics)?\b/,
+      /\bsupply and demand\b/,
+      /\bfiscal policy\b/,
+      /\bmonetary policy\b/,
     ],
   },
   {
@@ -28,6 +34,7 @@ const COURSE_RULES = [
       /\bclose reading\b/,
       /\bhamlet\b/,
       /\bfrankenstein\b/,
+      /\bthe namesake\b/,
     ],
   },
   {

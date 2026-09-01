@@ -281,13 +281,16 @@ export function ItemList({ openItems, laterItems, todayDate, schedule }: Props) 
         onDrop={(event) => handleListDrop(event, "main")}
       >
         <div className="today-task-list-header">
-          <span className="today-task-list-label">Main</span>
-          <span
-            className="today-task-count"
-            aria-label={`${sortedItems.length} open ${sortedItems.length === 1 ? "task" : "tasks"}`}
-          >
-            {sortedItems.length}
-          </span>
+          <div className="today-task-list-heading">
+            <span className="today-task-list-label">Main</span>
+            <span
+              className="today-task-count"
+              aria-label={`${sortedItems.length} open ${sortedItems.length === 1 ? "task" : "tasks"}`}
+            >
+              {sortedItems.length}
+            </span>
+          </div>
+          <span className="today-task-due-heading">Due</span>
         </div>
         <ul className="today-task-list">
           {sortedItems.map((item) => (
@@ -346,13 +349,16 @@ export function ItemList({ openItems, laterItems, todayDate, schedule }: Props) 
         onDrop={(event) => handleListDrop(event, "later")}
       >
         <div className="today-task-list-header">
-          <span className="today-task-list-label">Later</span>
-          <span
-            className="today-task-count"
-            aria-label={`${sortedLaterItems.length} ${sortedLaterItems.length === 1 ? "item" : "items"} for later`}
-          >
-            {sortedLaterItems.length}
-          </span>
+          <div className="today-task-list-heading">
+            <span className="today-task-list-label">Later</span>
+            <span
+              className="today-task-count"
+              aria-label={`${sortedLaterItems.length} ${sortedLaterItems.length === 1 ? "item" : "items"} for later`}
+            >
+              {sortedLaterItems.length}
+            </span>
+          </div>
+          <span className="today-task-due-heading">Due</span>
         </div>
         <p className="today-later-hint">Keep it nearby without making it today&apos;s priority.</p>
         <ul className="today-task-list">

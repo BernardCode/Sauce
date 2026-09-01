@@ -68,3 +68,27 @@ export function formatDue(due: Date, now: Date): DueLabel {
   const date = due.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   return { label: `due ${date}`, tone };
 }
+
+export function formatDueDate(due: Date, now: Date): DueLabel {
+  const diff = due.getTime() - now.getTime();
+  if (diff < 0) return { label: "Overdue", tone: "overdue" };
+
+  const tone: DueTone = diff < DAY ? "soon" : "normal";
+  if (isSameLocalDay(due, now)) return { label: "Today", tone };
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (isSameLocalDay(due, tomorrow)) return { label: "Tomorrow", tone };
+
+  if (diff < 7 * DAY) {
+    return {
+      label: due.toLocaleDateString(undefined, { weekday: "short" }),
+      tone,
+    };
+  }
+
+  return {
+    label: due.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    tone,
+  };
+}
