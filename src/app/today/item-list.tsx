@@ -26,7 +26,6 @@ export type { TodayItem } from "./task-types";
 type Props = {
   openItems: TodayItem[];
   laterItems: TodayItem[];
-  overdueItems: TodayItem[];
   todayDate: string;
   schedule: ReactNode;
 };
@@ -38,12 +37,11 @@ function dueTime(item: TodayItem): number {
 export function ItemList({
   openItems,
   laterItems,
-  overdueItems,
   todayDate,
   schedule,
 }: Props) {
   const now = useNow();
-  const [isOverdueDrawerOpen, setIsOverdueDrawerOpen] = useState(false);
+  const [isLaterDrawerOpen, setIsLaterDrawerOpen] = useState(false);
   const [doneError, setDoneError] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -58,19 +56,16 @@ export function ItemList({
   } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [items, updateOptimistic] = useOptimistic(
-    [...openItems, ...laterItems, ...overdueItems],
+    [...openItems, ...laterItems],
     updateOptimisticItems,
   );
   const [isPending, startTransition] = useTransition();
 
   const fallbackItems = items
-    .filter((item) => !item.isLater && !item.isOverdue)
+    .filter((item) => !item.isLater)
     .sort((a, b) => dueTime(a) - dueTime(b));
   const sortedLaterItems = items
     .filter((item) => item.isLater)
-    .sort((a, b) => dueTime(a) - dueTime(b));
-  const sortedOverdueItems = items
-    .filter((item) => item.isOverdue)
     .sort((a, b) => dueTime(a) - dueTime(b));
   const persistentItemIds = fallbackItems
     .filter((item) => !item.optimistic)
@@ -284,53 +279,6 @@ export function ItemList({
 
   return (
     <div className="today-task-lists">
-      <aside
-        className="today-overdue-drawer"
-        data-open={isOverdueDrawerOpen || undefined}
-        aria-label="Overdue tasks"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") setIsOverdueDrawerOpen(false);
-        }}
-      >
-        <button
-          type="button"
-          className="today-overdue-tab"
-          aria-expanded={isOverdueDrawerOpen}
-          aria-controls="today-overdue-list"
-          onClick={() => setIsOverdueDrawerOpen((open) => !open)}
-        >
-          <span>Overdue</span>
-          <span className="today-overdue-tab-count">
-            {sortedOverdueItems.length}
-          </span>
-        </button>
-        <div className="today-overdue-content" id="today-overdue-list">
-          <div className="today-overdue-heading">
-            <div>
-              <p>Needs attention</p>
-              <h2>Overdue</h2>
-            </div>
-            <span aria-label={`${sortedOverdueItems.length} overdue tasks`}>
-              {sortedOverdueItems.length}
-            </span>
-          </div>
-          {sortedOverdueItems.length ? (
-            <ul className="today-task-list today-overdue-list">
-              {sortedOverdueItems.map((item) => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  now={now}
-                  onDone={handleDone}
-                />
-              ))}
-            </ul>
-          ) : (
-            <p className="today-overdue-empty">Nothing overdue.</p>
-          )}
-        </div>
-      </aside>
-
       <section
         className="today-task-panel"
         aria-label="Main tasks"
@@ -400,63 +348,90 @@ export function ItemList({
       {schedule}
 
       <section
-        className="today-task-panel today-later-panel"
+        className="today-task-panel today-later-panel today-later-drawer"
         aria-label="Later tasks"
+        data-open={isLaterDrawerOpen || undefined}
         data-list-drop={listDropTarget === "later" || undefined}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setIsLaterDrawerOpen(false);
+        }}
         onDragOver={(event) => handleListDragOver(event, "later")}
         onDrop={(event) => handleListDrop(event, "later")}
       >
-        <div className="today-task-list-header">
-          <div className="today-task-list-heading">
-            <span className="today-task-list-label">Later</span>
-            <span
-              className="today-task-count"
-              aria-label={`${sortedLaterItems.length} ${sortedLaterItems.length === 1 ? "item" : "items"} for later`}
-            >
-              {sortedLaterItems.length}
-            </span>
+        <button
+          type="button"
+          className="today-later-drawer-handle"
+          aria-expanded={isLaterDrawerOpen}
+          aria-controls="today-later-drawer-content"
+          aria-label={`${isLaterDrawerOpen ? "Close" : "Open"} Later tasks`}
+          onFocus={(event) => {
+            if (event.currentTarget.matches(":focus-visible")) {
+              setIsLaterDrawerOpen(true);
+            }
+          }}
+          onClick={() => setIsLaterDrawerOpen((open) => !open)}
+        >
+          <span aria-hidden="true">{"<"}</span>
+        </button>
+        <div
+          className="today-later-drawer-content"
+          id="today-later-drawer-content"
+        >
+          <div className="today-task-list-header">
+            <div className="today-task-list-heading">
+              <span className="today-task-list-label">Later</span>
+              <span
+                className="today-task-count"
+                aria-label={`${sortedLaterItems.length} ${sortedLaterItems.length === 1 ? "item" : "items"} for later`}
+              >
+                {sortedLaterItems.length}
+              </span>
+            </div>
+            <span className="today-task-due-heading">Due</span>
           </div>
-          <span className="today-task-due-heading">Due</span>
-        </div>
-        <p className="today-later-hint">Keep it nearby without making it today&apos;s priority.</p>
-        <ul className="today-task-list">
-          {sortedLaterItems.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              now={now}
-              onDone={handleDone}
-              listAction={
-                item.optimistic
-                  ? undefined
-                  : {
-                      destination: "main",
-                      disabled: isPending,
-                      onMove: () => moveToList(item.id, "main"),
-                    }
-              }
-              listDrag={
-                item.optimistic
-                  ? undefined
-                  : {
-                      disabled: isPending,
-                      isDragging: draggedId === item.id,
-                      onDragStart: (event) => handleDragStart(event, item.id),
-                      onDragEnd: () => {
-                        setDraggedId(null);
-                        setDropTarget(null);
-                        setListDropTarget(null);
-                      },
-                    }
-              }
+          <p className="today-later-hint">
+            Keep it nearby without making it today&apos;s priority.
+          </p>
+          <ul className="today-task-list">
+            {sortedLaterItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                now={now}
+                onDone={handleDone}
+                listAction={
+                  item.optimistic
+                    ? undefined
+                    : {
+                        destination: "main",
+                        disabled: isPending,
+                        onMove: () => moveToList(item.id, "main"),
+                      }
+                }
+                listDrag={
+                  item.optimistic
+                    ? undefined
+                    : {
+                        disabled: isPending,
+                        isDragging: draggedId === item.id,
+                        onDragStart: (event) =>
+                          handleDragStart(event, item.id),
+                        onDragEnd: () => {
+                          setDraggedId(null);
+                          setDropTarget(null);
+                          setListDropTarget(null);
+                        },
+                      }
+                }
+              />
+            ))}
+            <QuickAdd
+              destination="later"
+              onOptimisticAdd={handleOptimisticAdd}
+              todayDate={todayDate}
             />
-          ))}
-          <QuickAdd
-            destination="later"
-            onOptimisticAdd={handleOptimisticAdd}
-            todayDate={todayDate}
-          />
-        </ul>
+          </ul>
+        </div>
       </section>
 
       {doneError || reorderError || listError ? (

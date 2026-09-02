@@ -267,7 +267,6 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
       estMinutes: item.est_minutes,
       isProject: item.is_project,
       isLater,
-      isOverdue: false,
       origin: item.origin,
     },
   };
@@ -398,6 +397,59 @@ const updateItemSchema = z.object({
     .nullable(),
 });
 
+const updateItemFieldSchema = z.discriminatedUnion("field", [
+  z.object({
+    id: z.uuid("That item id is not valid."),
+    field: z.literal("title"),
+    value: z.string().trim().min(1, "A task needs a title.").max(500),
+  }),
+  z.object({
+    id: z.uuid("That item id is not valid."),
+    field: z.literal("dueAt"),
+    value: optionalIsoTime,
+  }),
+]);
+
+export async function updateItemField(input: unknown): Promise<ActionResult> {
+  const parsed = updateItemFieldSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      error:
+        parsed.error.issues[0]?.message ?? "That task update is not valid.",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "You are signed out. Refresh and sign in again." };
+  }
+
+  const values =
+    parsed.data.field === "title"
+      ? { title: parsed.data.value, origin: "manual" as const }
+      : { due_at: parsed.data.value, origin: "manual" as const };
+  const { data: item, error } = await supabase
+    .from("items")
+    .update(values)
+    .eq("id", parsed.data.id)
+    .eq("user_id", user.id)
+    .eq("status", "open")
+    .eq("is_project", false)
+    .select("id, parent_id")
+    .maybeSingle();
+  if (error || !item) {
+    return { error: "Could not save that task. Try again." };
+  }
+
+  revalidatePath("/today");
+  revalidatePath("/calendar");
+  if (item.parent_id) revalidatePath(`/projects/${item.parent_id}`);
+  return { error: null };
+}
+
 export async function updateItem(input: unknown): Promise<ActionResult> {
   const parsed = updateItemSchema.safeParse(input);
   if (!parsed.success) {
@@ -414,14 +466,13 @@ export async function updateItem(input: unknown): Promise<ActionResult> {
 
   const { data: item, error: itemError } = await supabase
     .from("items")
-    .select("id, origin, actual_minutes, parent_id")
+    .select("id, actual_minutes, parent_id")
     .eq("id", parsed.data.id)
     .eq("user_id", user.id)
     .eq("status", "open")
     .eq("is_project", false)
     .maybeSingle();
   if (itemError || !item) return { error: "That open task could not be found." };
-  if (item.origin === "feed") return { error: "School feed tasks are read-only." };
 
   const { error } = await supabase
     .from("items")

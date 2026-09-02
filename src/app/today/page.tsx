@@ -89,11 +89,7 @@ function overlapsLocalDate(
   return startDate <= date && endDate >= date;
 }
 
-function toTodayItem(
-  row: ItemRow,
-  isLater: boolean,
-  isOverdue = false,
-): TodayItem {
+function toTodayItem(row: ItemRow, isLater: boolean): TodayItem {
   return {
     id: row.id,
     title: row.title,
@@ -103,7 +99,6 @@ function toTodayItem(
     estMinutes: row.est_minutes,
     isProject: row.is_project,
     isLater,
-    isOverdue,
     origin: row.origin,
   };
 }
@@ -259,11 +254,7 @@ export default async function TodayPage() {
   const laterItemIds = new Set(
     readLaterItemIds(profileResult.data?.planner_prefs_json ?? null),
   );
-  const {
-    main: todayRows,
-    later: laterRows,
-    overdue: overdueRows,
-  } = partitionTodayItems(
+  const { main: todayRows, later: laterRows } = partitionTodayItems(
     (openResult.data ?? []) as ItemRow[],
     localToday.date,
     scheduledItemIds,
@@ -272,14 +263,7 @@ export default async function TodayPage() {
   );
   const openItems = todayRows.map((item) => toTodayItem(item, false));
   const laterItems = laterRows.map((item) => toTodayItem(item, true));
-  const overdueItems = overdueRows.map((item) =>
-    toTodayItem(item, false, true),
-  );
-  const dustMood = workloadMood(
-    [...overdueRows, ...todayRows],
-    localToday.date,
-    timeZone,
-  );
+  const dustMood = workloadMood(todayRows, localToday.date, timeZone);
   const events = ((eventsResult.data ?? []) as EventRow[])
     .map(toTodayEvent)
     .filter((event) =>
@@ -319,7 +303,7 @@ export default async function TodayPage() {
     }];
   });
   const itemDueDates = Object.fromEntries(
-    [...openItems, ...overdueItems].map((item) => [item.id, item.dueAt]),
+    openItems.map((item) => [item.id, item.dueAt]),
   );
   const scheduleKey = [
     localToday.date,
@@ -358,7 +342,6 @@ export default async function TodayPage() {
                 <ItemList
                   openItems={openItems}
                   laterItems={laterItems}
-                  overdueItems={overdueItems}
                   todayDate={localToday.date}
                   schedule={
                     <TodaySchedulePanel

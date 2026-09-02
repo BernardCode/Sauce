@@ -44,7 +44,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Get planning context",
       description:
-        "Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, class meeting days, school dismissal windows, postponed-work status, and planner runs for a date horizon. Dated active leaf items include scheduling_guidance with a completion target, latest necessary start date, and session budget.",
+        "Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, class meeting days, academic planning rules, school dismissal windows, postponed-work status, and planner runs for a date horizon. Dated active leaf items include scheduling_guidance with a completion target, latest necessary start date, and session budget. In-class assessments are identified separately and must not receive work blocks.",
       inputSchema: optionalDateRangeSchema.shape,
     },
     async (input) => {

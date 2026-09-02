@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { classifyCourse } from "../quick-add/course";
 
 const parameterValueSchema = z.union([
   z.string().max(200_000),
@@ -101,21 +102,43 @@ function descriptionCourse(description: string | undefined): string | null {
   return null;
 }
 
+function knownStudentCourse(value: string | undefined): string | null {
+  const course = cleanCourse(value);
+  return course ? classifyCourse(course) : null;
+}
+
+function inferKnownCourse(
+  component: z.infer<typeof componentSchema>,
+): string | null {
+  const textValues = Object.values(component).flatMap((value) => {
+    if (Array.isArray(value)) {
+      return value.flatMap((entry) => parameterTextFromUnknown(entry) ?? []);
+    }
+    return parameterTextFromUnknown(value) ?? [];
+  });
+  return classifyCourse(textValues.join(" "));
+}
+
 function schoologyCourse(
   component: z.infer<typeof componentSchema>,
 ): string | null {
   const explicitCourse = customSchoologyCourse(component);
-  if (explicitCourse) return explicitCourse;
+  const knownExplicitCourse = knownStudentCourse(explicitCourse ?? undefined);
+  if (knownExplicitCourse) return knownExplicitCourse;
 
   const describedCourse = descriptionCourse(parameterText(component.description));
-  if (describedCourse) return describedCourse;
+  const knownDescribedCourse = knownStudentCourse(describedCourse ?? undefined);
+  if (knownDescribedCourse) return knownDescribedCourse;
 
   for (const category of component.categories ?? []) {
-    const course = cleanCourse(category);
+    const course = knownStudentCourse(category);
     if (course) return course;
   }
 
-  return cleanCourse(parameterText(component.location));
+  const locationCourse = knownStudentCourse(parameterText(component.location));
+  if (locationCourse) return locationCourse;
+
+  return inferKnownCourse(component);
 }
 
 type IcsCandidateOptions = {

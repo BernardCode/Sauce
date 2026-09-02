@@ -14,6 +14,9 @@ describe("quick-add course classification", () => {
     ["lit close reading", "AP Lit"],
     ["The Namesake analysis", "AP Lit"],
     ["calc homework", "AP Calc BC"],
+    ["AP English Literature and Composition Period 4", "AP Lit"],
+    ["AP US Government and Politics P1", "AP Gov"],
+    ["AP Physics C: Mechanics Period 6", "AP Physics C"],
   ])("classifies %s as %s", (title, course) => {
     expect(classifyCourse(title)).toBe(course);
   });

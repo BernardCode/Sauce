@@ -114,6 +114,12 @@ describe("getPlanningContext", () => {
           weekdays: ["Monday", "Wednesday", "Friday"],
         },
       ],
+      academic_planning_rules: [
+        {
+          course: "AP Physics C",
+          rule: expect.stringContaining("in-class assessment"),
+        },
+      ],
       scheduled_blocks: [
         {
           title: "Review Systems Design",

@@ -11,7 +11,6 @@ const task: TodayItem = {
   estMinutes: 30,
   isProject: false,
   isLater: false,
-  isOverdue: false,
   origin: "manual",
 };
 

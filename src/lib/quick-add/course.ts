@@ -3,6 +3,8 @@ const COURSE_RULES = [
     course: "AP Gov",
     patterns: [
       /\bap\s+(?:u\.?s\.?\s+)?gov(?:ernment)?\b/,
+      /\bap\s+(?:u\.?s\.?\s+)?government\s+(?:and\s+)?politics\b/,
+      /\bgovernment\s+(?:and\s+)?politics\b/,
       /\bgov\b/,
       /\bgovernment\b/,
       /\bfederalism\b/,
@@ -25,6 +27,8 @@ const COURSE_RULES = [
     course: "AP Lit",
     patterns: [
       /\bap\s+lit(?:erature)?\b/,
+      /\bap\s+english\s+lit(?:erature)?\b/,
+      /\benglish\s+lit(?:erature)?\b/,
       /\blit\b/,
       /\bliterature\b/,
       /\bliterary\b/,
@@ -41,6 +45,7 @@ const COURSE_RULES = [
     course: "AP Calc BC",
     patterns: [
       /\bap\s+calc(?:ulus)?\s+bc\b/,
+      /\bap\s+calculus\s+bc\b/,
       /\bcalc(?:ulus)?\s+bc\b/,
       /\bcalc\b/,
       /\bcalculus\b/,
@@ -57,6 +62,7 @@ const COURSE_RULES = [
     course: "AP Physics C",
     patterns: [
       /\bap\s+physics\s+c\b/,
+      /\bap\s+physics\s+c[: -]+(?:mechanics|electricity|magnetism)\b/,
       /\bphysics\s+c\b/,
       /\bphysics\b/,
       /\bkinematics\b/,

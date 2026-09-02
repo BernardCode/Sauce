@@ -59,12 +59,17 @@ describe("partitionTodayItems", () => {
     expect(result.later.map((item) => item.id)).toEqual(["later"]);
   });
 
-  it("separates tasks whose due time has passed", () => {
+  it("keeps overdue tasks in Main when they are not in Later", () => {
     const result = partitionTodayItems(
       [
         ...items,
         {
           id: "overdue",
+          due_at: "2026-08-31T11:59:59.000Z",
+          planned_date: today,
+        },
+        {
+          id: "overdue-later",
           due_at: "2026-08-31T11:59:59.000Z",
           planned_date: today,
         },
@@ -76,11 +81,19 @@ describe("partitionTodayItems", () => {
       ],
       today,
       new Set<string>(),
-      new Set<string>(),
+      new Set(["later", "scheduled-later", "overdue-later"]),
       now,
     );
 
-    expect(result.overdue.map((item) => item.id)).toEqual(["overdue"]);
-    expect(result.main.map((item) => item.id)).toEqual(["main", "due-later"]);
+    expect(result.main.map((item) => item.id)).toEqual([
+      "main",
+      "overdue",
+      "due-later",
+    ]);
+    expect(result.later.map((item) => item.id)).toEqual([
+      "later",
+      "scheduled-later",
+      "overdue-later",
+    ]);
   });
 });

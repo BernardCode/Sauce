@@ -76,6 +76,37 @@ END:VCALENDAR`);
     ).toMatchObject({ course: "AP Lit" });
   });
 
+  it("recognizes a class name anywhere in Schoology metadata", () => {
+    expect(
+      toIcsItemCandidate(
+        {
+          type: "VEVENT",
+          uid: "schoology-assignment-metadata",
+          summary: "Video notes 9/04",
+          description:
+            "<p>Open this from AP English Literature and Composition, Period 4.</p>",
+          start: new Date("2026-09-04T23:59:00.000Z"),
+        },
+        { inferSchoologyCourse: true },
+      ),
+    ).toMatchObject({ course: "AP Lit" });
+  });
+
+  it("does not mistake a classroom location for a course", () => {
+    expect(
+      toIcsItemCandidate(
+        {
+          type: "VEVENT",
+          uid: "schoology-room-only",
+          summary: "Video notes 9/05",
+          location: "Room 101",
+          start: new Date("2026-09-05T23:59:00.000Z"),
+        },
+        { inferSchoologyCourse: true },
+      ),
+    ).toMatchObject({ course: null });
+  });
+
   it("reads a Schoology class from categories before location", () => {
     const parsed = ical.sync.parseICS(`BEGIN:VCALENDAR
 VERSION:2.0

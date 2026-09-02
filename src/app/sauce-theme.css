@@ -361,133 +361,6 @@ textarea:disabled {
   gap: 1rem;
 }
 
-.today-overdue-drawer {
-  --today-panel: #fff3f1;
-  --today-panel-line: #e7b9b4;
-  --today-row: rgba(255, 255, 255, 0.9);
-  --today-row-hover: #ffffff;
-  --today-accent: #b83d35;
-  position: fixed;
-  top: 7rem;
-  right: 0;
-  z-index: 28;
-  display: grid;
-  width: min(23rem, calc(100vw - 0.75rem));
-  max-height: calc(100dvh - 9rem);
-  grid-template-columns: 2.8rem minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid var(--today-panel-line);
-  border-right: 0;
-  border-radius: 0.8rem 0 0 0.8rem;
-  background: var(--today-panel);
-  box-shadow: 0 14px 36px color-mix(in srgb, black 15%, transparent);
-  transform: translateX(calc(100% - 2.8rem));
-  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 180ms ease;
-}
-
-:root[data-theme="dark"] .today-overdue-drawer {
-  --today-panel: #302423;
-  --today-panel-line: #6a423e;
-  --today-row: rgba(25, 25, 25, 0.76);
-  --today-row-hover: #3a2927;
-  --today-accent: #f0a39b;
-}
-
-.today-overdue-drawer:hover,
-.today-overdue-drawer:focus-within,
-.today-overdue-drawer[data-open="true"] {
-  transform: translateX(0);
-}
-
-.today-overdue-tab {
-  display: flex;
-  min-height: 11rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-  border: 0;
-  border-right: 1px solid var(--today-panel-line);
-  background: color-mix(in srgb, var(--today-accent) 8%, var(--today-panel));
-  padding: 0.75rem 0;
-  color: color-mix(in srgb, var(--today-accent) 78%, var(--foreground));
-  font-size: 0.72rem;
-  font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
-
-.today-overdue-tab:hover {
-  background: color-mix(in srgb, var(--today-accent) 13%, var(--today-panel));
-}
-
-.today-overdue-tab-count {
-  display: grid;
-  min-width: 1.35rem;
-  min-height: 1.35rem;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--today-accent);
-  padding: 0.15rem;
-  color: var(--surface);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0;
-}
-
-.today-overdue-content {
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  padding: 1rem;
-}
-
-.today-overdue-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.85rem;
-}
-
-.today-overdue-heading p {
-  margin-bottom: 0.15rem;
-  color: var(--muted);
-  font-size: 0.65rem;
-  font-weight: 650;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.today-overdue-heading h2 {
-  color: var(--foreground);
-  font-size: 1.1rem;
-  font-weight: 720;
-  letter-spacing: -0.03em;
-}
-
-.today-overdue-heading > span {
-  color: var(--today-accent);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.today-overdue-list {
-  gap: 0.5rem;
-}
-
-.today-overdue-empty {
-  border: 1px dashed var(--today-panel-line);
-  border-radius: 0.55rem;
-  padding: 1rem;
-  color: var(--muted);
-  font-size: 0.8rem;
-  text-align: center;
-}
-
 .today-simple-header {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--line);
@@ -658,22 +531,11 @@ textarea:disabled {
   .today-task-lists {
     grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.9fr);
   }
-
-  .today-later-panel {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (min-width: 1280px) {
   .today-task-lists {
-    grid-template-columns:
-      minmax(28rem, 1.55fr)
-      minmax(22rem, 0.95fr)
-      minmax(21rem, 0.78fr);
-  }
-
-  .today-later-panel {
-    grid-column: auto;
+    grid-template-columns: minmax(28rem, 1.55fr) minmax(22rem, 0.95fr);
   }
 }
 
@@ -709,6 +571,72 @@ textarea:disabled {
   --today-row: rgba(22, 31, 50, 0.82);
   --today-row-hover: #1d2c49;
   --today-accent: #7db1ff;
+}
+
+.today-later-drawer {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 28;
+  width: min(20rem, calc(100vw - 2.25rem));
+  max-height: calc(100dvh - 8rem);
+  overflow: visible;
+  border: 1px solid var(--today-panel-line);
+  border-right: 0;
+  border-radius: 0.75rem 0 0 0.75rem;
+  padding: 0;
+  box-shadow: 0 14px 34px color-mix(in srgb, black 15%, transparent);
+  transform: translate(calc(100% - 1px), -50%);
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.today-later-drawer:hover,
+.today-later-drawer[data-open="true"] {
+  transform: translate(0, -50%);
+}
+
+.today-later-drawer-handle {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  display: grid;
+  width: 1.375rem;
+  height: 3.75rem;
+  min-height: 0;
+  place-items: center;
+  border: 1px solid var(--today-panel-line);
+  border-right: 0;
+  border-radius: 0.45rem 0 0 0.45rem !important;
+  background: var(--today-panel);
+  padding: 0;
+  color: var(--today-accent);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-50%);
+  transition: none;
+}
+
+.today-later-drawer-handle::after {
+  position: absolute;
+  inset: -0.45rem -0.35rem;
+  content: "";
+}
+
+.today-later-drawer-handle:hover,
+.today-later-drawer-handle:focus-visible {
+  background: var(--today-panel);
+  color: var(--today-accent);
+}
+
+.today-later-drawer-content {
+  min-height: 0;
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  border-radius: inherit;
+  padding: 0.7rem;
 }
 
 .today-later-hint {
@@ -888,7 +816,11 @@ textarea:disabled {
   display: block;
   width: 100%;
   overflow: hidden;
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: var(--foreground);
+  cursor: text;
   font-family: var(--font-manrope), "Manrope", sans-serif;
   font-size: 1rem;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -897,13 +829,40 @@ textarea:disabled {
   letter-spacing: -0.018em;
   line-height: 1.2;
   text-overflow: ellipsis;
+  text-align: left;
   white-space: nowrap;
+}
+
+.app-page .today-task-title-input {
+  width: 100%;
+  min-height: 1.65rem;
+  border: 0 !important;
+  border-bottom: 1px solid var(--today-accent) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: var(--foreground) !important;
+  font-family: var(--font-manrope), "Manrope", sans-serif;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+  outline: 0;
+  box-shadow: none !important;
+}
+
+.app-page .today-task-title-input:focus {
+  border-bottom-color: var(--today-accent) !important;
+  box-shadow: none !important;
 }
 
 .today-task-due {
   width: 4.1rem;
   flex: none;
   overflow: hidden;
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: var(--muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.8rem;
@@ -912,6 +871,32 @@ textarea:disabled {
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-page .today-task-due-input {
+  width: 8.65rem;
+  min-height: 2rem;
+  flex: none;
+  border: 1px solid var(--today-accent) !important;
+  border-radius: 0.35rem !important;
+  background: var(--surface) !important;
+  padding: 0.2rem 0.35rem !important;
+  color: var(--foreground) !important;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  box-shadow: none !important;
+}
+
+.today-task-row[data-editing="true"] {
+  border-color: var(--today-accent) !important;
+}
+
+.today-task-row[data-edit-error="true"] {
+  border-color: #b42318 !important;
+}
+
+:root[data-theme="dark"] .today-task-row[data-edit-error="true"] {
+  border-color: #ff9b91 !important;
 }
 
 .today-task-due[data-tone="overdue"] {
@@ -2054,9 +2039,13 @@ textarea:disabled {
     padding-top: 1rem;
   }
 
-  .today-overdue-drawer {
-    top: 5rem;
-    max-height: calc(100dvh - 10.5rem);
+  .today-later-drawer {
+    width: min(18.5rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 7rem);
+  }
+
+  .today-later-drawer-content {
+    max-height: calc(100dvh - 7rem);
   }
 
   .route-loading-page {
@@ -2121,7 +2110,7 @@ textarea:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .today-overdue-drawer {
+  .today-later-drawer {
     transition: none;
   }
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACADEMIC_PLANNING_RULES,
   CLASS_MEETING_SCHEDULE,
+  academicWorkTreatment,
   classMeetingDays,
   schoolDayRailStartHour,
   schoolDismissalMinutes,
@@ -33,6 +35,24 @@ describe("school schedule", () => {
       "Friday",
     ]);
     expect(classMeetingDays("Schoology", "General announcement")).toBeNull();
+  });
+
+  it("keeps Physics quizzes in class unless the title asks for preparation", () => {
+    expect(ACADEMIC_PLANNING_RULES[0]).toMatchObject({
+      course: "AP Physics C",
+    });
+    expect(academicWorkTreatment("AP Physics C", "Quiz 2")).toBe(
+      "in_class_assessment",
+    );
+    expect(academicWorkTreatment("AP Physics C", "Study for Quiz 2")).toBe(
+      "schedulable_work",
+    );
+    expect(academicWorkTreatment("AP Physics C", "Quiz corrections")).toBe(
+      "schedulable_work",
+    );
+    expect(academicWorkTreatment("AP Calc BC", "Quiz 2")).toBe(
+      "schedulable_work",
+    );
   });
 
   it("uses 4pm dismissal on Monday, Tuesday, and Thursday", () => {

@@ -109,7 +109,7 @@ FUHSD does not provide student Schoology API keys. Connect Schoology with its pr
 2. Open your name, select Settings, then find Share Your Schoology Calendar.
 3. Enable sharing, copy the iCal link, and paste it into the Schoology section in sauce Settings.
 
-Schoology may copy the subscription as a `webcal://` link. sauce converts that transport to HTTPS before validating, encrypting, and syncing it. The feed is read-only and only contains Schoology calendar entries with dates.
+Schoology may copy the subscription as a `webcal://` link. sauce converts that transport to HTTPS before validating, encrypting, and syncing it. The source feed stays read-only and only contains Schoology calendar entries with dates. A title, class, or due-date correction made in sauce is a local override, is preserved during later syncs, and is never written back to Schoology.
 
 On Vercel Hobby, source sync runs once each day through `vercel.json`. Today and Calendar also sync on page load when a source is more than 15 minutes stale, so normal dashboard use stays current. Vercel Pro can restore the spec's 30-minute background schedule by changing the cron expression to `*/30 * * * *`.
 

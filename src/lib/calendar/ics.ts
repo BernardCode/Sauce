@@ -155,12 +155,19 @@ export async function syncIcsSource(sourceId: string) {
     ];
     const { data: existing, error: existingError } = await admin
       .from("items")
-      .select("external_id, status")
+      .select("external_id, status, origin")
       .eq("source_id", source.data.id);
     if (existingError) throw new Error("Existing feed items could not be read.");
-    const existingStatuses = new Map(
+    const existingItems = new Map(
       (existing ?? []).flatMap((item) =>
-        item.external_id ? [[item.external_id, item.status] as const] : [],
+        item.external_id
+          ? [
+              [
+                item.external_id,
+                { status: item.status, origin: item.origin },
+              ] as const,
+            ]
+          : [],
       ),
     );
     const { data: courseDefaults, error: courseDefaultsError } = await admin
@@ -176,36 +183,54 @@ export async function syncIcsSource(sourceId: string) {
         entry.default_minutes,
       ]),
     );
-    const writes = uniqueCandidates.map((candidate) => {
+    const locallyEditedExternalIds: string[] = [];
+    const writes = uniqueCandidates.flatMap((candidate) => {
+      const existingItem = existingItems.get(candidate.externalId);
+      if (existingItem?.origin === "manual") {
+        locallyEditedExternalIds.push(candidate.externalId);
+        return [];
+      }
       const course = candidate.course ?? source.data.label;
       const defaultMinutes = defaultMinutesByCourse.get(course);
-      return {
-        user_id: source.data.user_id,
-        source_id: source.data.id,
-        external_id: candidate.externalId,
-        title: candidate.title,
-        description: candidate.description,
-        course,
-        due_at: candidate.dueDate
-          ? endOfLocalDay(candidate.dueDate, timeZone)
-          : candidate.dueAt,
-        priority: candidate.priority,
-        status: existingStatuses.get(candidate.externalId) === "done" ? "done" : "open",
-        origin: "feed",
-        last_seen_at: runStartedAt,
-        ...(!existingStatuses.has(candidate.externalId) && defaultMinutes
-          ? {
-              est_minutes: defaultMinutes,
-              remaining_minutes: defaultMinutes,
-            }
-          : {}),
-      };
+      return [
+        {
+          user_id: source.data.user_id,
+          source_id: source.data.id,
+          external_id: candidate.externalId,
+          title: candidate.title,
+          description: candidate.description,
+          course,
+          due_at: candidate.dueDate
+            ? endOfLocalDay(candidate.dueDate, timeZone)
+            : candidate.dueAt,
+          priority: candidate.priority,
+          status: existingItem?.status === "done" ? "done" : "open",
+          origin: "feed",
+          last_seen_at: runStartedAt,
+          ...(!existingItems.has(candidate.externalId) && defaultMinutes
+            ? {
+                est_minutes: defaultMinutes,
+                remaining_minutes: defaultMinutes,
+              }
+            : {}),
+        },
+      ];
     });
     if (writes.length) {
       const { error } = await admin.from("items").upsert(writes, {
         onConflict: "source_id,external_id",
       });
       if (error) throw new Error("ICS assignments could not be saved.");
+    }
+    if (locallyEditedExternalIds.length) {
+      const { error } = await admin
+        .from("items")
+        .update({ last_seen_at: runStartedAt })
+        .eq("source_id", source.data.id)
+        .in("external_id", locallyEditedExternalIds);
+      if (error) {
+        throw new Error("Local assignment edits could not be preserved.");
+      }
     }
     const { error: archiveError } = await admin
       .from("items")
@@ -218,7 +243,11 @@ export async function syncIcsSource(sourceId: string) {
       .from("sources")
       .update({ last_synced_at: runStartedAt, last_error: null })
       .eq("id", source.data.id);
-    return { ok: true as const, count: writes.length, syncedAt: runStartedAt };
+    return {
+      ok: true as const,
+      count: uniqueCandidates.length,
+      syncedAt: runStartedAt,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "ICS sync failed.";
     await admin.from("sources").update({ last_error: message }).eq("id", source.data.id);

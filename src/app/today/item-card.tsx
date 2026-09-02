@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useTransition,
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -12,9 +13,11 @@ import {
   TaskContextMenu,
   type TaskContextMenuHandle,
 } from "@/app/components/task-context-menu";
+import { updateItemField } from "./actions";
 import type { TodayItem } from "./item-list";
 import { formatDue, formatDueDate } from "./relative-time";
 import type { DropPosition } from "./reorder";
+import { dateInputValue, endOfDate } from "./task-edit-values";
 import { identifyTask } from "./task-identity";
 import { TaskEditDialog } from "./task-edit-dialog";
 
@@ -54,15 +57,29 @@ export function ItemCard({
   listAction,
 }: Props) {
   const contextMenuRef = useRef<TaskContextMenuHandle | null>(null);
+  const dueDateInputRef = useRef<HTMLInputElement | null>(null);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const title = item.title;
-  const due = item.dueAt && now ? formatDue(new Date(item.dueAt), now) : null;
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingDueDate, setIsEditingDueDate] = useState(false);
+  const [displayTitle, setDisplayTitle] = useState(item.title);
+  const [displayCourse, setDisplayCourse] = useState(item.course);
+  const [displayDueAt, setDisplayDueAt] = useState(item.dueAt);
+  const [titleDraft, setTitleDraft] = useState(item.title);
+  const [dueDateDraft, setDueDateDraft] = useState(
+    dateInputValue(item.dueAt),
+  );
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, startEditTransition] = useTransition();
+  const due =
+    displayDueAt && now ? formatDue(new Date(displayDueAt), now) : null;
   const dueDate =
-    item.dueAt && now ? formatDueDate(new Date(item.dueAt), now) : null;
-  const identity = identifyTask(title, item.course);
+    displayDueAt && now
+      ? formatDueDate(new Date(displayDueAt), now)
+      : null;
+  const identity = identifyTask(displayTitle, displayCourse);
   const contextDetails = [
     identity.label,
     due?.label,
@@ -83,17 +100,76 @@ export function ItemCard({
     contextMenuRef.current?.openAt(event.clientX, event.clientY);
   }
 
-  function handleDoubleClick(event: ReactMouseEvent<HTMLLIElement>) {
-    if (
-      item.optimistic ||
-      (event.target as HTMLElement).closest(
-        "button, a, input, textarea, select, [contenteditable='true']",
-      )
-    ) {
+  function openTitleEditor() {
+    if (item.optimistic || isSavingEdit) return;
+    setEditError(null);
+    setTitleDraft(displayTitle);
+    setIsEditingDueDate(false);
+    setIsEditingTitle(true);
+  }
+
+  function saveTitle() {
+    const nextTitle = titleDraft.trim();
+    if (!nextTitle) {
+      setEditError("A task needs a title.");
       return;
     }
-    event.preventDefault();
-    contextMenuRef.current?.openAt(event.clientX, event.clientY);
+    if (nextTitle === displayTitle) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    const previousTitle = displayTitle;
+    setDisplayTitle(nextTitle);
+    setIsEditingTitle(false);
+    setEditError(null);
+    startEditTransition(async () => {
+      const result = await updateItemField({
+        id: item.id,
+        field: "title",
+        value: nextTitle,
+      });
+      if (result.error) {
+        setDisplayTitle(previousTitle);
+        setTitleDraft(nextTitle);
+        setIsEditingTitle(true);
+        setEditError(result.error);
+      }
+    });
+  }
+
+  function openDueDateEditor() {
+    if (item.optimistic || isSavingEdit) return;
+    setEditError(null);
+    setDueDateDraft(dateInputValue(displayDueAt));
+    setIsEditingTitle(false);
+    setIsEditingDueDate(true);
+  }
+
+  function saveDueDate(value: string) {
+    const nextDueAt = endOfDate(value);
+    const previousDueAt = displayDueAt;
+    if (nextDueAt === previousDueAt) {
+      setIsEditingDueDate(false);
+      return;
+    }
+
+    setDisplayDueAt(nextDueAt);
+    setIsEditingDueDate(false);
+    setEditError(null);
+    startEditTransition(async () => {
+      const result = await updateItemField({
+        id: item.id,
+        field: "dueAt",
+        value: nextDueAt,
+      });
+      if (result.error) {
+        setDisplayDueAt(previousDueAt);
+        setDueDateDraft(value);
+        setIsEditingDueDate(true);
+        setEditError(result.error);
+      }
+    });
   }
 
   function completeTask() {
@@ -106,6 +182,15 @@ export function ItemCard({
   }
 
   useEffect(() => {
+    if (!isEditingDueDate) return;
+    try {
+      dueDateInputRef.current?.showPicker();
+    } catch {
+      dueDateInputRef.current?.focus();
+    }
+  }, [isEditingDueDate]);
+
+  useEffect(() => {
     return () => {
       if (completionTimerRef.current) clearTimeout(completionTimerRef.current);
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
@@ -115,10 +200,12 @@ export function ItemCard({
   return (
     <li
       onContextMenu={handleContextMenu}
-      onDoubleClick={handleDoubleClick}
       draggable={
         reorder || listDrag
-          ? !(reorder?.disabled ?? listDrag?.disabled)
+          ? !isEditingTitle &&
+            !isEditingDueDate &&
+            !isSavingEdit &&
+            !(reorder?.disabled ?? listDrag?.disabled)
           : undefined
       }
       onDragStart={reorder?.onDragStart ?? listDrag?.onDragStart}
@@ -138,8 +225,15 @@ export function ItemCard({
       tabIndex={item.optimistic ? undefined : 0}
       aria-haspopup={item.optimistic ? undefined : "menu"}
       aria-keyshortcuts={item.optimistic ? undefined : "Shift+F10"}
-      title={item.optimistic ? undefined : "Double-click or right-click for task actions"}
+      title={
+        editError ??
+        (item.optimistic
+          ? undefined
+          : "Double-click the title or due date to edit. Right-click for task actions.")
+      }
       data-saving={item.optimistic === true}
+      data-editing={isEditingTitle || isEditingDueDate || undefined}
+      data-edit-error={editError !== null || undefined}
       data-completing={isCompleting}
       data-dragging={reorder?.isDragging || listDrag?.isDragging || undefined}
       data-drop-position={reorder?.dropPosition ?? undefined}
@@ -159,8 +253,8 @@ export function ItemCard({
         onClick={completeTask}
         aria-label={
           item.optimistic
-            ? `Saving "${title}"`
-            : `Toggle completion for "${title}"`
+            ? `Saving "${displayTitle}"`
+            : `Toggle completion for "${displayTitle}"`
         }
         data-checked={isCompleting}
         className="completion-check today-task-checkbox"
@@ -175,16 +269,59 @@ export function ItemCard({
         {identity.emoji}
       </span>
       <div className="today-task-title-cell">
-        <span className="today-task-title">{title}</span>
+        {isEditingTitle ? (
+          <input
+            type="text"
+            value={titleDraft}
+            onChange={(event) => setTitleDraft(event.currentTarget.value)}
+            onBlur={saveTitle}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setTitleDraft(displayTitle);
+                setIsEditingTitle(false);
+                setEditError(null);
+              }
+            }}
+            aria-label={`Edit title for ${displayTitle}`}
+            aria-invalid={editError !== null}
+            maxLength={500}
+            autoFocus
+            className="today-task-title-input"
+          />
+        ) : (
+          <button
+            type="button"
+            className="today-task-title"
+            onDoubleClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              openTitleEditor();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "F2") {
+                event.preventDefault();
+                openTitleEditor();
+              }
+            }}
+            aria-label={`${displayTitle}. Double-click or press F2 to edit the title.`}
+          >
+            {displayTitle}
+          </button>
+        )}
       </div>
       {item.optimistic ? null : (
         <TaskContextMenu
           ref={contextMenuRef}
-          title={title}
+          title={displayTitle}
           details={contextDetails}
-          dueAt={item.dueAt}
+          dueAt={displayDueAt}
           scheduled={false}
-          onEdit={item.origin === "feed" ? undefined : () => setIsEditing(true)}
+          onEdit={() => setIsEditing(true)}
           onComplete={completeTask}
           listAction={
             listAction
@@ -197,16 +334,70 @@ export function ItemCard({
           }
         />
       )}
-      <span
-        className="today-task-due"
-        data-tone={dueDate?.tone ?? "none"}
-      >
-        {dueDate?.label ?? (item.dueAt ? "" : "No date")}
+      {isEditingDueDate ? (
+        <input
+          ref={dueDateInputRef}
+          type="date"
+          value={dueDateDraft}
+          onChange={(event) => {
+            const value = event.currentTarget.value;
+            setDueDateDraft(value);
+            saveDueDate(value);
+          }}
+          onBlur={() => {
+            if (isEditingDueDate) setIsEditingDueDate(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setDueDateDraft(dateInputValue(displayDueAt));
+              setIsEditingDueDate(false);
+              setEditError(null);
+            }
+          }}
+          aria-label={`Edit due date for ${displayTitle}`}
+          aria-invalid={editError !== null}
+          autoFocus
+          className="today-task-due-input"
+        />
+      ) : (
+        <button
+          type="button"
+          className="today-task-due"
+          data-tone={dueDate?.tone ?? "none"}
+          onDoubleClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openDueDateEditor();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "F2") {
+              event.preventDefault();
+              openDueDateEditor();
+            }
+          }}
+          aria-label={`${dueDate?.label ?? "No due date"}. Double-click or press F2 to edit the due date for ${displayTitle}.`}
+        >
+          {dueDate?.label ?? (displayDueAt ? "" : "No date")}
+        </button>
+      )}
+      <span className="sr-only" aria-live="polite">
+        {editError ?? (isSavingEdit ? "Saving task changes." : "")}
       </span>
       <TaskEditDialog
-        item={{ ...item, title }}
+        item={{
+          ...item,
+          title: displayTitle,
+          course: displayCourse,
+          dueAt: displayDueAt,
+        }}
         open={isEditing}
         onClose={() => setIsEditing(false)}
+        onSaved={(values) => {
+          setDisplayTitle(values.title);
+          setDisplayCourse(values.course);
+          setDisplayDueAt(values.dueAt);
+        }}
       />
     </li>
   );

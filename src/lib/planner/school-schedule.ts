@@ -20,6 +20,17 @@ export const CLASS_MEETING_SCHEDULE = [
   },
 ] as const;
 
+export const ACADEMIC_PLANNING_RULES = [
+  {
+    course: "AP Physics C",
+    rule: "A Physics quiz is an in-class assessment, not homework. Schedule it only when the task explicitly asks to study, review, prepare, or do other work for the quiz.",
+  },
+] as const;
+
+export type AcademicWorkTreatment =
+  | "in_class_assessment"
+  | "schedulable_work";
+
 const meetingDaysByCourse: Record<StudentCourse, readonly string[]> = {
   "AP Gov": CLASS_MEETING_SCHEDULE[0].weekdays,
   "AP Lit": CLASS_MEETING_SCHEDULE[0].weekdays,
@@ -36,6 +47,25 @@ export function classMeetingDays(
   const identifiedCourse =
     classifyCourse(course ?? "") ?? classifyCourse(title);
   return identifiedCourse ? meetingDaysByCourse[identifiedCourse] : null;
+}
+
+export function academicWorkTreatment(
+  course: string | null,
+  title: string,
+): AcademicWorkTreatment {
+  const identifiedCourse =
+    classifyCourse(course ?? "") ?? classifyCourse(title);
+  const normalizedTitle = title.toLowerCase();
+  const isPhysicsQuiz =
+    identifiedCourse === "AP Physics C" && /\bquiz(?:zes)?\b/.test(normalizedTitle);
+  const describesWork =
+    /\b(?:study|studying|review|prepare|preparing|prep|practice|complete|finish|correct|corrections|retake|make up)\b/.test(
+      normalizedTitle,
+    );
+
+  return isPhysicsQuiz && !describesWork
+    ? "in_class_assessment"
+    : "schedulable_work";
 }
 
 export function schoolDismissalMinutes(weekday: number): number | null {

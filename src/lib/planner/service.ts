@@ -11,7 +11,9 @@ import {
 import { readItemContext, writeItemContext } from "./item-context";
 import { isPostponedWork } from "./postponed-work";
 import {
+  ACADEMIC_PLANNING_RULES,
   CLASS_MEETING_SCHEDULE,
+  academicWorkTreatment,
   classMeetingDays,
   withSchoolDayWindows,
 } from "./school-schedule";
@@ -223,6 +225,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
     to_date: parsed.data.to_date,
     timezone: timeZone,
     class_meeting_schedule: CLASS_MEETING_SCHEDULE,
+    academic_planning_rules: ACADEMIC_PLANNING_RULES,
     working_hours: effectiveWorkingHours,
     planner_preferences: preferences.success ? preferences.data.text : "",
     postponed_work_keywords: postponedWorkKeywords,
@@ -232,6 +235,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
         ? localParts(new Date(item.due_at), timeZone).date
         : null;
       const postponed = isPostponedWork(item, postponedWorkKeywords);
+      const workTreatment = academicWorkTreatment(item.course, item.title);
       return {
         ...item,
         category: item.course,
@@ -239,14 +243,21 @@ export async function getPlanningContext(userId: string, input: unknown) {
         description: context.description,
         source_url: context.sourceUrl,
         list: laterItemIds.has(item.id) ? "later" : "main",
-        scheduling_status: postponed ? "postponed" : "active",
+        scheduling_status: postponed
+          ? "postponed"
+          : workTreatment === "in_class_assessment"
+            ? "in_class_assessment"
+            : "active",
         kind: item.is_project
           ? "project"
           : item.parent_id
             ? "project_step"
             : "task",
         scheduling_guidance:
-          dueDate && !item.is_project && !postponed
+          dueDate &&
+          !item.is_project &&
+          !postponed &&
+          workTreatment === "schedulable_work"
             ? buildSchedulingGuidance({
                 planningStartDate: parsed.data.from_date,
                 dueDate,
@@ -382,7 +393,12 @@ export async function applyPlan(userId: string, input: unknown) {
     let why: string | null = null;
     if (!item || item.status !== "open") why = "item is missing or not open";
     else if (item.is_project) why = "projects cannot be scheduled directly";
-    else if (isPostponedWork(item, postponedWorkKeywords)) {
+    else if (
+      academicWorkTreatment(item.course, item.title) ===
+      "in_class_assessment"
+    ) {
+      why = "Physics quizzes without preparation wording are in-class assessments";
+    } else if (isPostponedWork(item, postponedWorkKeywords)) {
       why = "task is postponed by planner preferences";
     } else if (
       localStart.date < parsed.data.from_date ||

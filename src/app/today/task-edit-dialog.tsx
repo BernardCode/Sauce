@@ -3,30 +3,23 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { updateItem } from "./actions";
+import { dateInputValue, endOfDate } from "./task-edit-values";
 import type { TodayItem } from "./task-types";
-
-function dateInputValue(iso: string | null): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
-}
-
-function endOfDate(value: string): string | null {
-  if (!value) return null;
-  const date = new Date(`${value}T23:59:00`);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
 
 export function TaskEditDialog({
   item,
   open,
   onClose,
+  onSaved,
 }: {
   item: TodayItem;
   open: boolean;
   onClose: () => void;
+  onSaved?: (values: {
+    title: string;
+    course: string | null;
+    dueAt: string | null;
+  }) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -37,17 +30,23 @@ export function TaskEditDialog({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const estimateValue = String(form.get("estimate") ?? "").trim();
+    const title = String(form.get("title") ?? "");
+    const course = String(form.get("category") ?? "").trim() || null;
+    const dueAt = endOfDate(String(form.get("dueDate") ?? ""));
     startTransition(async () => {
       const result = await updateItem({
         id: item.id,
-        title: String(form.get("title") ?? ""),
-        category: String(form.get("category") ?? "").trim() || null,
+        title,
+        category: course,
         plannedDate: String(form.get("plannedDate") ?? "").trim() || null,
-        dueAtIso: endOfDate(String(form.get("dueDate") ?? "")),
+        dueAtIso: dueAt,
         estMinutes: estimateValue ? Number(estimateValue) : null,
       });
       setError(result.error);
-      if (!result.error) onClose();
+      if (!result.error) {
+        onSaved?.({ title: title.trim(), course, dueAt });
+        onClose();
+      }
     });
   }
 
@@ -78,7 +77,15 @@ export function TaskEditDialog({
           </label>
           <label className="sm:col-span-2">
             <span className="text-xs font-semibold text-[var(--muted)]">Class or category</span>
-            <input name="category" defaultValue={item.course ?? ""} maxLength={100} placeholder="Systems Design, Rice Essays..." className="mt-1 min-h-11 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 text-sm outline-none focus:border-[var(--primary)]" />
+            <input name="category" list={`task-classes-${item.id}`} defaultValue={item.course ?? ""} maxLength={100} placeholder="Choose or enter a class" className="mt-1 min-h-11 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 text-sm outline-none focus:border-[var(--primary)]" />
+            <datalist id={`task-classes-${item.id}`}>
+              <option value="AP Gov" />
+              <option value="AP Calc BC" />
+              <option value="AP Lit" />
+              <option value="PE" />
+              <option value="Ceramics" />
+              <option value="AP Physics C" />
+            </datalist>
           </label>
           <label>
             <span className="text-xs font-semibold text-[var(--muted)]">Show on Today</span>

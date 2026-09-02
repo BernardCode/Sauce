@@ -18,7 +18,6 @@ export function updateOptimisticItems(
       ? {
           ...item,
           isLater: change.destination === "later",
-          isOverdue: false,
         }
       : item,
   );
