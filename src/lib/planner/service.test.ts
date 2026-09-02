@@ -104,6 +104,16 @@ describe("getPlanningContext", () => {
         ],
       },
       postponed_work_keywords: ["essay", "essays", "sat"],
+      class_meeting_schedule: [
+        {
+          courses: ["AP Gov/Econ", "AP Calc BC", "AP Lit"],
+          weekdays: ["Monday", "Tuesday", "Thursday"],
+        },
+        {
+          courses: ["PE", "Ceramics", "AP Physics C"],
+          weekdays: ["Monday", "Wednesday", "Friday"],
+        },
+      ],
       scheduled_blocks: [
         {
           title: "Review Systems Design",
@@ -135,7 +145,7 @@ describe("getPlanningContext", () => {
               parent_id: null,
               title: "Write research paper",
               description: null,
-              course: "English",
+              course: "AP Lit",
               due_at: "2026-07-31T06:59:00.000Z",
               planned_date: null,
               priority: "normal",
@@ -168,6 +178,7 @@ describe("getPlanningContext", () => {
       items: [
         {
           title: "Write research paper",
+          class_meeting_days: ["Monday", "Tuesday", "Thursday"],
           list: "later",
           scheduling_status: "active",
           scheduling_guidance: {

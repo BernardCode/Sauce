@@ -10,7 +10,11 @@ import {
 } from "./preferences";
 import { readItemContext, writeItemContext } from "./item-context";
 import { isPostponedWork } from "./postponed-work";
-import { withSchoolDayWindows } from "./school-schedule";
+import {
+  CLASS_MEETING_SCHEDULE,
+  classMeetingDays,
+  withSchoolDayWindows,
+} from "./school-schedule";
 import {
   addItemInputSchema,
   applyPlanServiceInputSchema,
@@ -218,6 +222,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
     from_date: parsed.data.from_date,
     to_date: parsed.data.to_date,
     timezone: timeZone,
+    class_meeting_schedule: CLASS_MEETING_SCHEDULE,
     working_hours: effectiveWorkingHours,
     planner_preferences: preferences.success ? preferences.data.text : "",
     postponed_work_keywords: postponedWorkKeywords,
@@ -230,6 +235,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
       return {
         ...item,
         category: item.course,
+        class_meeting_days: classMeetingDays(item.course, item.title),
         description: context.description,
         source_url: context.sourceUrl,
         list: laterItemIds.has(item.id) ? "later" : "main",
@@ -257,6 +263,7 @@ export async function getPlanningContext(userId: string, input: unknown) {
         return {
           ...item,
           category: item.course,
+          class_meeting_days: classMeetingDays(item.course, item.title),
           description: context.description,
           source_url: context.sourceUrl,
           scheduling_status: isPostponedWork(item, postponedWorkKeywords)

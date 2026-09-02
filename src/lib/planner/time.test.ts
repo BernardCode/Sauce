@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clockMinutes,
+  endOfLocalDay,
   intervalsOverlap,
   localParts,
   minutesBetween,
@@ -41,6 +42,15 @@ describe("planner time helpers", () => {
     expect(
       localParts(new Date("2026-07-16T16:30:00Z"), "America/Los_Angeles"),
     ).toEqual({ date: "2026-07-16", minutes: 570, weekday: 4 });
+  });
+
+  it("converts a date-only deadline to the end of that local day", () => {
+    expect(endOfLocalDay("2026-09-04", "America/Los_Angeles")).toBe(
+      "2026-09-05T06:59:59.999Z",
+    );
+    expect(endOfLocalDay("2026-12-04", "America/Los_Angeles")).toBe(
+      "2026-12-05T07:59:59.999Z",
+    );
   });
 
   it("falls back from an invalid time zone", () => {

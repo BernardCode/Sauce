@@ -9,6 +9,7 @@ import {
   icsSourceSecretSchema,
 } from "@/lib/source-secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { endOfLocalDay, safeTimeZone } from "@/lib/planner/time";
 import { toIcsItemCandidate } from "./ics-schema";
 import { normalizeIcsFeedUrl } from "./ics-url";
 
@@ -18,6 +19,10 @@ const sourceSchema = z.object({
   kind: z.literal("ics"),
   label: z.string().min(1),
   url_secret: z.string().min(1),
+});
+
+const profileSchema = z.object({
+  timezone: z.string().trim().min(1).max(100),
 });
 
 const saveSchema = z.object({
@@ -123,10 +128,27 @@ export async function syncIcsSource(sourceId: string) {
     const secret = icsSourceSecretSchema.parse(
       decryptSourceSecret(source.data.url_secret),
     );
-    const document = icsDocumentSchema.parse(await fetchIcs(new URL(secret.url)));
+    const feedUrl = new URL(secret.url);
+    const inferSchoologyCourse =
+      source.data.label.trim().toLowerCase() === "schoology" ||
+      feedUrl.hostname.toLowerCase() === "schoology.com" ||
+      feedUrl.hostname.toLowerCase().endsWith(".schoology.com");
+    const { data: rawProfile, error: profileError } = await admin
+      .from("users")
+      .select("timezone")
+      .eq("id", source.data.user_id)
+      .single();
+    const profile = profileSchema.safeParse(rawProfile);
+    if (profileError || !profile.success) {
+      throw new Error("The calendar time zone could not be loaded.");
+    }
+    const timeZone = safeTimeZone(profile.data.timezone);
+    const document = icsDocumentSchema.parse(await fetchIcs(feedUrl));
     const parsedCalendar = await ical.async.parseICS(document);
     const candidates = Object.values(parsedCalendar)
-      .map(toIcsItemCandidate)
+      .map((component) =>
+        toIcsItemCandidate(component, { inferSchoologyCourse }),
+      )
       .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
     const uniqueCandidates = [
       ...new Map(candidates.map((candidate) => [candidate.externalId, candidate])).values(),
@@ -141,31 +163,44 @@ export async function syncIcsSource(sourceId: string) {
         item.external_id ? [[item.external_id, item.status] as const] : [],
       ),
     );
-    const { data: courseDefault } = await admin
+    const { data: courseDefaults, error: courseDefaultsError } = await admin
       .from("course_defaults")
-      .select("default_minutes")
-      .eq("user_id", source.data.user_id)
-      .eq("course", source.data.label)
-      .maybeSingle();
-    const writes = uniqueCandidates.map((candidate) => ({
-      user_id: source.data.user_id,
-      source_id: source.data.id,
-      external_id: candidate.externalId,
-      title: candidate.title,
-      description: candidate.description,
-      course: source.data.label,
-      due_at: candidate.dueAt,
-      priority: candidate.priority,
-      status: existingStatuses.get(candidate.externalId) === "done" ? "done" : "open",
-      origin: "feed",
-      last_seen_at: runStartedAt,
-      ...(!existingStatuses.has(candidate.externalId) && courseDefault
-        ? {
-            est_minutes: courseDefault.default_minutes,
-            remaining_minutes: courseDefault.default_minutes,
-          }
-        : {}),
-    }));
+      .select("course, default_minutes")
+      .eq("user_id", source.data.user_id);
+    if (courseDefaultsError) {
+      throw new Error("Course defaults could not be read.");
+    }
+    const defaultMinutesByCourse = new Map(
+      (courseDefaults ?? []).map((entry) => [
+        entry.course,
+        entry.default_minutes,
+      ]),
+    );
+    const writes = uniqueCandidates.map((candidate) => {
+      const course = candidate.course ?? source.data.label;
+      const defaultMinutes = defaultMinutesByCourse.get(course);
+      return {
+        user_id: source.data.user_id,
+        source_id: source.data.id,
+        external_id: candidate.externalId,
+        title: candidate.title,
+        description: candidate.description,
+        course,
+        due_at: candidate.dueDate
+          ? endOfLocalDay(candidate.dueDate, timeZone)
+          : candidate.dueAt,
+        priority: candidate.priority,
+        status: existingStatuses.get(candidate.externalId) === "done" ? "done" : "open",
+        origin: "feed",
+        last_seen_at: runStartedAt,
+        ...(!existingStatuses.has(candidate.externalId) && defaultMinutes
+          ? {
+              est_minutes: defaultMinutes,
+              remaining_minutes: defaultMinutes,
+            }
+          : {}),
+      };
+    });
     if (writes.length) {
       const { error } = await admin.from("items").upsert(writes, {
         onConflict: "source_id,external_id",

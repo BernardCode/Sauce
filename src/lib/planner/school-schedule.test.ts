@@ -1,11 +1,40 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLASS_MEETING_SCHEDULE,
+  classMeetingDays,
   schoolDayRailStartHour,
   schoolDismissalMinutes,
   withSchoolDayWindows,
 } from "./school-schedule";
 
 describe("school schedule", () => {
+  it("describes which classes meet on each alternating school day", () => {
+    expect(CLASS_MEETING_SCHEDULE).toEqual([
+      {
+        courses: ["AP Gov/Econ", "AP Calc BC", "AP Lit"],
+        weekdays: ["Monday", "Tuesday", "Thursday"],
+      },
+      {
+        courses: ["PE", "Ceramics", "AP Physics C"],
+        weekdays: ["Monday", "Wednesday", "Friday"],
+      },
+    ]);
+  });
+
+  it("maps a task to its class meeting days", () => {
+    expect(classMeetingDays("AP Calc BC Period 2", "Problem set")).toEqual([
+      "Monday",
+      "Tuesday",
+      "Thursday",
+    ]);
+    expect(classMeetingDays("Schoology", "Momentum lab")).toEqual([
+      "Monday",
+      "Wednesday",
+      "Friday",
+    ]);
+    expect(classMeetingDays("Schoology", "General announcement")).toBeNull();
+  });
+
   it("uses 4pm dismissal on Monday, Tuesday, and Thursday", () => {
     expect([1, 2, 4].map(schoolDismissalMinutes)).toEqual([960, 960, 960]);
   });
