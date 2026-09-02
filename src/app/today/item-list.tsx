@@ -26,6 +26,7 @@ export type { TodayItem } from "./task-types";
 type Props = {
   openItems: TodayItem[];
   laterItems: TodayItem[];
+  overdueItems: TodayItem[];
   todayDate: string;
   schedule: ReactNode;
 };
@@ -34,8 +35,15 @@ function dueTime(item: TodayItem): number {
   return item.dueAt ? new Date(item.dueAt).getTime() : Number.POSITIVE_INFINITY;
 }
 
-export function ItemList({ openItems, laterItems, todayDate, schedule }: Props) {
+export function ItemList({
+  openItems,
+  laterItems,
+  overdueItems,
+  todayDate,
+  schedule,
+}: Props) {
   const now = useNow();
+  const [isOverdueDrawerOpen, setIsOverdueDrawerOpen] = useState(false);
   const [doneError, setDoneError] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -50,16 +58,19 @@ export function ItemList({ openItems, laterItems, todayDate, schedule }: Props) 
   } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [items, updateOptimistic] = useOptimistic(
-    [...openItems, ...laterItems],
+    [...openItems, ...laterItems, ...overdueItems],
     updateOptimisticItems,
   );
   const [isPending, startTransition] = useTransition();
 
   const fallbackItems = items
-    .filter((item) => !item.isLater)
+    .filter((item) => !item.isLater && !item.isOverdue)
     .sort((a, b) => dueTime(a) - dueTime(b));
   const sortedLaterItems = items
     .filter((item) => item.isLater)
+    .sort((a, b) => dueTime(a) - dueTime(b));
+  const sortedOverdueItems = items
+    .filter((item) => item.isOverdue)
     .sort((a, b) => dueTime(a) - dueTime(b));
   const persistentItemIds = fallbackItems
     .filter((item) => !item.optimistic)
@@ -273,6 +284,53 @@ export function ItemList({ openItems, laterItems, todayDate, schedule }: Props) 
 
   return (
     <div className="today-task-lists">
+      <aside
+        className="today-overdue-drawer"
+        data-open={isOverdueDrawerOpen || undefined}
+        aria-label="Overdue tasks"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setIsOverdueDrawerOpen(false);
+        }}
+      >
+        <button
+          type="button"
+          className="today-overdue-tab"
+          aria-expanded={isOverdueDrawerOpen}
+          aria-controls="today-overdue-list"
+          onClick={() => setIsOverdueDrawerOpen((open) => !open)}
+        >
+          <span>Overdue</span>
+          <span className="today-overdue-tab-count">
+            {sortedOverdueItems.length}
+          </span>
+        </button>
+        <div className="today-overdue-content" id="today-overdue-list">
+          <div className="today-overdue-heading">
+            <div>
+              <p>Needs attention</p>
+              <h2>Overdue</h2>
+            </div>
+            <span aria-label={`${sortedOverdueItems.length} overdue tasks`}>
+              {sortedOverdueItems.length}
+            </span>
+          </div>
+          {sortedOverdueItems.length ? (
+            <ul className="today-task-list today-overdue-list">
+              {sortedOverdueItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  now={now}
+                  onDone={handleDone}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="today-overdue-empty">Nothing overdue.</p>
+          )}
+        </div>
+      </aside>
+
       <section
         className="today-task-panel"
         aria-label="Main tasks"

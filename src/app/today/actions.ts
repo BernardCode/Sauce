@@ -267,6 +267,7 @@ export async function addItem(input: unknown): Promise<AddItemResult> {
       estMinutes: item.est_minutes,
       isProject: item.is_project,
       isLater,
+      isOverdue: false,
       origin: item.origin,
     },
   };

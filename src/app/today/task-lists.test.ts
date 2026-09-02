@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { partitionTodayItems } from "./task-lists";
 
 const today = "2026-08-31";
+const now = new Date("2026-08-31T12:00:00.000Z");
 const items = [
   {
     id: "main",
@@ -32,6 +33,7 @@ describe("partitionTodayItems", () => {
       today,
       new Set<string>(),
       new Set(["later", "scheduled-later"]),
+      now,
     );
 
     expect(result.main.map((item) => item.id)).toEqual(["main"]);
@@ -47,6 +49,7 @@ describe("partitionTodayItems", () => {
       today,
       new Set(["scheduled-later"]),
       new Set(["later", "scheduled-later"]),
+      now,
     );
 
     expect(result.main.map((item) => item.id)).toEqual([
@@ -54,5 +57,30 @@ describe("partitionTodayItems", () => {
       "scheduled-later",
     ]);
     expect(result.later.map((item) => item.id)).toEqual(["later"]);
+  });
+
+  it("separates tasks whose due time has passed", () => {
+    const result = partitionTodayItems(
+      [
+        ...items,
+        {
+          id: "overdue",
+          due_at: "2026-08-31T11:59:59.000Z",
+          planned_date: today,
+        },
+        {
+          id: "due-later",
+          due_at: "2026-08-31T12:00:01.000Z",
+          planned_date: today,
+        },
+      ],
+      today,
+      new Set<string>(),
+      new Set<string>(),
+      now,
+    );
+
+    expect(result.overdue.map((item) => item.id)).toEqual(["overdue"]);
+    expect(result.main.map((item) => item.id)).toEqual(["main", "due-later"]);
   });
 });

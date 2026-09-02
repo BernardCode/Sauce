@@ -15,7 +15,11 @@ export function updateOptimisticItems(
   }
   return current.map((item) =>
     item.id === change.id
-      ? { ...item, isLater: change.destination === "later" }
+      ? {
+          ...item,
+          isLater: change.destination === "later",
+          isOverdue: false,
+        }
       : item,
   );
 }

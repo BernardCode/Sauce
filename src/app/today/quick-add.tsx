@@ -141,6 +141,7 @@ export function QuickAdd({
         estMinutes,
         isProject,
         isLater: isLater && !isProject,
+        isOverdue: false,
         origin: "manual",
         optimistic: true,
       });
