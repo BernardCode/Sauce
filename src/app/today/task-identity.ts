@@ -11,7 +11,7 @@ export type TaskIdentity = {
 const COURSE_IDENTITIES: Record<StudentCourse, TaskIdentity> = {
   "AP Gov": { emoji: "🏛️", label: "AP Gov/Econ" },
   "AP Lit": { emoji: "📚", label: "AP Lit" },
-  "AP Calc BC": { emoji: "🧮", label: "AP Calc BC" },
+  "AP Calc BC": { emoji: "📐", label: "AP Calc BC" },
   "AP Physics C": { emoji: "⚛️", label: "AP Physics C" },
   Ceramics: { emoji: "🏺", label: "Ceramics" },
   PE: { emoji: "🏃", label: "PE" },
