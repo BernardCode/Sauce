@@ -14,6 +14,9 @@ describe("quick-add course classification", () => {
     ["lit close reading", "AP Lit"],
     ["The Namesake analysis", "AP Lit"],
     ["calc homework", "AP Calc BC"],
+    ["bc homework", "AP Calc BC"],
+    ["Finish BC worksheet", "AP Calc BC"],
+    ["BC: practice test", "AP Calc BC"],
     ["AP English Literature and Composition Period 4", "AP Lit"],
     ["AP US Government and Politics P1", "AP Gov"],
     ["AP Physics C: Mechanics Period 6", "AP Physics C"],
@@ -23,6 +26,7 @@ describe("quick-add course classification", () => {
 
   it("leaves an ambiguous title unclassified", () => {
     expect(classifyCourse("finish unit 3 worksheet")).toBeNull();
+    expect(classifyCourse("ABC worksheet")).toBeNull();
     expect(classifyCourse("calculus momentum review")).toBeNull();
   });
 });

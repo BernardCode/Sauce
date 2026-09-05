@@ -263,8 +263,9 @@ export function ItemCard({
       </button>
       <span
         className="today-task-class-emoji"
-        aria-label={identity.label}
-        title={identity.label}
+        aria-hidden={!identity.emoji || undefined}
+        aria-label={identity.label || undefined}
+        title={identity.label || undefined}
       >
         {identity.emoji}
       </span>

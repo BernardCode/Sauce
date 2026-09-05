@@ -47,6 +47,7 @@ const COURSE_RULES = [
       /\bap\s+calc(?:ulus)?\s+bc\b/,
       /\bap\s+calculus\s+bc\b/,
       /\bcalc(?:ulus)?\s+bc\b/,
+      /\bbc\b/,
       /\bcalc\b/,
       /\bcalculus\b/,
       /\bderivatives?\b/,

@@ -29,6 +29,7 @@ const COURSE_ALIASES: Record<string, StudentCourse> = {
   "ap calc bc": "AP Calc BC",
   "calc bc": "AP Calc BC",
   math: "AP Calc BC",
+  bc: "AP Calc BC",
   "ap physics c": "AP Physics C",
   physics: "AP Physics C",
   ceramics: "Ceramics",
@@ -81,5 +82,5 @@ export function identifyTask(title: string, course: string | null): TaskIdentity
   if (/\b(?:personal admin|hcb|receipt|registration|rsvp)\b/.test(context)) {
     return { emoji: "📌", label: "Personal admin" };
   }
-  return { emoji: "📝", label: "School task" };
+  return { emoji: "", label: "" };
 }
