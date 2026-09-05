@@ -36,7 +36,7 @@ describe("partitionTodayItems", () => {
       now,
     );
 
-    expect(result.main.map((item) => item.id)).toEqual(["main", "backlog"]);
+    expect(result.main.map((item) => item.id)).toEqual(["main"]);
     expect(result.later.map((item) => item.id)).toEqual([
       "later",
       "scheduled-later",
@@ -55,7 +55,6 @@ describe("partitionTodayItems", () => {
     expect(result.main.map((item) => item.id)).toEqual([
       "main",
       "scheduled-later",
-      "backlog",
     ]);
     expect(result.later.map((item) => item.id)).toEqual(["later"]);
   });
@@ -88,7 +87,6 @@ describe("partitionTodayItems", () => {
 
     expect(result.main.map((item) => item.id)).toEqual([
       "main",
-      "backlog",
       "overdue",
       "due-later",
     ]);
@@ -99,7 +97,7 @@ describe("partitionTodayItems", () => {
     ]);
   });
 
-  it("preserves unfinished Main tasks after their schedule day ends", () => {
+  it("preserves planned Main tasks without pulling in the backlog", () => {
     const tasks = [
       { id: "scheduled-only", due_at: null, planned_date: null },
       { id: "planned", due_at: null, planned_date: today },
@@ -107,14 +105,14 @@ describe("partitionTodayItems", () => {
       { id: "later", due_at: null, planned_date: null },
     ];
     const yesterday = partitionTodayItems(
-      tasks, today, new Set(["scheduled-only"]), new Set(["later"]), now,
+      tasks, today, new Set(), new Set(["later"]), now,
     );
     const nextDay = partitionTodayItems(
       tasks, "2026-09-01", new Set(), new Set(["later"]),
       new Date("2026-09-01T12:00:00.000Z"),
     );
 
-    expect(yesterday.main.map((item) => item.id)).toEqual(["scheduled-only", "planned"]);
+    expect(yesterday.main.map((item) => item.id)).toEqual(["planned"]);
     expect(nextDay).toEqual(yesterday);
   });
 

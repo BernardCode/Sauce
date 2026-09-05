@@ -61,7 +61,7 @@ describe("isVisibleToday", () => {
     ).toBe(false);
   });
 
-  it("keeps open tasks without a planned date visible", () => {
+  it("keeps the unscheduled backlog out of Today", () => {
     expect(
       isVisibleToday(
         {
@@ -72,7 +72,7 @@ describe("isVisibleToday", () => {
         today,
         noScheduledItems,
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("keeps an unfinished dated task from a previous day visible", () => {

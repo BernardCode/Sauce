@@ -65,7 +65,7 @@ The load-bearing decisions in this schema:
 * `remaining_minutes` tracks partial progress. It starts equal to `est_minutes` and drops as you complete blocks against the item. The planner schedules against what's left, not the original total, so a half-done project doesn't get re-planned from scratch.
 * `actual_minutes` and `course_defaults` are the learning loop. Completing a block records how long it really took; that rolls into a per-course running average that seeds `est_minutes` on the next item from that course.
 * `last_seen_at` catches deletions. Every sync stamps it on items still present in the feed. Items whose `external_id` stops appearing get soft-archived (see Sync below), so a deleted assignment doesn't haunt your list forever.
-* `planned_date` is an intentional daily commitment, not a deadline. Main retains open leaf items across day changes, including items without a planned date or whose work block was on a previous day. An explicit future `planned_date` keeps an item out of Main until that date unless it is overdue or scheduled today. Later membership continues to take precedence unless the item has a work block today. Projects never get a `planned_date`; their scheduled steps do the daily work.
+* `planned_date` is an intentional daily commitment, not a deadline. Main retains open leaf items with a past or current planned date across day changes. Unscheduled items without a planned date remain outside Main unless overdue or scheduled today. An explicit future `planned_date` keeps an item out of Main until that date unless it is overdue or scheduled today. Later membership continues to take precedence unless the item has a work block today. Projects never get a `planned_date`; their scheduled steps do the daily work.
 
 ## Pages
 

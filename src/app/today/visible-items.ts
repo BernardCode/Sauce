@@ -13,6 +13,6 @@ export function isVisibleToday(
     return true;
   }
 
-  // A schedule block expiring must not make unfinished work disappear.
-  return item.planned_date === null || item.planned_date < today;
+  // Carry explicit daily commitments forward without exposing the whole backlog.
+  return item.planned_date !== null && item.planned_date < today;
 }
