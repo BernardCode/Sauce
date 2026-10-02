@@ -4,12 +4,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const serviceMocks = vi.hoisted(() => ({
-  addPlannerItem: vi.fn(),
   applyPlan: vi.fn(async () => ({ written: 1, rejected: [] })),
   archivePlannerItem: vi.fn(async () => ({ archived: true })),
   completePlannerItem: vi.fn(async () => ({ completed: true })),
   createPlannerNote: vi.fn(),
-  decomposeProject: vi.fn(async () => ({ written: 1, rejected: [] })),
   getPlanningContext: vi.fn(),
   logPlannerHabit: vi.fn(),
   updatePlannerItem: vi.fn(),
@@ -46,12 +44,26 @@ afterEach(async () => {
   serviceMocks.applyPlan.mockClear();
   serviceMocks.archivePlannerItem.mockClear();
   serviceMocks.completePlannerItem.mockClear();
-  serviceMocks.decomposeProject.mockClear();
   await Promise.all(clients.splice(0).map((client) => client.close()));
   await Promise.all(servers.splice(0).map((server) => server.close()));
 });
 
 describe("MCP planner tool registration", () => {
+  it.each(["add_item", "decompose_project"])("rejects removed task creation tool %s", async (name) => {
+    const client = await connectPlanner();
+    const listed = await client.listTools();
+    expect(listed.tools.map((tool) => tool.name)).not.toContain(name);
+    const result = await client.callTool({
+      name,
+      arguments: {
+        title: "Do not create this task",
+        project_id: itemId,
+        steps: [{ title: "Do not create this step", est_minutes: 30, step_order: 0, suggested_due: "2026-09-30T23:00:00.000Z" }],
+      },
+    });
+    expect(result.isError).toBe(true);
+  });
+
   it("advertises every nested apply_plan block field", async () => {
     const client = await connectPlanner();
     const listed = await client.listTools();
@@ -98,55 +110,6 @@ describe("MCP planner tool registration", () => {
     expect(serviceMocks.applyPlan).toHaveBeenCalledWith(userId, input);
   });
 
-  it("advertises every nested decompose_project step field", async () => {
-    const client = await connectPlanner();
-    const listed = await client.listTools();
-    const tool = listed.tools.find(
-      (candidate) => candidate.name === "decompose_project",
-    );
-
-    expect(tool?.inputSchema).toMatchObject({
-      properties: {
-        steps: {
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              est_minutes: { type: "integer" },
-              step_order: { type: "integer" },
-              suggested_due: { type: "string" },
-            },
-            required: [
-              "title",
-              "est_minutes",
-              "step_order",
-              "suggested_due",
-            ],
-          },
-        },
-      },
-    });
-
-    const input = {
-      project_id: itemId,
-      steps: [
-        {
-          title: "Review chapter notes",
-          est_minutes: 45,
-          step_order: 0,
-          suggested_due: "2026-07-22T23:00:00.000Z",
-        },
-      ],
-    };
-    const result = await client.callTool({
-      name: "decompose_project",
-      arguments: input,
-    });
-
-    expect(result.isError).not.toBe(true);
-    expect(serviceMocks.decomposeProject).toHaveBeenCalledWith(userId, input);
-  });
-
   it("exposes item completion and soft archiving", async () => {
     const client = await connectPlanner();
     const listed = await client.listTools();
@@ -189,20 +152,11 @@ describe("MCP planner tool registration", () => {
     expect(serviceMocks.archivePlannerItem).toHaveBeenCalledWith(userId, input);
   });
 
-  it("exposes project, category, list, planned date, and task editing fields", async () => {
+  it("exposes the existing task editing fields", async () => {
     const client = await connectPlanner();
     const listed = await client.listTools();
-    const addTool = listed.tools.find((tool) => tool.name === "add_item");
     const updateTool = listed.tools.find((tool) => tool.name === "update_item");
 
-    expect(addTool?.inputSchema).toMatchObject({
-      properties: {
-        category: { type: "string" },
-        list: { type: "string", enum: ["main", "later"] },
-        planned_date: { type: "string", format: "date" },
-        is_project: { type: "boolean" },
-      },
-    });
     expect(updateTool?.inputSchema).toMatchObject({
       properties: {
         item_id: { type: "string", format: "uuid" },

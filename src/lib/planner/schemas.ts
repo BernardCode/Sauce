@@ -69,52 +69,6 @@ const explicitUserConfirmationSchema = z
     "True only when the user explicitly requested this exact mutation in the current conversation",
   );
 
-export const addItemInputSchema = z
-  .object({
-    title: z.string().trim().min(1).max(500),
-    description: z.string().trim().max(20_000).optional(),
-    source_url: z
-      .string()
-      .trim()
-      .max(2_048)
-      .refine(isHttpUrl, "source_url must use http or https")
-      .optional(),
-    due_at: z.iso.datetime({ offset: true }).optional(),
-    planned_date: z.iso.date().optional(),
-    est_minutes: z.number().int().positive().max(10_000).optional(),
-    category: categorySchema.optional(),
-    course: categorySchema.optional(),
-    energy: z.enum(["low", "medium", "high"]).default("medium"),
-    list: z
-      .enum(["main", "later"])
-      .default("main")
-      .describe("Put a leaf task in Main or the personal Later list"),
-    is_project: z.boolean().default(false),
-  })
-  .superRefine((value, context) => {
-    if (value.category && value.course && value.category !== value.course) {
-      context.addIssue({
-        code: "custom",
-        path: ["category"],
-        message: "category and course must match when both are provided",
-      });
-    }
-    if (value.is_project && value.planned_date) {
-      context.addIssue({
-        code: "custom",
-        path: ["planned_date"],
-        message: "projects belong in Projects, not on one Today list",
-      });
-    }
-    if (value.is_project && value.list === "later") {
-      context.addIssue({
-        code: "custom",
-        path: ["list"],
-        message: "projects belong in Projects, not in Later",
-      });
-    }
-  });
-
 export const updateItemInputSchema = z
   .object({
     item_id: z.uuid(),
@@ -182,36 +136,6 @@ export const updateNoteInputSchema = z
 export const logHabitInputSchema = z.object({
   habit_id: z.uuid(),
   date: z.iso.date(),
-});
-
-export const projectStepSchema = z.object({
-  title: z.string().trim().min(1).max(500).describe("Concrete step title"),
-  est_minutes: z
-    .number()
-    .int()
-    .positive()
-    .max(10_000)
-    .describe("Estimated whole minutes for this step"),
-  step_order: z
-    .number()
-    .int()
-    .nonnegative()
-    .max(1_000)
-    .describe("Zero-based step order"),
-  suggested_due: z
-    .iso.datetime({ offset: true })
-    .describe("Target completion as an ISO 8601 timestamp with an offset"),
-});
-
-export const decomposeProjectInputSchema = z.object({
-  project_id: z.uuid(),
-  steps: z.array(projectStepSchema).min(1).max(100),
-});
-
-// Keep per-step rejection behavior after the MCP transport validates shape.
-export const decomposeProjectServiceInputSchema = z.object({
-  project_id: z.uuid(),
-  steps: z.array(z.unknown()).min(1).max(100),
 });
 
 export const workingHoursSchema = z

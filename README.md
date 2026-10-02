@@ -7,11 +7,11 @@ The app includes:
 * Today with quick-add, project cards, a draggable day rail, work timer, next block, habits, project risk, and an autosaving daily note
 * Month, week, and day calendar views with read-only Google events and editable work blocks
 * Claude planning through a narrow authenticated MCP server
-* Project decomposition, editable ordered steps, progress, timeline, and learned course estimates
+* Manually added projects and ordered steps, progress, timeline, and learned course estimates
 * A 30-day habit grid with streak and completion statistics
 * Saved links with fetched titles and favicons
 * Searchable markdown notes with pinning and live preview
-* Encrypted Canvas, Schoology, or other ICS assignment feeds
+* Manual task entry through quick-add and the command menu
 * A course-aware Assignments center with bulk paste, energy matching, filters, and one-click progress
 * A distraction-free Do Now screen and missed-work recovery choices
 * An SAT studio with score goals, weekly targets, practice history, and spaced mistake review
@@ -83,9 +83,7 @@ https://<your-domain>/api/mcp
 It exposes only these tools:
 
 * `get_planning_context`
-* `decompose_project`
 * `apply_plan`
-* `add_item`
 * `update_item`
 * `complete_item`
 * `archive_item`
@@ -93,23 +91,17 @@ It exposes only these tools:
 * `update_note`
 * `log_habit`
 
-There is no SQL tool and no general data API. Supabase OAuth authenticates the connector, and every tool call is restricted to `MCP_USER_ID`. The secret path remains available only as a legacy testing fallback.
+Tasks, projects, and project steps are created manually in the dashboard. The agent can schedule existing work, but cannot add tasks or generate steps. There is no SQL tool and no general data API. Supabase OAuth authenticates the connector, and every tool call is restricted to `MCP_USER_ID`. The secret path remains available only as a legacy testing fallback.
 
 The daily planner automation runs in Codex at 4:50am local time. [docs/claude-scheduled-task.md](docs/claude-scheduled-task.md) remains available if you want to connect Claude instead. The planner task does not run through Vercel Cron. Vercel Cron is used only for source sync.
 
-## Calendar and school feeds
+## Calendar and manual tasks
 
 Signing in requests read-only Google Calendar access. The dashboard mirrors events and never writes back to Google.
 
-Add a Canvas, Schoology, or other ICS URL from Settings. The URL is encrypted with AES-256-GCM before storage. A successful sync upserts assignments by `(source_id, external_id)`. Only after a clean fetch and parse does the app archive assignments that disappeared upstream. A fetch or parse failure leaves existing assignments untouched.
+Task creation is manual. Schoology and other ICS assignment imports are disabled, including existing feeds, background sync, and page-load sync. Settings no longer offers ICS feed connection, sync, or enable controls. Previously imported tasks remain available; this change does not delete them. The agent's `add_item` and `decompose_project` tools have been removed, along with automatic starter steps. Use quick-add, the command menu, or the project's Add step form to enter work.
 
-FUHSD does not provide student Schoology API keys. Connect Schoology with its private iCal subscription instead:
-
-1. Sign in at `https://fuhsd.schoology.com/`.
-2. Open your name, select Settings, then find Share Your Schoology Calendar.
-3. Enable sharing, copy the iCal link, and paste it into the Schoology section in sauce Settings.
-
-Schoology may copy the subscription as a `webcal://` link. sauce converts that transport to HTTPS before validating, encrypting, and syncing it. The source feed stays read-only and only contains Schoology calendar entries with dates. A title, class, or due-date correction made in sauce is a local override, is preserved during later syncs, and is never written back to Schoology.
+The saved planner prompt only schedules existing work. It must not discover or import new tasks from mail, files, chats, or calendars.
 
 On Vercel Hobby, source sync runs once each day through `vercel.json`. Today and Calendar also sync on page load when a source is more than 15 minutes stale, so normal dashboard use stays current. Vercel Pro can restore the spec's 30-minute background schedule by changing the cron expression to `*/30 * * * *`.
 

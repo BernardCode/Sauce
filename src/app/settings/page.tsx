@@ -7,7 +7,6 @@ import { PlannerSettingsForm } from "./planner-settings-form";
 import { SourceControls } from "./source-controls";
 import { NotificationPreferences } from "./notification-preferences";
 import { CourseDefaults } from "./course-defaults";
-import { IcsSourceForm } from "./ics-source-form";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -90,7 +89,9 @@ export default async function SettingsPage() {
             </form>
           </div>
           <div className="mt-3 flex flex-col gap-2">
-            <IcsSourceForm />
+            <p className="text-sm text-zinc-500">
+              Add tasks and project steps manually. Schoology imports and agent task creation are off.
+            </p>
             {(sources ?? []).map((source) => (
               <article
                 key={source.id}
@@ -100,17 +101,17 @@ export default async function SettingsPage() {
                   <h3 className="text-sm font-medium">{source.label}</h3>
                   <p className="text-xs text-zinc-500">
                     {source.kind === "ics"
-                      ? `${itemCounts.get(source.id) ?? 0} assignments`
+                      ? `${itemCounts.get(source.id) ?? 0} previously imported assignments. Importing is off`
                       : `${eventCounts.get(source.id) ?? 0} events`}
-                    {source.last_synced_at
+                    {source.kind !== "ics" && source.last_synced_at
                       ? `, synced ${new Date(source.last_synced_at).toLocaleString()}`
-                      : ", not synced yet"}
+                      : source.kind === "ics" ? "" : ", not synced yet"}
                   </p>
-                  {source.last_error ? (
+                  {source.kind !== "ics" && source.last_error ? (
                     <p className="mt-1 text-xs text-red-600">{source.last_error}</p>
                   ) : null}
                 </div>
-                <SourceControls id={source.id} enabled={source.enabled} />
+                <SourceControls id={source.id} enabled={source.enabled} canSync={source.kind === "gcal"} />
               </article>
             ))}
             {(sources ?? []).length === 0 ? (

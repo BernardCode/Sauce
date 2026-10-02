@@ -6,9 +6,10 @@ import { deleteSource, setSourceEnabled, syncSource } from "@/app/calendar/actio
 type Props = {
   id: string;
   enabled: boolean;
+  canSync: boolean;
 };
 
-export function SourceControls({ id, enabled }: Props) {
+export function SourceControls({ id, enabled, canSync }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -23,22 +24,26 @@ export function SourceControls({ id, enabled }: Props) {
   return (
     <div className="motion-source-controls flex flex-col items-end gap-1" data-pending={isPending}>
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => run(() => syncSource({ id }))}
-          disabled={isPending || !enabled}
-          className="motion-sync text-sm text-zinc-500 disabled:opacity-40"
-        >
-          Sync now
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => setSourceEnabled({ id, enabled: !enabled }))}
-          disabled={isPending}
-          className="text-sm text-zinc-500 disabled:opacity-40"
-        >
-          {enabled ? "Disable" : "Enable"}
-        </button>
+        {canSync ? (
+          <>
+            <button
+              type="button"
+              onClick={() => run(() => syncSource({ id }))}
+              disabled={isPending || !enabled}
+              className="motion-sync text-sm text-zinc-500 disabled:opacity-40"
+            >
+              Sync now
+            </button>
+            <button
+              type="button"
+              onClick={() => run(() => setSourceEnabled({ id, enabled: !enabled }))}
+              disabled={isPending}
+              className="text-sm text-zinc-500 disabled:opacity-40"
+            >
+              {enabled ? "Disable" : "Enable"}
+            </button>
+          </>
+        ) : null}
         <button
           type="button"
           onClick={() => run(() => deleteSource({ id }))}

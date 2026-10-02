@@ -3,23 +3,19 @@ import "server-only";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
-  addPlannerItem,
   applyPlan,
   archivePlannerItem,
   completePlannerItem,
   createPlannerNote,
-  decomposeProject,
   getPlanningContext,
   logPlannerHabit,
   updatePlannerItem,
   updatePlannerNote,
 } from "@/lib/planner/service";
 import {
-  addItemInputSchema,
   applyPlanInputSchema,
   createNoteInputSchema,
   dateRangeSchema,
-  decomposeProjectInputSchema,
   itemLifecycleInputSchema,
   logHabitInputSchema,
   updateItemInputSchema,
@@ -44,7 +40,7 @@ export function registerPlannerTools(server: McpServer, userId: string) {
     {
       title: "Get planning context",
       description:
-        "Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, class meeting days, academic planning rules, school dismissal windows, postponed-work status, and planner runs for a date horizon. Dated active leaf items include scheduling_guidance with a completion target, latest necessary start date, and session budget. In-class assessments are identified separately and must not receive work blocks.",
+        "Tasks, projects, and project steps are added manually by the user. Never create or import work. Load future open work, calendar events, every scheduled block, the protected manual or locked block subset, habits, settings, class meeting days, academic planning rules, school dismissal windows, postponed-work status, and planner runs for a date horizon. Dated active leaf items include scheduling_guidance with a completion target, latest necessary start date, and session budget. In-class assessments are identified separately and must not receive work blocks.",
       inputSchema: optionalDateRangeSchema.shape,
     },
     async (input) => {
@@ -61,17 +57,6 @@ export function registerPlannerTools(server: McpServer, userId: string) {
   );
 
   server.registerTool(
-    "decompose_project",
-    {
-      title: "Decompose project",
-      description:
-        "Replace untouched AI steps for one project while preserving manual or worked steps.",
-      inputSchema: decomposeProjectInputSchema.shape,
-    },
-    async (input) => asTextResult(await decomposeProject(userId, input)),
-  );
-
-  server.registerTool(
     "apply_plan",
     {
       title: "Apply plan",
@@ -80,17 +65,6 @@ export function registerPlannerTools(server: McpServer, userId: string) {
       inputSchema: applyPlanInputSchema.shape,
     },
     async (input) => asTextResult(await applyPlan(userId, input)),
-  );
-
-  server.registerTool(
-    "add_item",
-    {
-      title: "Add item",
-      description:
-        "Add one task or long-term project. Use is_project for multi-session outcomes, category for a class or workstream, planned_date only for a small task intentionally assigned to that day's Today list, and list set to later for a low-pressure reminder or task that should stay out of Main until it is timely.",
-      inputSchema: addItemInputSchema.shape,
-    },
-    async (input) => asTextResult(await addPlannerItem(userId, input)),
   );
 
   server.registerTool(

@@ -210,7 +210,7 @@ export default async function TodayPage() {
   const staleSources = (sources ?? []).filter(
     (source) =>
       source.enabled &&
-      ["gcal", "ics"].includes(source.kind) &&
+      source.kind === "gcal" &&
       (!source.last_synced_at ||
         new Date(source.last_synced_at).getTime() < staleCutoff),
   );

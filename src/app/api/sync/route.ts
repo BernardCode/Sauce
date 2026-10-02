@@ -25,7 +25,8 @@ export async function GET(request: Request) {
   const { data: sources, error } = await admin
     .from("sources")
     .select("id, kind")
-    .eq("enabled", true);
+    .eq("enabled", true)
+    .eq("kind", "gcal");
   if (error) {
     return Response.json({ error: "Could not load sources." }, { status: 500 });
   }
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
   let synced = 0;
   let failed = 0;
   for (const source of sources ?? []) {
-    if (!["gcal", "ics"].includes(source.kind)) continue;
+    if (source.kind !== "gcal") continue;
     const result = await syncCalendarSource(source);
     if (result.ok) synced += 1;
     else failed += 1;

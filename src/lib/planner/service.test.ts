@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const adminMock = vi.hoisted(() => ({
   from: vi.fn(),
-  insert: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -10,7 +9,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => adminMock,
 }));
 
-import { addPlannerItem, getPlanningContext } from "./service";
+import { getPlanningContext } from "./service";
 
 type QueryResult = {
   data: unknown;
@@ -21,10 +20,6 @@ function query(result: QueryResult) {
   let current = result;
   const builder = {
     select: vi.fn(() => builder),
-    insert: vi.fn((value: unknown) => {
-      adminMock.insert(value);
-      return builder;
-    }),
     eq: vi.fn(() => builder),
     lt: vi.fn(() => builder),
     gt: vi.fn(() => builder),
@@ -54,7 +49,6 @@ function query(result: QueryResult) {
 describe("getPlanningContext", () => {
   beforeEach(() => {
     adminMock.from.mockReset();
-    adminMock.insert.mockReset();
     adminMock.from.mockImplementation((table: string) => {
       const results: Record<string, QueryResult> = {
         users: {
@@ -200,33 +194,5 @@ describe("getPlanningContext", () => {
     });
   });
 
-  it("marks tasks added through the planner as AI-originated", async () => {
-    adminMock.from.mockImplementation(() =>
-      query({
-        data: {
-          id: "00000000-0000-4000-8000-000000000020",
-          title: "Draft history outline",
-          description: null,
-          due_at: null,
-          planned_date: null,
-          est_minutes: null,
-          course: null,
-          energy: "medium",
-          is_project: false,
-        },
-        error: null,
-      }),
-    );
 
-    await addPlannerItem("00000000-0000-4000-8000-000000000001", {
-      title: "Draft history outline",
-    });
-
-    expect(adminMock.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Draft history outline",
-        origin: "ai",
-      }),
-    );
-  });
 });

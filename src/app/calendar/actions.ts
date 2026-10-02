@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { saveIcsSource } from "@/lib/calendar/ics";
 import { syncCalendarSource } from "@/lib/calendar/sync-source";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,11 +20,6 @@ const manualBlockSchema = z
 
 const sourceIdSchema = z.object({ id: z.uuid() });
 const sourceEnabledSchema = sourceIdSchema.extend({ enabled: z.boolean() });
-const icsSourceSchema = z.object({
-  label: z.string().trim().min(1).max(100),
-  url: z.string().trim().min(1).max(4_000),
-});
-
 type ActionResult = { error: string | null };
 
 type ManualBlockResult = ActionResult & {
@@ -111,21 +105,6 @@ export async function syncSource(input: unknown): Promise<ActionResult> {
   return result.ok ? { error: null } : { error: result.error };
 }
 
-export async function addIcsSource(input: unknown): Promise<ActionResult> {
-  const parsed = icsSourceSchema.safeParse(input);
-  if (!parsed.success) return { error: "Enter a valid feed label and URL." };
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "You are signed out. Refresh and sign in again." };
-  const saved = await saveIcsSource({ userId: user.id, ...parsed.data });
-  if (!saved.ok) return { error: saved.error };
-  const synced = await syncCalendarSource({ id: saved.id, kind: "ics" });
-  revalidatePath("/calendar");
-  revalidatePath("/settings");
-  revalidatePath("/today");
-  return synced.ok ? { error: null } : { error: synced.error };
-}
-
 export async function deleteSource(input: unknown): Promise<ActionResult> {
   const parsed = sourceIdSchema.safeParse(input);
   if (!parsed.success) return { error: "That source id is not valid." };
@@ -174,6 +153,7 @@ export async function setSourceEnabled(input: unknown): Promise<ActionResult> {
     .update({ enabled: parsed.data.enabled })
     .eq("id", parsed.data.id)
     .eq("user_id", user.id)
+    .eq("kind", "gcal")
     .select("id")
     .maybeSingle();
   if (error || !data) return { error: "Could not update that source." };

@@ -1,15 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  addItemInputSchema,
   applyPlanInputSchema,
   applyPlanServiceInputSchema,
   blockProposalSchema,
   createNoteInputSchema,
-  decomposeProjectInputSchema,
-  decomposeProjectServiceInputSchema,
   itemLifecycleInputSchema,
   plannerPreferencesSchema,
-  projectStepSchema,
   updateItemInputSchema,
   updateNoteInputSchema,
   workingHoursSchema,
@@ -66,14 +62,6 @@ describe("planner schemas", () => {
     expect(applyPlanServiceInputSchema.safeParse(malformedPlan).success).toBe(
       true,
     );
-
-    const malformedProject = { project_id: validBlock.item_id, steps: [{}] };
-    expect(
-      decomposeProjectInputSchema.safeParse(malformedProject).success,
-    ).toBe(false);
-    expect(
-      decomposeProjectServiceInputSchema.safeParse(malformedProject).success,
-    ).toBe(true);
   });
 
   it("rejects inverted working hours and blocked windows", () => {
@@ -95,80 +83,17 @@ describe("planner schemas", () => {
     });
   });
 
-  it("validates project steps", () => {
-    expect(
-      projectStepSchema.safeParse({
-        title: "Draft the introduction",
-        est_minutes: 45,
-        step_order: 0,
-        suggested_due: "2026-07-20T23:59:00.000Z",
-      }).success,
-    ).toBe(true);
-    expect(
-      projectStepSchema.safeParse({
-        title: "",
-        est_minutes: 0,
-        step_order: -1,
-        suggested_due: "later",
-      }).success,
-    ).toBe(false);
-  });
-
-  it("accepts task context and only permits web source links", () => {
-    expect(
-      addItemInputSchema.safeParse({
-        title: "Draft Common App essay",
-        description: "Revise the opening using the counselor feedback.",
-        source_url: "https://docs.google.com/document/d/example",
-      }).success,
-    ).toBe(true);
-    expect(
-      addItemInputSchema.safeParse({
-        title: "Unsafe source",
-        source_url: "javascript:alert(1)",
-      }).success,
-    ).toBe(false);
-  });
-
-  it("accepts personal Later tasks and keeps projects out of Later", () => {
-    expect(
-      addItemInputSchema.safeParse({
-        title: "Remember scholarship portal",
-        list: "later",
-      }).success,
-    ).toBe(true);
-    expect(
-      addItemInputSchema.safeParse({
-        title: "College applications",
-        is_project: true,
-        list: "later",
-      }).success,
-    ).toBe(false);
-  });
-
-  it("keeps projects out of Today and accepts category labels", () => {
-    expect(
-      addItemInputSchema.safeParse({
-        title: "Rice application",
-        is_project: true,
-        category: "Rice Application",
-      }).success,
-    ).toBe(true);
-    expect(
-      addItemInputSchema.safeParse({
-        title: "Rice application",
-        is_project: true,
-        planned_date: "2026-07-22",
-      }).success,
-    ).toBe(false);
-    expect(
-      updateItemInputSchema.safeParse({
-        item_id: "00000000-0000-4000-8000-000000000001",
-        confirmed_by_user: true,
-        category: "Rice Essays",
-        planned_date: "2026-07-23",
-      }).success,
-    ).toBe(true);
+  it("validates source links when updating existing task context", () => {
+    const input = {
+      item_id: "00000000-0000-4000-8000-000000000001",
+      confirmed_by_user: true,
+      source_url: "https://docs.google.com/document/d/example",
+    };
+    expect(updateItemInputSchema.safeParse(input).success).toBe(true);
+    expect(updateItemInputSchema.safeParse({
+      ...input,
+      source_url: "javascript:alert(1)",
+    }).success).toBe(false);
   });
 
   it("requires update tools to change at least one field", () => {

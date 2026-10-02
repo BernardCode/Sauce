@@ -81,46 +81,38 @@ Confirm that Claude lists these tools:
 
 * `get_planning_context`
 * `apply_plan`
-* `add_item`
 * `update_item`
 * `complete_item`
 * `archive_item`
 * `create_note`
 * `update_note`
 * `log_habit`
-* `decompose_project`
 
-## 4. Create the scheduled task
+## 4. Create or update the scheduled task
+
+Update an existing planner task to use this prompt before its next run. Do not create a duplicate task.
 
 1. Open **Scheduled** in Claude's left sidebar.
 2. Choose **New task**.
 3. Choose **Set up manually**.
 4. Name the task `Plan sauce`.
 5. Set it to run every day at `4:50 AM` in the local timezone.
-6. Give the task access to `sauce`, Gmail, Google Drive, and Google Calendar. Allow Claude chat memory or search if the scheduled-task interface offers it.
+6. Give the task access to `sauce`. Sauce already includes the connected calendar events needed for scheduling.
 7. Use the approval mode that permits the trusted sauce tools to run without asking each morning.
 8. Paste this prompt:
 
 ```text
-Plan my next 7 days. Sauce is the system of record, but do not assume that an empty Sauce dashboard means I have no work.
+Plan my next 7 days using the tasks and project steps already in Sauce. I add all tasks manually.
 
-Use every available source: Sauce, Gmail, Google Drive, Google Calendar, and Claude chat history or memory when available.
+1. Call get_planning_context for today through 7 days out. Treat its calendar events as unavailable time.
+2. Never add tasks, projects, or project steps. Do not search Gmail, Google Drive, chats, memory, Schoology, or calendars for missing work. Do not call add_item or decompose_project. An empty task list is valid and does not authorize inventing work.
+3. Leave existing item fields unchanged. Projects without steps need manual steps from me; do not create a starter breakdown. Do not turn suggestions into notes or blocks that stand in for new tasks.
+4. Build the schedule across the horizon using every open leaf item returned by the context, including assignments due after the horizon in the lookahead. Treat `due_at` as the submission cutoff, not an instruction to fill Today early. Use each item's `scheduling_guidance` when present. Keep ordinary work off the schedule until the day before it is due. Never place a block two or more calendar days before its deadline unless the item has more than 180 minutes remaining and one 90-minute session on each later pre-deadline day cannot fit the work. For that rare large-task exception, schedule only the minimum early work needed. Items whose list is `later` should stay there until their urgency is `start_now`, `due_today`, or `overdue`, or until a concrete calendar constraint makes an earlier session necessary. Do not schedule a Later item merely to empty the list. A work block on the current day returns that item to Main automatically. Keep essay and SAT work postponed until the user removes that preference. Schedule every other assignment whose `must_start_by` falls within the horizon. Budget its full `remaining_minutes` across available days through `target_completion_date`, using the recommended number of sessions and keeping sessions between 30 and 90 minutes when the remaining time allows. Spread genuinely large work requiring multiple sessions across multiple days. Use the due date only for emergency spillover, a final review, or submission. If the work cannot fit before its target, start it at the earliest allowed time and report the exact unscheduled minutes as a capacity risk. Honor planner preferences, working hours, blocked windows, Sauce calendar events, and every manual or locked block. Never schedule before school dismissal: 4:00pm on Monday, Tuesday, and Thursday, and 3:15pm on Wednesday and Friday. Give each proposed block a one-sentence reason that names the deadline or timing need. Use a concise, specific block title based on the assignment topic. Remove filler verbs such as Complete, Finish, or Work on. Abbreviate Unit 1 as U1 and similar numbered units the same way. Prefer a known chapter or topic name over a generic unit label. A scheduled block makes its leaf task visible on Today for that date, so do not place project records themselves on Today.
+5. Call apply_plan with scheduled_pass set to true for the full horizon. Use only existing item ids for task work.
+6. Call get_planning_context one final time and confirm every accepted block appears in scheduled_blocks. planned_date controls the Today task list directly, events are calendar commitments, and neither field confirms whether a schedule block was written. Report any accepted block missing from scheduled_blocks as a write verification failure.
+7. Report blocks written, rejected writes and their reasons, deadlines, capacity risks, and projects that need manually added steps.
 
-1. Call get_planning_context for today through 7 days out.
-2. Search available Claude chats and memory for active college applications and essays, SAT study and test dates, dual enrollment coursework, school assignments, exams, projects, appointments, and personal commitments. If chat search is unavailable, report that and continue.
-3. Search Gmail for actionable messages received in the last 30 days and future deadlines in the next 60 days. Search Google Drive for relevant documents updated in the last 60 days. Read Google Calendar for the full planning horizon and treat its events as unavailable time.
-4. Reconcile the sources with existing Sauce items. Do not create duplicates or turn informational material into tasks. Never infer a deadline that is not explicit.
-5. Add each high-confidence action that is not already in Sauce with add_item. Save concise supporting context in description and the original web link in source_url. Assign a concise category such as Systems Design, Digital Security, Essays, Rice Application, or Rice Essays. Use is_project for long-term work that needs multiple sessions. Projects live in Projects and must not receive planned_date. Use list `later` only for low-pressure reminders or useful things to keep in mind that are not current priorities.
-6. Do not call update_item during this unattended run. Existing task titles, details, deadlines, estimates, categories, energy, and planned dates belong to the user and must remain unchanged. If connected evidence suggests a change, include the exact proposed change in the final report for the user to approve later. Feed items remain read-only.
-7. Use create_note for useful research or reference information that is too long for a task description. Use update_note only when you have the real note id and are intentionally revising that note. Do not create a note merely to repeat a task.
-8. For any project with no steps, call decompose_project with ordered steps sized for real work sessions. Give every step an estimate and a target date on or before an explicit project deadline.
-9. Call get_planning_context again after all imports and updates.
-10. Build the schedule across the horizon using every open leaf item returned by the context, including assignments due after the horizon in the lookahead. Treat `due_at` as the submission cutoff, not an instruction to fill Today early. Use each item's `scheduling_guidance` when present. Keep ordinary work off the schedule until the day before it is due. Never place a block two or more calendar days before its deadline unless the item has more than 180 minutes remaining and one 90-minute session on each later pre-deadline day cannot fit the work. For that rare large-task exception, schedule only the minimum early work needed. Items whose list is `later` should stay there until their urgency is `start_now`, `due_today`, or `overdue`, or until a concrete calendar constraint makes an earlier session necessary. Do not schedule a Later item merely to empty the list. A work block on the current day returns that item to Main automatically. Keep essay and SAT work postponed until the user removes that preference. Schedule every other assignment whose `must_start_by` falls within the horizon. Budget its full `remaining_minutes` across available days through `target_completion_date`, using the recommended number of sessions and keeping sessions between 30 and 90 minutes when the remaining time allows. Spread genuinely large work requiring multiple sessions across multiple days. Use the due date only for emergency spillover, a final review, or submission. If the work cannot fit before its target, start it at the earliest allowed time and report the exact unscheduled minutes as a capacity risk. Honor planner preferences, working hours, blocked windows, Google Calendar events, Sauce calendar events, and every manual or locked block. Never schedule before school dismissal: 4:00pm on Monday, Tuesday, and Thursday, and 3:15pm on Wednesday and Friday. Give each proposed block a one-sentence reason that names the deadline or timing need. Use a concise, specific block title based on the assignment topic. Remove filler verbs such as Complete, Finish, or Work on. Abbreviate Unit 1 as U1 and similar numbered units the same way. Prefer a known chapter or topic name over a generic unit label. A scheduled block makes its leaf task visible on Today for that date, so do not place project records themselves on Today.
-11. Call apply_plan with scheduled_pass set to true for the full horizon.
-12. Call get_planning_context one final time and confirm every accepted block appears in scheduled_blocks. planned_date controls the Today task list directly, events are calendar commitments, and neither field confirms whether a schedule block was written. Report any accepted block missing from scheduled_blocks as a write verification failure.
-13. Report the sources searched, unavailable sources, items and notes written, blocks and steps written, every rejected write and its reason, deadlines, and projects whose remaining work does not fit.
-
-Never invent an item id, note id, habit id, deadline, date, event, or commitment. Never claim that an unavailable source was searched. Never call update_item, complete_item, or archive_item during this unattended run, even when a connected source appears to show a change, completion, or cancellation. Report the evidence and the proposed mutation for user review instead. The confirmed_by_user field may only be true after a direct user request in an interactive conversation, which this scheduled run does not have. If a tool rejects data, report the rejection and do not work around its validation.
+Never invent an item id, note id, habit id, deadline, date, event, or commitment. Never call update_item, complete_item, or archive_item during this unattended run. The confirmed_by_user field may only be true after a direct user request in an interactive conversation, which this scheduled run does not have. If a tool rejects data, report the rejection and do not work around its validation.
 ```
 
 ## 5. Test it once

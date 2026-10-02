@@ -170,7 +170,7 @@ export default async function CalendarPage({
   const staleCutoff = staleCutoffMs();
   const staleSources = (sourcesResult.data ?? []).filter(
     (source) =>
-      ["gcal", "ics"].includes(source.kind) &&
+      source.kind === "gcal" &&
       (!source.last_synced_at ||
         new Date(source.last_synced_at).getTime() < staleCutoff),
   );

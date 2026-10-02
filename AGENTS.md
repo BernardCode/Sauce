@@ -11,6 +11,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 Stack, fixed: Next.js App Router, TypeScript strict, React, TailwindCSS, Supabase (Postgres, Google OAuth auth, RLS on every table), Zod at every trust boundary, server actions for mutations, deployed on Vercel. Add task-scoped dependencies when they are necessary, and document them in the handoff.
 
+Task entry:
+
+* The owner enters every task, project, and project step manually. Do not create or import tasks automatically, including from Codex, other agents, Schoology, email, documents, or calendar events.
+* Agents may schedule existing work. Do not restore task creation tools, feed ingestion, or generated project steps unless the owner explicitly changes this preference.
+
 Style:
 
 * Plain, readable code over clever code. Name things for what they are.

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { AppHeader } from "@/app/components/app-header";
 import { createClient } from "@/lib/supabase/server";
 import { StepList, type ProjectStep } from "./step-list";
-import { RebreakdownRequest } from "./rebreakdown-request";
 
 function percent(value: number, total: number): number {
   return total <= 0 ? 0 : Math.min(100, Math.round((value / total) * 100));
@@ -122,7 +121,6 @@ export default async function ProjectPage({
             <h2 className="text-lg font-semibold">Steps</h2>
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-xs text-zinc-500">Drag to reorder.</p>
-              <RebreakdownRequest projectId={project.id} canCreateStarter={rows.length === 0} />
             </div>
           </div>
           <StepList
